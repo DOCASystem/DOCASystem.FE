@@ -24,7 +24,7 @@ const cart = [
 ];
 export default function Header() {
   return (
-    <div>
+    <>
       <div className=" w-[1296px] mx-auto py-6 flex flex-row justify-between items-center">
         <div className="flex gap-6">
           {info.slice(0, 2).map((item) => (
@@ -40,7 +40,7 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="w-[1296px] py-6 flex flex-row justify-between items-center mx-auto">
+      <div className="w-[1296px] py-6 px-10 flex flex-row justify-between items-center mx-auto  bg-white shadow-[0px_16px_12px_0px_rgba(0,0,0,0.03)] rounded-[40px]">
         <LogoDoca />
         <div className="flex gap-6 text-[20px]/[160%] font-[550px] ">
           {nav.map((item) => (
@@ -62,6 +62,6 @@ export default function Header() {
           ))}
         </div>
       </div>
-    </div>
+    </>
   );
 }
