@@ -2,6 +2,7 @@ import Image from "next/image";
 import LogoDoca from "../sections/logo/logo-doca";
 import CartIcon from "../assets/icon-svg/cart-svg";
 import HeartIcon from "../assets/icon-svg/heart-svg";
+import ContentHeaderHome from "./content-header-home";
 
 const info = [
   { id: 1, icon: "/icons/phone.png", text: "+84 847 911 068" },
@@ -25,7 +26,7 @@ const cart = [
 export default function Header() {
   return (
     <>
-      <div className=" w-[1296px] mx-auto py-6 flex flex-row justify-between items-center">
+      <div className=" w-[1300px] mx-auto py-6 flex flex-row justify-between items-center">
         <div className="flex gap-6">
           {info.slice(0, 2).map((item) => (
             <div key={item.id} className="flex items-center gap-2 text-black">
@@ -40,7 +41,7 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="w-[1296px] py-6 px-10 flex flex-row justify-between items-center mx-auto  bg-white shadow-[0px_16px_12px_0px_rgba(0,0,0,0.03)] rounded-[40px]">
+      <div className="w-[1300px]  py-6 px-10 flex flex-row justify-between items-center mx-auto  bg-white shadow-[0px_16px_12px_0px_rgba(0,0,0,0.03)] rounded-[40px]">
         <LogoDoca />
         <div className="flex gap-6 text-[20px]/[160%] font-[550px] ">
           {nav.map((item) => (
@@ -62,6 +63,8 @@ export default function Header() {
           ))}
         </div>
       </div>
+
+      <ContentHeaderHome />
     </>
   );
 }
