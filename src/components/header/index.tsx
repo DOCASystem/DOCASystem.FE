@@ -1,8 +1,9 @@
 import Image from "next/image";
-import LogoDoca from "../sections/logo/logo-doca";
+import LogoDoca from "../common/logo/logo-doca";
 import CartIcon from "../assets/icon-svg/cart-svg";
 import HeartIcon from "../assets/icon-svg/heart-svg";
-import ContentHeaderHome from "./content-header-home";
+import ContentHeaderHome from "../sections/hero-section/content/content-header-home";
+import Link from "next/link";
 
 const info = [
   { id: 1, icon: "/icons/phone.png", text: "+84 847 911 068" },
@@ -45,21 +46,21 @@ export default function Header() {
         <LogoDoca />
         <div className="flex gap-6 text-[20px]/[160%] font-[550px] ">
           {nav.map((item) => (
-            <a
+            <Link
               key={item.id}
               href={item.path}
               className="hover:underline hover:underline-offset-8 hover:text-[#F36] "
             >
               {item.text}
-            </a>
+            </Link>
           ))}
         </div>
 
         <div className="flex gap-6">
           {cart.map((item) => (
-            <a key={item.id} href={item.path} className="hover:text-[#F36]">
+            <Link key={item.id} href={item.path} className="hover:text-[#F36]">
               {item.icon}
-            </a>
+            </Link>
           ))}
         </div>
       </div>

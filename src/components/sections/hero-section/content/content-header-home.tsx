@@ -1,3 +1,4 @@
+import Button from "@/components/common/button/button";
 import Image from "next/image";
 
 export default function ContentHeaderHome() {
@@ -12,9 +13,7 @@ export default function ContentHeaderHome() {
             Để một con vật cảm thấy an toàn và hạnh phúc, tình yêu thương và sẻ
             chia là điều vô cùng quan trọng.
           </p>
-          <div className="w-[172px] h-[60px] px-10 py-[17px] text-[20px] text-white font-medium bg-[#F36] rounded-xl">
-            Gửi Tặng
-          </div>
+          <Button>Gửi tặng</Button>
         </div>
         <div className="relative w-[800px] h-[500px]">
           <Image
@@ -24,6 +23,7 @@ export default function ContentHeaderHome() {
             height={600}
             className="absolute top-0 left-0 w-full h-full"
           />
+
           <Image
             src="/images/pet-love.png"
             alt="Pet love"
