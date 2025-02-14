@@ -2,7 +2,6 @@ import Image from "next/image";
 import LogoDoca from "../common/logo/logo-doca";
 import CartIcon from "../assets/icon-svg/cart-svg";
 import HeartIcon from "../assets/icon-svg/heart-svg";
-import ContentHeaderHome from "../sections/hero-section/content/content-header-home";
 import Link from "next/link";
 
 const info = [
@@ -12,9 +11,9 @@ const info = [
 ];
 
 const nav = [
-  { id: 1, text: "Trang chủ", path: "/#!" },
-  { id: 2, text: "Sản phẩm", path: "/#!" },
-  { id: 3, text: "Blog", path: "/#!" },
+  { id: 1, text: "Trang chủ", path: "/home" },
+  { id: 2, text: "Sản phẩm", path: "/shop" },
+  { id: 3, text: "Blog", path: "/blog" },
   { id: 4, text: "Dịch vụ", path: "/#!" },
   { id: 5, text: "Về chúng tôi", path: "/#!" },
   { id: 6, text: "Liên hệ", path: "/#!" },
@@ -64,8 +63,6 @@ export default function Header() {
           ))}
         </div>
       </div>
-
-      <ContentHeaderHome />
     </>
   );
 }

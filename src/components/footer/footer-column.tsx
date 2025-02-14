@@ -5,7 +5,7 @@ interface FooterColumnProps {
 
 export default function FooterColumn({ title, children }: FooterColumnProps) {
   return (
-    <div className="flex flex-col mb-10 min-w-40 gap-2 ">
+    <div className="flex flex-col min-w-40 gap-5 ">
       <h3 className=" text-base font-semibold">{title}</h3>
       {children}
     </div>
