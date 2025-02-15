@@ -14,9 +14,9 @@ const nav = [
   { id: 1, text: "Trang chủ", path: "/home" },
   { id: 2, text: "Sản phẩm", path: "/shop" },
   { id: 3, text: "Blog", path: "/blog" },
-  { id: 4, text: "Dịch vụ", path: "/#!" },
-  { id: 5, text: "Về chúng tôi", path: "/#!" },
-  { id: 6, text: "Liên hệ", path: "/#!" },
+  { id: 4, text: "Dịch vụ", path: "/service" },
+  { id: 5, text: "Về chúng tôi", path: "/about-us" },
+  { id: 6, text: "Liên hệ", path: "/contact" },
 ];
 
 const cart = [
