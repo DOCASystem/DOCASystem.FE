@@ -5,9 +5,9 @@ import HeartIcon from "../assets/icon-svg/heart-svg";
 import Link from "next/link";
 
 const info = [
-  { id: 1, icon: "/icons/phone.png", text: "+84 847 911 068" },
-  { id: 2, icon: "/icons/mail.png", text: "doca.love@gmail.com" },
-  { id: 3, icon: "/icons/map-pin.png", text: "Nhà văn hóa sinh viên" },
+  { id: 1, icon: "/icons/phone.png", text: "083 722 0173" },
+  { id: 2, icon: "/icons/mail.png", text: "alodocafpt@gmail.com" },
+  { id: 3, icon: "/icons/map-pin.png", text: "Quận 9, Việt Nam" },
 ];
 
 const nav = [
