@@ -1,3 +1,9 @@
+import Image from "next/image";
+
 export default function ShopPage() {
-  return <div>Shop Page</div>;
+  return (
+    <div>
+      <Image src="/images/wait-me.webp" alt={""} width={2000} height={1000} />
+    </div>
+  );
 }
