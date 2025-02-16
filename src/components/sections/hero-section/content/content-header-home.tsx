@@ -14,12 +14,13 @@ export default function ContentHeaderHome() {
         </p>
         <Button>Gửi tặng</Button>
       </div>
+
       <div className="relative w-[800px] h-[500px]">
         <Image
           src="/images/bg-header.png"
           alt="Header Home"
-          width={700}
-          height={600}
+          width={500}
+          height={500}
           className="absolute top-0 left-0 w-full h-full"
         />
 

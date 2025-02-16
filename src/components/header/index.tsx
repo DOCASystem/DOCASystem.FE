@@ -1,8 +1,11 @@
+"use client"; // Quan trọng khi dùng hooks trong App Router
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import LogoDoca from "../common/logo/logo-doca";
 import CartIcon from "../assets/icon-svg/cart-svg";
 import HeartIcon from "../assets/icon-svg/heart-svg";
-import Link from "next/link";
 
 const info = [
   { id: 1, icon: "/icons/phone.png", text: "083 722 0173" },
@@ -23,10 +26,13 @@ const cart = [
   { id: 1, icon: <HeartIcon />, text: "Yêu thích", path: "/#!" },
   { id: 2, icon: <CartIcon />, text: "Giỏ hàng", path: "/#!" },
 ];
+
 export default function Header() {
+  const pathname = usePathname();
+
   return (
     <>
-      <div className=" w-[1300px] mx-auto py-6 flex flex-row justify-between items-center">
+      <div className="w-[1300px] mx-auto py-6 flex flex-row justify-between items-center">
         <div className="flex gap-6">
           {info.slice(0, 2).map((item) => (
             <div key={item.id} className="flex items-center gap-2 text-black">
@@ -41,18 +47,23 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="w-[1300px]  py-6 px-10 flex flex-row justify-between items-center mx-auto  bg-white shadow-[0px_16px_12px_0px_rgba(0,0,0,0.03)] rounded-[40px]">
+      <div className="w-[1300px] py-6 px-10 flex flex-row justify-between items-center mx-auto bg-white shadow-[0px_16px_12px_0px_rgba(0,0,0,0.03)] rounded-[40px]">
         <LogoDoca />
         <div className="flex gap-6 text-[20px]/[160%] font-[550px] ">
-          {nav.map((item) => (
-            <Link
-              key={item.id}
-              href={item.path}
-              className="hover:underline hover:underline-offset-8 hover:text-pink-doca "
-            >
-              {item.text}
-            </Link>
-          ))}
+          {nav.map((item) => {
+            const isActive = pathname === item.path;
+            return (
+              <Link
+                key={item.id}
+                href={item.path}
+                className={`${
+                  isActive ? "text-pink-doca underline underline-offset-8" : ""
+                } hover:underline hover:underline-offset-8 hover:text-pink-doca`}
+              >
+                {item.text}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="flex gap-6">
