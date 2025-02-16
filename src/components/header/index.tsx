@@ -48,7 +48,7 @@ export default function Header() {
             <Link
               key={item.id}
               href={item.path}
-              className="hover:underline hover:underline-offset-8 hover:text-[#F36] "
+              className="hover:underline hover:underline-offset-8 hover:text-pink-doca "
             >
               {item.text}
             </Link>
@@ -57,7 +57,11 @@ export default function Header() {
 
         <div className="flex gap-6">
           {cart.map((item) => (
-            <Link key={item.id} href={item.path} className="hover:text-[#F36]">
+            <Link
+              key={item.id}
+              href={item.path}
+              className="hover:text-pink-doca"
+            >
               {item.icon}
             </Link>
           ))}
