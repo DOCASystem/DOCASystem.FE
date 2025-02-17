@@ -5,7 +5,7 @@ import FooterLink from "./footer-link";
 
 export default function Footer() {
   return (
-    <footer className="flex flex-row justify-between gap-5 p-10 border-t border-gray-300 ">
+    <footer className="flex flex-row justify-between gap-5 p-10 border-t border-gray-300 bg-gray-100">
       <div className="flex flex-col w-[349px] gap-7">
         <LogoDoca />
         <p>Hành trình mang yêu thương cho những mảnh đời “nhỏ bé”</p>

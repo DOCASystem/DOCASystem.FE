@@ -2,10 +2,10 @@ import Image from "next/image";
 
 export default function ContentAboutUs() {
   return (
-    <div className="w-[1200px] flex flex-row justify-between items-center gap-1 px-10">
+    <div className="w-[1200px] flex flex-row justify-between items-center gap-1 mx-auto">
       <div className="w-[456px] flex flex-col gap-7 pt-2">
         <p className="text-[32px] font-semibold">
-          Tình yêu không mua được, nhưng có thể nhận từ thú cưng.
+          Tình yêu không mua được, nhưng có thể nhận được từ thú cưng.
         </p>
         <p className="text-[16px]/[160%]">
           Sự gắn bó với chó mèo không phải bằng tiền bạc, mà bằng tình cảm chân

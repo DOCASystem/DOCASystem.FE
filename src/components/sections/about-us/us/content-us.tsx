@@ -28,7 +28,7 @@ const saigon = [
 export default function ContentUs() {
   return (
     <>
-      <div className="w-[1200px] my-[70px] flex flex-col gap-10 pt-2 ">
+      <div className="w-[1200px] my-[70px] flex flex-col gap-10 pt-2 mx-auto">
         <p className="text-[30px]/[120%] font-semibold">Về tổ chức chúng tôi</p>
 
         <div className="flex flex-row gap-[110px]">

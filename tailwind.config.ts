@@ -25,6 +25,7 @@ const config: Config = {
         background: "var(--background)",
         foreground: "var(--foreground)",
         "pink-doca": "#F36",
+        "gray-100": "#F8F9FA",
       },
     },
   },

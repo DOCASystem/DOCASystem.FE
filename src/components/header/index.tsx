@@ -17,9 +17,9 @@ const nav = [
   { id: 1, text: "Trang chủ", path: "/home" },
   { id: 2, text: "Sản phẩm", path: "/shop" },
   { id: 3, text: "Blog", path: "/blog" },
-  { id: 4, text: "Dịch vụ", path: "/service" },
-  { id: 5, text: "Về chúng tôi", path: "/about-us" },
-  { id: 6, text: "Liên hệ", path: "/contact" },
+  // { id: 4, text: "Dịch vụ", path: "/service" },
+  { id: 4, text: "Về chúng tôi", path: "/about-us" },
+  { id: 5, text: "Liên hệ", path: "/contact" },
 ];
 
 const cart = [
@@ -31,7 +31,7 @@ export default function Header() {
   const pathname = usePathname();
 
   return (
-    <>
+    <div className="bg-gray-100 py-6">
       <div className="w-[1300px] mx-auto py-6 flex flex-row justify-between items-center">
         <div className="flex gap-6">
           {info.slice(0, 2).map((item) => (
@@ -78,6 +78,6 @@ export default function Header() {
           ))}
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -1,11 +1,11 @@
 import ContactHeader from "@/components/sections/contact/content-header/contact-header";
-import Image from "next/image";
+import FormContact from "@/components/sections/contact/form-contact/form-contact";
 
 export default function ContactPage() {
   return (
     <div>
       <ContactHeader />
-      <Image src="/images/wait-me.webp" alt={""} width={2000} height={1000} />
+      <FormContact />
     </div>
   );
 }
