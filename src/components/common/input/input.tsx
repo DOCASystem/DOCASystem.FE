@@ -5,6 +5,7 @@ interface InputProps {
   type?: string;
   placeholder: string;
   className?: string;
+  isTextArea?: boolean;
 }
 
 export default function Input({
@@ -12,15 +13,24 @@ export default function Input({
   type,
   placeholder,
   className,
+  isTextArea = false,
 }: InputProps) {
   return (
     <div className="flex flex-col gap-[6px]">
       <label className="text-base font-semibold">{label}</label>
-      <input
-        type={type}
-        placeholder={placeholder}
-        className={cn("px-4 py-[9px]", className)}
-      />
+
+      {isTextArea ? (
+        <textarea
+          placeholder={placeholder}
+          className={cn("px-4 py-4", className)}
+        />
+      ) : (
+        <input
+          type={type}
+          placeholder={placeholder}
+          className={cn("px-4 py-[9px]", className)}
+        />
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export default function ContactHeader() {
   return (
-    <div className="bg-[#F9F9F9]">
+    <div>
       <div className="flex flex-row items-center gap-1 px-10 mx-auto ">
         <div className="w-[456px] flex flex-col gap-7 pt-2">
           <p className="text-[32px] font-semibold">

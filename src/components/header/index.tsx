@@ -31,7 +31,7 @@ export default function Header() {
   const pathname = usePathname();
 
   return (
-    <div className="bg-gray-100 py-6">
+    <div className=" py-6">
       <div className="w-[1300px] mx-auto py-6 flex flex-row justify-between items-center">
         <div className="flex gap-6">
           {info.slice(0, 2).map((item) => (
