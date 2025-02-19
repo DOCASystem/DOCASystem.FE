@@ -1,17 +1,25 @@
 "use client";
 
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm, FormProvider, SubmitHandler } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { formSchema } from "@/utils/validation";
 import Input from "@/components/common/input/input";
 import Button from "@/components/common/button/button";
+
+interface FormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password?: string;
+  message?: string;
+}
 
 export default function Form() {
   const methods = useForm({
     resolver: yupResolver(formSchema),
   });
 
-  const onSubmit = (data: any) => {
+  const onSubmit: SubmitHandler<FormData> = (data) => {
     console.log("Dữ liệu nhập:", data);
   };
 
@@ -42,7 +50,7 @@ export default function Form() {
           />
         </div>
         <div className="mt-6">
-          <Button type="submit">Gửi</Button>
+          <Button>Gửi</Button>
         </div>
       </form>
     </FormProvider>
