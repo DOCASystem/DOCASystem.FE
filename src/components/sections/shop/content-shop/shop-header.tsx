@@ -2,10 +2,10 @@ import Image from "next/image";
 
 export default function ShopHeader() {
   return (
-    <div className="w-[1200px] flex flex-row justify-between items-center  px-10">
+    <div className="flex flex-row justify-between items-center  px-10">
       <div className="w-[456px] flex flex-col gap-7 pt-2">
         <p className="text-[32px] font-semibold">
-          Mỗi lần mua sắm, một cuộc đời được thay đổi
+          Một lần mua sắm, một cuộc đời đổi thay, yêu thương được lan tỏa
         </p>
         <p className="text-[16px]/[160%]">
           Mỗi sinh linh đều có giá trị, và chỉ cần một hành động nhỏ, bạn đã

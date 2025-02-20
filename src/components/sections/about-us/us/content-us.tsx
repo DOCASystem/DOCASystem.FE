@@ -28,17 +28,17 @@ const saigon = [
 export default function ContentUs() {
   return (
     <>
-      <div className="w-[1200px] my-[70px] flex flex-col gap-10 pt-2 mx-auto">
-        <p className="text-[30px]/[120%] font-semibold">Về tổ chức chúng tôi</p>
+      <div className="w-[1200px] my-[60px] flex flex-col gap-10 pt-2 mx-auto">
+        <p className="text-[30px]/[120%] font-semibold">Chúng tôi là</p>
 
         <div className="flex flex-row gap-[110px]">
           <p>
-            Chúng tôi là một tổ chức trung gian chuyên kết nối các tổ chức cứu
-            trợ động vật với những người yêu thương và sẵn lòng nhận nuôi thú
-            cưng. Với mục tiêu giúp đỡ các sinh vật bị bỏ rơi và tạo cơ hội để
-            chúng có một cuộc sống mới, chúng tôi đóng vai trò là cầu nối giữa
-            các bên cứu trợ và khách hàng, mang đến những giải pháp hiệu quả và
-            bền vững cho phúc lợi động vật.
+            Một tổ chức trung gian chuyên kết nối các tổ chức cứu trợ động vật
+            với những người yêu thương và sẵn lòng nhận nuôi thú cưng. Với mục
+            tiêu giúp đỡ các sinh vật bị bỏ rơi và tạo cơ hội để chúng có một
+            cuộc sống mới, chúng tôi đóng vai trò là cầu nối giữa các bên cứu
+            trợ và khách hàng, mang đến những giải pháp hiệu quả và bền vững cho
+            phúc lợi động vật.
           </p>
 
           <p>

@@ -34,7 +34,7 @@ export default function InfoContact() {
         <div className="flex flex-col gap-5">
           <p className="text-3xl font-semibold">Hãy liên hệ với chúng tôi</p>
           <p>
-            Kêt nối với các trạm cứu trợ chó mèo bị bỏ rơi, lang thang hoặc gặp
+            Kêt nối với tổ chức cứu trợ chó mèo bị bỏ rơi, lang thang hoặc gặp
             khó khăn. Đồng thời, cung cấp thức ăn cho thú cưng, trích một phần
             lợi nhuận để hỗ trợ các bé cần giúp đỡ.
           </p>

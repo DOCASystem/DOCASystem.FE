@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export default function BlogHeader() {
   return (
-    <div className="w-[1200px] flex flex-row justify-between items-center gap-1 px-10">
+    <div className="flex flex-row justify-between items-center gap-1 px-10">
       <div className="w-[456px] flex flex-col gap-7 pt-2">
         <p className="text-[32px] font-semibold">
           Tình yêu không mua được, nhưng có thể nhận từ thú cưng.

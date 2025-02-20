@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export default function ContentAboutUs() {
   return (
-    <div className="w-[1200px] flex flex-row justify-between items-center gap-1 mx-auto">
+    <div className=" flex flex-row justify-between items-center gap-1 mx-auto">
       <div className="w-[456px] flex flex-col gap-7 pt-2">
         <p className="text-[32px] font-semibold">
           Tình yêu không mua được, nhưng có thể nhận được từ thú cưng.
