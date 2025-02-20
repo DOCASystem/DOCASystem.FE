@@ -32,7 +32,7 @@ export default function Header() {
 
   return (
     <div className=" py-6">
-      <div className="w-[1300px] mx-auto py-6 flex flex-row justify-between items-center">
+      <div className="w-[1300px] mx-auto flex flex-row justify-between items-center">
         <div className="flex gap-6">
           {info.slice(0, 2).map((item) => (
             <div key={item.id} className="flex items-center gap-2 text-black">

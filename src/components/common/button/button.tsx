@@ -9,7 +9,7 @@ export default function Button({ className, children }: ButtonProps) {
   return (
     <button
       className={cn(
-        "w-[172px] h-[60px] px-10 py-[17px] text-[20px] text-white font-medium bg-pink-doca rounded-xl",
+        "w-[172px] h-[60px] text-[20px] text-center text-white font-medium bg-pink-doca rounded-xl",
         className
       )}
     >

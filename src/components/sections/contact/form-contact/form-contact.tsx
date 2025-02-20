@@ -27,7 +27,7 @@ export default function Form() {
     <FormProvider {...methods}>
       <form
         onSubmit={methods.handleSubmit(onSubmit)}
-        className="max-w-lg mx-auto bg-gray-100 p-6 rounded-lg shadow-lg"
+        className=" bg-gray-100 p-6 rounded-xl shadow-md min-w-[550px]"
       >
         <div className="grid grid-cols-2 gap-4">
           <Input name="firstName" label="Họ" placeholder="Nhập họ" />
@@ -50,7 +50,7 @@ export default function Form() {
           />
         </div>
         <div className="mt-6">
-          <Button>Gửi</Button>
+          <Button className="w-32 h-12">Gửi</Button>
         </div>
       </form>
     </FormProvider>
