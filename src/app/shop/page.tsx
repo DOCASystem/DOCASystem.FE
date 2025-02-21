@@ -1,11 +1,15 @@
 import ShopHeader from "@/components/sections/shop/content-shop/shop-header";
-import Image from "next/image";
+import ShopFilter from "@/components/sections/shop/shop-filter/shop-filter";
+import ShopList from "@/components/sections/shop/shop-list/shop-list";
 
 export default function ShopPage() {
   return (
     <div>
       <ShopHeader />
-      <Image src="/images/wait-me.webp" alt={""} width={2000} height={1000} />
+      <div className="container mx-auto p-10">
+        <ShopFilter />
+        <ShopList />
+      </div>
     </div>
   );
 }
