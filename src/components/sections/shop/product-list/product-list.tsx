@@ -1,8 +1,8 @@
 import CardProduct from "@/components/common/card/card-product/card-food";
 
-export default function ShopList() {
+export default function ProductList() {
   return (
-    <div className="w-full grid grid-cols-4 gap-4">
+    <div className="">
       <CardProduct />
     </div>
   );
