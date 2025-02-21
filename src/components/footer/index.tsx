@@ -30,8 +30,8 @@ export default function Footer() {
 
       <FooterColumn title="Công ty">
         <FooterLink href="#!">Về chúng tôi</FooterLink>
-        <p>+83 722 0173</p>
-        <p>doca.love@gmail.com</p>
+        <p>083 722 0173</p>
+        <p>alodocafpt@gmail.com</p>
       </FooterColumn>
     </footer>
   );
