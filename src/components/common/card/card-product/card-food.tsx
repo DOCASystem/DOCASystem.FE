@@ -9,7 +9,7 @@ const product = {
 
 export default function CardProductList() {
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-3">
       {Array.from({ length: 6 }).map((_, index) => (
         <div
           key={index}
