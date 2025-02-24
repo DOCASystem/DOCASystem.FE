@@ -4,6 +4,7 @@ export default function ProductList() {
   return (
     <div className="">
       <CardProduct />
+      {/* CardProduct still data fetch*/}
     </div>
   );
 }
