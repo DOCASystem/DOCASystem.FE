@@ -6,9 +6,11 @@ export default function ShopPage() {
   return (
     <div>
       <ShopHeader />
-      <div className="container mx-auto p-10">
-        <ProductFilter />
-        <ProductList />
+      <div className="container mx-auto py-10">
+        <div className="flex flex-row gap-2">
+          <ProductFilter />
+          <ProductList />
+        </div>
       </div>
     </div>
   );
