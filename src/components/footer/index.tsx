@@ -10,9 +10,12 @@ export default function Footer() {
         <LogoDoca />
         <p>Hành trình mang yêu thương cho những mảnh đời “nhỏ bé”</p>
         <div className="flex flex-row gap-5">
-          <FooterIcon href="#!" src="/icons/fb.png" />
-          <FooterIcon href="#!" src="/icons/ig.png" />
-          <FooterIcon href="#!" src="/icons/youtube.png" />
+          <FooterIcon
+            href="https://www.facebook.com/alodoca"
+            src="/icons/fb.png"
+          />
+          {/* <FooterIcon href="#!" src="/icons/ig.png" />
+          <FooterIcon href="#!" src="/icons/youtube.png" /> */}
         </div>
       </div>
 

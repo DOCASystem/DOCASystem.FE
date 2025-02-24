@@ -7,7 +7,7 @@ interface FooterIconProps {
 
 export default function FooterIcon({ href, src, children }: FooterIconProps) {
   return (
-    <a href={href}>
+    <a href={href} target="_blank">
       <Image src={src} alt="icon" width={24} height={24} />
       {children}
     </a>
