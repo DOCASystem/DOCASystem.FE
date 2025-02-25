@@ -5,7 +5,9 @@ export default function BlogPage() {
   return (
     <div>
       <BlogHeader />
-      <BlogList />
+      <div className="my-10">
+        <BlogList />
+      </div>
     </div>
   );
 }
