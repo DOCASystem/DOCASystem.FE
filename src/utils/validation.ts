@@ -22,3 +22,6 @@ export const formSchema = yup.object().shape({
     .required("Mật khẩu không được để trống"),
   message: yup.string().optional(),
 });
+
+export const loginSchema = formSchema.pick(["email", "password"]);
+export const contactSchema = formSchema.pick(["firstName", "lastName"]);

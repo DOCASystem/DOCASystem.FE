@@ -1,9 +1,9 @@
-import Login from "@/components/sections/auth/login/login";
+import LoginForm from "@/components/sections/auth/login/form-login";
 
 export default function LoginPage() {
   return (
     <div>
-      <Login />
+      <LoginForm name={""} label={""} placeholder={""} />
     </div>
   );
 }
