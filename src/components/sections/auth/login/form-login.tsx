@@ -28,7 +28,7 @@ export default function LoginForm() {
       <FormProvider {...methods}>
         <form
           onSubmit={onSubmit}
-          className="bg-gray-100 flex flex-col justify-center items-center w-[1536px] p-6 rounded-xl shadow-md min-w-[550px]"
+          className="bg-gray-100 flex flex-col justify-center items-center max-w-[1536px] p-6 rounded-xl shadow-md min-w-[700px]"
         >
           <h1 className="text-2xl font-semibold">Đăng nhập</h1>
           <div className="flex flex-col gap-4 mt-6">
