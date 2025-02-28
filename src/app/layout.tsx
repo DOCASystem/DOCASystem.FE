@@ -1,7 +1,6 @@
 import { Poppins } from "next/font/google";
 import "../styles/globals.css";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
+import LayoutWrapper from "@/components/layout/layout-wrapper";
 
 export const metadata = {
   title: "DOCA",
@@ -27,9 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={poppins.className}>
       <body className="bg-white mx-auto ">
-        <Header />
-        <div className="container w-[1296px]">{children}</div>
-        <Footer />
+        <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>
   );

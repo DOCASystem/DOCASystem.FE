@@ -8,7 +8,7 @@ export default function ShopPage() {
       <ShopHeader />
       <div className="container mx-auto py-10">
         <div className="flex flex-row gap-2">
-          <ProductFilter />
+          {/* <ProductFilter /> */}
           <ProductList />
         </div>
       </div>
