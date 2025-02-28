@@ -1,7 +1,9 @@
 import LogoDoca from "../common/logo/logo-doca";
 import FooterColumn from "./footer-column";
 import FooterIcon from "./footer-icon";
-import FooterLink from "./footer-link";
+import Link from "../common/link/link";
+
+const color = "hover:text-[#F36]";
 
 export default function Footer() {
   return (
@@ -20,19 +22,33 @@ export default function Footer() {
       </div>
 
       <FooterColumn title="Sản phẩm">
-        <FooterLink href="#!">Hàng mới</FooterLink>
-        <FooterLink href="#!">Top sản phẩm</FooterLink>
-        <FooterLink href="#!">Câu hỏi thường gặp</FooterLink>
+        <Link href="#!" className={color}>
+          Hàng mới
+        </Link>
+        <Link href="#!" className={color}>
+          Top sản phẩm
+        </Link>
+        <Link href="#!" className={color}>
+          Câu hỏi thường gặp
+        </Link>
       </FooterColumn>
 
       <FooterColumn title="Chính sách">
-        <FooterLink href="#!">Mua hàng</FooterLink>
-        <FooterLink href="#!">Đổi trả</FooterLink>
-        <FooterLink href="#!">Theo dõi đơn hàng</FooterLink>
+        <Link href="#!" className={color}>
+          Mua hàng
+        </Link>
+        <Link href="#!" className={color}>
+          Đổi trả
+        </Link>
+        <Link href="#!" className={color}>
+          Theo dõi đơn hàng
+        </Link>
       </FooterColumn>
 
       <FooterColumn title="Công ty">
-        <FooterLink href="#!">Về chúng tôi</FooterLink>
+        <Link href="#!" className={color}>
+          Về chúng tôi
+        </Link>
         <p>083 722 0173</p>
         <p>alodocafpt@gmail.com</p>
       </FooterColumn>
