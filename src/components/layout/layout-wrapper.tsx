@@ -14,10 +14,12 @@ export default function LayoutWrapper({
   const isAuthPage = pathname.startsWith("/admin");
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       {!isAuthPage && <Header />}
-      <div className="container mx-auto">{children}</div>
+      <main className="container mx-auto flex-1 overflow-hidden">
+        {children}
+      </main>
       {!isAuthPage && <Footer />}
-    </>
+    </div>
   );
 }

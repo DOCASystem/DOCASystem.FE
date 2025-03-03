@@ -67,8 +67,14 @@ export const productSchema = yup.object().shape({
 export const blogSchema = yup.object().shape({
   title: yup.string().required("Tiêu đề không được để trống"),
   content: yup.string().required("Nội dung không được để trống"),
-  status: yup.string().oneOf(["DRAFT", "PUBLISHED"]),
+  status: yup
+    .string()
+    .oneOf(
+      ["DRAFT", "PUBLISHED", "URGENT", "NEED_PRODUCT", "NEED_DONATION"],
+      "Trạng thái không hợp lệ"
+    ),
   categoryIds: yup.array().min(1, "Phải chọn ít nhất 1 danh mục"),
+  description: yup.string().required("Mô tả không được để trống"),
 });
 
 // Cart validation

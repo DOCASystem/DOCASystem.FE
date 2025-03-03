@@ -45,7 +45,7 @@ export default function BlogFormExample() {
       <div className="border-2 border-dashed border-gray-300 p-6 rounded-lg text-center">
         <p>Kéo và thả ảnh hoặc nhấp để chọn ảnh</p>
       </div>
-      <div className="mt-4 flex space-x-4">
+      <div className="mt-4 flex flex-wrap gap-4">
         <div className="w-24 h-24 bg-gray-200 rounded-lg flex items-center justify-center">
           <span>Ảnh con chó</span>
         </div>
@@ -64,7 +64,9 @@ export default function BlogFormExample() {
       onSubmit={onSubmit}
       backLink="/admin/blogs"
       submitButtonText="Lưu Blog"
-      maxHeight="max-h-[600px]"
+      maxHeight="max-h-[calc(100vh-200px)]"
+      formClassName="h-[calc(100vh-150px)]"
+      contentClassName="pb-4"
     >
       {/* Children là các field input */}
       <Input name="title" label="Tiêu đề" placeholder="Nhập tiêu đề blog" />
@@ -75,20 +77,27 @@ export default function BlogFormExample() {
         placeholder="Chọn phân loại blog"
       />
 
-      <div className="flex gap-4">
-        <div className="w-1/2">
-          <p className="text-base font-semibold mb-2">Trạng thái</p>
-          <div className="flex gap-4">
-            <button className="px-4 py-2 bg-red-500 text-white rounded-md">
-              Khẩn cấp
-            </button>
-            <button className="px-4 py-2 bg-green-500 text-white rounded-md">
-              Cần sản phẩm
-            </button>
-            <button className="px-4 py-2 bg-blue-500 text-white rounded-md">
-              Cần quyên góp
-            </button>
-          </div>
+      <div className="flex flex-col gap-2">
+        <p className="text-base font-semibold">Trạng thái</p>
+        <div className="flex flex-wrap gap-4">
+          <button
+            type="button"
+            className="px-4 py-2 bg-red-500 text-white rounded-md"
+          >
+            Khẩn cấp
+          </button>
+          <button
+            type="button"
+            className="px-4 py-2 bg-green-500 text-white rounded-md"
+          >
+            Cần sản phẩm
+          </button>
+          <button
+            type="button"
+            className="px-4 py-2 bg-blue-500 text-white rounded-md"
+          >
+            Cần quyên góp
+          </button>
         </div>
       </div>
 

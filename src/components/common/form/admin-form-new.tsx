@@ -69,11 +69,14 @@ export default function AdminForm<T extends Record<string, unknown>>({
       <FormProvider {...methods}>
         <form
           onSubmit={handleSubmit}
-          className={cn("bg-white p-6 rounded-lg shadow-md", formClassName)}
+          className={cn(
+            "bg-white p-6 rounded-lg shadow-md flex flex-col h-full",
+            formClassName
+          )}
         >
           <div
             className={cn(
-              "flex flex-col gap-4 overflow-auto hide-scrollbar",
+              "flex-1 flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar",
               maxHeight,
               contentClassName
             )}
@@ -81,13 +84,13 @@ export default function AdminForm<T extends Record<string, unknown>>({
             {children}
           </div>
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-end sticky bottom-0 pt-4 bg-white border-t border-gray-100">
             <Button
+              type="submit"
               className={cn(
                 "h-12 bg-pink-doca text-white rounded-md px-6",
                 submitButtonClassName
               )}
-              onClick={() => methods.handleSubmit(onSubmit)()}
             >
               {submitButtonText}
             </Button>

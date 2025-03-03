@@ -8,6 +8,7 @@ interface ButtonProps {
   disabled?: boolean;
   loading?: boolean;
   variant?: "primary" | "secondary" | "outline";
+  type?: "button" | "submit" | "reset";
 }
 
 export default function Button({
@@ -17,6 +18,7 @@ export default function Button({
   disabled = false,
   loading = false,
   variant = "primary",
+  type = "button",
 }: ButtonProps) {
   const baseStyles =
     "w-[172px] h-[60px] text-[20px] text-center font-medium rounded-xl transition-all duration-200";
@@ -31,6 +33,7 @@ export default function Button({
     <button
       onClick={onClick}
       disabled={disabled || loading}
+      type={type}
       className={cn(
         baseStyles,
         variants[variant],
