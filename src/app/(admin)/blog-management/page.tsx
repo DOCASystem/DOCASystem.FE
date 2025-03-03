@@ -1,3 +1,9 @@
+import BlogFormExample from "../components/blog-form-example";
+
 export default function AdminPostPage() {
-  return <div>AdminPostPage</div>;
+  return (
+    <div>
+      <BlogFormExample />
+    </div>
+  );
 }
