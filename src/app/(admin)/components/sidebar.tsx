@@ -15,25 +15,25 @@ const sidebarItems = [
     id: 2,
     name: "Sản Phẩm",
     icon: "/icons/product.png",
-    path: "/admin",
+    path: "/products-management",
   },
   {
     id: 3,
     name: "Blogs",
     icon: "/icons/blog.png",
-    path: "/admin",
+    path: "/blog-management",
   },
   {
     id: 4,
     name: "Đơn hàng",
     icon: "/icons/order.png",
-    path: "/admin",
+    path: "/orders-management",
   },
   {
     id: 5,
     name: "Người dùng",
     icon: "/icons/group-user.png",
-    path: "/admin",
+    path: "/users-management",
   },
 ];
 
@@ -41,7 +41,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   return (
     <>
-      <div className="w-[314px] h-screen p-6 bg-white shadow-lg overflow-hidden">
+      <div className="w-[314px] h-screen p-6 bg-gray-50 overflow-hidden">
         {sidebarItems.map((item) => {
           const isActive = pathname === item.path;
           return (
