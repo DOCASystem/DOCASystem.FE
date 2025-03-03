@@ -44,3 +44,38 @@ export const signupSchema = formSchema.pick([
   "phone",
   "otp",
 ]);
+
+// Product validation
+export const productSchema = yup.object().shape({
+  name: yup.string().required("Tên sản phẩm không được để trống"),
+  price: yup
+    .number()
+    .positive("Giá phải là số dương")
+    .required("Giá không được để trống"),
+  description: yup.string().required("Mô tả không được để trống"),
+  categoryIds: yup.array().min(1, "Phải chọn ít nhất 1 danh mục"),
+  mainImage: yup
+    .mixed<File>()
+    .test(
+      "fileSize",
+      "File quá lớn",
+      (value) => !value || value.size <= 5000000
+    ),
+});
+
+// Blog validation
+export const blogSchema = yup.object().shape({
+  title: yup.string().required("Tiêu đề không được để trống"),
+  content: yup.string().required("Nội dung không được để trống"),
+  status: yup.string().oneOf(["DRAFT", "PUBLISHED"]),
+  categoryIds: yup.array().min(1, "Phải chọn ít nhất 1 danh mục"),
+});
+
+// Cart validation
+export const cartItemSchema = yup.object().shape({
+  productId: yup.string().required(),
+  quantity: yup
+    .number()
+    .min(1, "Số lượng tối thiểu là 1")
+    .required("Số lượng không được để trống"),
+});

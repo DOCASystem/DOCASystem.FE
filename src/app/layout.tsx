@@ -1,6 +1,7 @@
 import { Poppins } from "next/font/google";
 import "../styles/globals.css";
 import LayoutWrapper from "@/components/layout/layout-wrapper";
+import { AuthProvider } from "@/contexts/auth-provider";
 
 export const metadata = {
   title: "DOCA",
@@ -24,9 +25,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={poppins.className}>
+    <html lang="vi" className={poppins.className}>
       <body className="bg-white mx-auto ">
-        <LayoutWrapper>{children}</LayoutWrapper>
+        <AuthProvider>
+          <LayoutWrapper>{children}</LayoutWrapper>
+        </AuthProvider>
       </body>
     </html>
   );
