@@ -1,6 +1,5 @@
 import { Poppins } from "next/font/google";
 import "../styles/globals.css";
-import LayoutWrapper from "@/components/layout/layout-wrapper";
 import { AuthProvider } from "@/contexts/auth-provider";
 
 export const metadata = {
@@ -27,9 +26,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className={poppins.className}>
       <body className="bg-white mx-auto ">
-        <AuthProvider>
-          <LayoutWrapper>{children}</LayoutWrapper>
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

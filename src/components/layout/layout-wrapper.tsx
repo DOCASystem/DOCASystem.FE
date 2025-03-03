@@ -16,7 +16,7 @@ export default function LayoutWrapper({
   return (
     <>
       {!isAuthPage && <Header />}
-      <div className="container w-[1296px]">{children}</div>
+      <div className="container mx-auto">{children}</div>
       {!isAuthPage && <Footer />}
     </>
   );

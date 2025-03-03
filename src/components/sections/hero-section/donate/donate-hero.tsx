@@ -2,18 +2,16 @@ import Image from "next/image";
 
 export default function DonateHero() {
   return (
-    <>
-      <div>
-        {/* <Image
-          src="/images/donate-hero.png"
+    <div className="container mx-auto px-4 md:px-6 py-8">
+      <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] overflow-hidden rounded-lg">
+        <Image
+          src="/images/wait-me.webp"
           alt="Donate Hero"
-          width={1920}
-          height={1080}
-        /> */}
-        <Image src="/images/wait-me.webp" alt={""} width={2000} height={1000} />
+          fill
+          className="object-cover"
+          priority
+        />
       </div>
-
-      <div></div>
-    </>
+    </div>
   );
 }

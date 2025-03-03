@@ -1,3 +1,5 @@
+"use client";
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Configuration } from "../api/generated";
 import { Role, Permission, ROLE_PERMISSIONS, User } from "@/auth/types";

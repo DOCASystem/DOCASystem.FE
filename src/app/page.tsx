@@ -1,8 +1,8 @@
-import { redirect } from "next/navigation";
+// import { redirect } from "next/navigation";
 
 export default function Page() {
   // redirect("/about-us");
-  // redirect("/home");
+  // redirect("/main");
   // redirect("/auth/login");
-  redirect("/admin");
+  // redirect("/admin");
 }
