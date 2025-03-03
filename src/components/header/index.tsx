@@ -6,6 +6,7 @@ import Image from "next/image";
 import LogoDoca from "../common/logo/logo-doca";
 import CartIcon from "../assets/icon-svg/cart-svg";
 import HeartIcon from "../assets/icon-svg/heart-svg";
+import LinkNav from "../common/link/link";
 
 const info = [
   { id: 1, icon: "/icons/phone.png", text: "083 722 0173" },
@@ -52,7 +53,7 @@ export default function Header() {
           {nav.map((item) => {
             const isActive = pathname === item.path;
             return (
-              <Link
+              <LinkNav
                 key={item.id}
                 href={item.path}
                 className={`${
@@ -60,7 +61,7 @@ export default function Header() {
                 } hover:underline hover:underline-offset-8 hover:text-pink-doca`}
               >
                 {item.text}
-              </Link>
+              </LinkNav>
             );
           })}
         </div>

@@ -1,4 +1,8 @@
+"use client"; // Quan trọng khi dùng hooks trong App Router
+
+import LinkNav from "@/components/common/link/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 const sidebarItems = [
   {
@@ -34,14 +38,26 @@ const sidebarItems = [
 ];
 
 export default function Sidebar() {
+  const pathname = usePathname();
   return (
-    <div className="w-[314px] p-6 ">
-      {sidebarItems.map((item) => (
-        <div key={item.name}>
-          {item.name}
-          <Image src={item.icon} alt={item.name} width={24} height={24} />
-        </div>
-      ))}
-    </div>
+    <>
+      <div className="w-[314px] h-screen p-6 bg-white shadow-lg overflow-hidden">
+        {sidebarItems.map((item) => {
+          const isActive = pathname === item.path;
+          return (
+            <LinkNav
+              key={item.name}
+              href={item.path}
+              className={`${
+                isActive ? "text-pink-doca" : ""
+              } hover:text-pink-doca flex flex-row items-center gap-4 mb-6`}
+            >
+              <Image src={item.icon} alt={item.name} width={45} height={45} />
+              {item.name}
+            </LinkNav>
+          );
+        })}
+      </div>
+    </>
   );
 }
