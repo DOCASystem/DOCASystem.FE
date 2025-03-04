@@ -1,7 +1,7 @@
 "use client";
 
 import * as yup from "yup";
-import AdminForm from "@/components/common/form/admin-form-new";
+import AdminForm from "@/components/common/form/admin-form";
 import Input from "@/components/common/input/input";
 
 // Định nghĩa schema validation bằng Yup

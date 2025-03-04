@@ -41,7 +41,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   return (
     <>
-      <div className="w-[314px] h-screen p-6 bg-gray-50 overflow-hidden">
+      <div className="w-[250px] h-screen p-6 bg-gray-50 overflow-hidden">
         {sidebarItems.map((item) => {
           const isActive = pathname === item.path;
           return (
@@ -52,7 +52,7 @@ export default function Sidebar() {
                 isActive ? "text-pink-doca" : ""
               } hover:text-pink-doca flex flex-row items-center gap-4 mb-6`}
             >
-              <Image src={item.icon} alt={item.name} width={45} height={45} />
+              <Image src={item.icon} alt={item.name} width={30} height={30} />
               {item.name}
             </LinkNav>
           );

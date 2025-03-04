@@ -61,6 +61,8 @@ export const productSchema = yup.object().shape({
       "File quá lớn",
       (value) => !value || value.size <= 5000000
     ),
+  quantity: yup.number().required("Số lượng không được để trống"),
+  size: yup.string().required("Kích thước không được để trống"),
 });
 
 // Blog validation
