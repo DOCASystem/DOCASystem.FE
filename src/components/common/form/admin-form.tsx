@@ -88,7 +88,7 @@ export default function AdminForm<T extends Record<string, unknown>>({
             <Button
               type="submit"
               className={cn(
-                "h-12 bg-pink-doca text-white rounded-md px-6",
+                "h-12 bg-pink-doca text-white text-base rounded-md px-6",
                 submitButtonClassName
               )}
             >
