@@ -112,7 +112,7 @@ export default function ViewProductPage() {
       <div className="mb-6 flex items-center">
         <Link
           href="/products-management"
-          className="mr-4 text-pink-500 hover:text-pink-600"
+          className="mr-4 text-pink-doca hover:text-pink-doca"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

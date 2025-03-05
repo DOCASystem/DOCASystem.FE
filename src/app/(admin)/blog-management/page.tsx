@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import Button from "@/components/common/button/button";
 
 type BlogPost = {
   id: string;
@@ -75,15 +76,17 @@ export default function AdminPostPage() {
   };
 
   return (
-    <div className="p-6 mx-auto">
+    <div className="mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-pink-500">Bài Viết</h1>
-        <Link
-          href="/blog-management/add"
-          className="bg-pink-500 hover:bg-pink-600 text-white py-2 px-6 rounded-full transition-all"
-        >
-          Thêm bài viết
-        </Link>
+        <h1 className="text-3xl font-bold text-pink-doca">Bài Viết</h1>
+        <Button className="w-44 h-11 text-lg">
+          <Link
+            href="/blog-management/add-blog"
+            className=" text-white rounded-lg transition-all"
+          >
+            Thêm bài viết
+          </Link>
+        </Button>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-2">
@@ -125,7 +128,7 @@ export default function AdminPostPage() {
 
             <div className="flex items-center space-x-2">
               <Link
-                href={`/blog-management/edit?id=${post.id}`}
+                href={`/blog-management/edit-blog/${post.id}`}
                 className="px-4 py-1 text-sm text-green-600 bg-green-100 rounded-md hover:bg-green-200 transition-all"
               >
                 Edit
