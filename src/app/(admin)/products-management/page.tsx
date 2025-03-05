@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import Button from "@/components/common/button/button";
 
 type Product = {
   id: string;
@@ -62,15 +63,17 @@ export default function AdminProductPage() {
   };
 
   return (
-    <div className="p-6 mx-auto">
+    <div className=" mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-pink-500">Sản Phẩm</h1>
-        <Link
-          href="/products-management/add"
-          className="bg-pink-500 hover:bg-pink-600 text-white py-2 px-6 rounded-full transition-all"
-        >
-          Thêm sản phẩm
-        </Link>
+        <h1 className="text-2xl font-semibold text-pink-doca">Sản Phẩm</h1>
+        <Button className="w-44 h-11 text-lg">
+          <Link
+            href="/products-management/add"
+            className=" text-white text-lg rounded-lg transition-all"
+          >
+            Thêm sản phẩm
+          </Link>
+        </Button>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-2">

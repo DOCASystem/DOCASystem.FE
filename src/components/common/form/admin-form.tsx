@@ -58,7 +58,9 @@ export default function AdminForm<T extends Record<string, unknown>>({
   return (
     <div className={cn("w-full", className)}>
       <div className="flex justify-between items-center mb-6">
-        {title && <h1 className="text-2xl font-semibold">{title}</h1>}
+        {title && (
+          <h1 className="text-2xl font-semibold text-pink-doca">{title}</h1>
+        )}
         {backLink && (
           <Button className="w-32 h-11 text-lg">
             <LinkNav href={backLink}>{backButtonText}</LinkNav>

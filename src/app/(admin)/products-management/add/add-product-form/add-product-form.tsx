@@ -40,7 +40,7 @@ export default function AddProductForm() {
         schema={productSchema}
         defaultValues={defaultValues}
         onSubmit={onSubmit}
-        backLink="/admin/products"
+        backLink="/products-management"
         submitButtonText="Lưu sản phẩm"
         maxHeight="max-h-[calc(100vh-200px)]"
         formClassName="h-[calc(100vh-150px)]"
