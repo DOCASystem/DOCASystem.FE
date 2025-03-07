@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Button from "@/components/common/button/button";
+import ConfirmDialog from "@/components/common/dialog/confirm-dialog";
 
 type Product = {
   id: string;
@@ -58,8 +59,25 @@ export default function AdminProductPage() {
     },
   ]);
 
-  const handleDeleteProduct = (productId: string) => {
-    setProducts(products.filter((product) => product.id !== productId));
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+
+  const openDeleteDialog = (productId: string) => {
+    setProductToDelete(productId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteProduct = () => {
+    if (productToDelete) {
+      setProducts(products.filter((product) => product.id !== productToDelete));
+      setIsDeleteDialogOpen(false);
+      setProductToDelete(null);
+    }
+  };
+
+  const cancelDeleteProduct = () => {
+    setIsDeleteDialogOpen(false);
+    setProductToDelete(null);
   };
 
   return (
@@ -123,7 +141,7 @@ export default function AdminProductPage() {
               </Link>
 
               <button
-                onClick={() => handleDeleteProduct(product.id)}
+                onClick={() => openDeleteDialog(product.id)}
                 className="ml-2 text-red-500 hover:text-red-700"
               >
                 <svg
@@ -145,6 +163,17 @@ export default function AdminProductPage() {
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        title="Xác nhận xóa sản phẩm"
+        message="Bạn có chắc chắn muốn xóa sản phẩm này? Hành động này không thể hoàn tác."
+        confirmButtonText="Xóa"
+        cancelButtonText="Hủy"
+        onConfirm={confirmDeleteProduct}
+        onCancel={cancelDeleteProduct}
+        type="danger"
+      />
     </div>
   );
 }

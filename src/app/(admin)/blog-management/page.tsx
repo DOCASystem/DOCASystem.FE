@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Button from "@/components/common/button/button";
+import ConfirmDialog from "@/components/common/dialog/confirm-dialog";
 
 type BlogPost = {
   id: string;
@@ -58,8 +59,25 @@ export default function AdminPostPage() {
     },
   ]);
 
-  const handleDeletePost = (postId: string) => {
-    setPosts(posts.filter((post) => post.id !== postId));
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
+
+  const openDeleteDialog = (postId: string) => {
+    setPostToDelete(postId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeletePost = () => {
+    if (postToDelete) {
+      setPosts(posts.filter((post) => post.id !== postToDelete));
+      setIsDeleteDialogOpen(false);
+      setPostToDelete(null);
+    }
+  };
+
+  const cancelDeletePost = () => {
+    setIsDeleteDialogOpen(false);
+    setPostToDelete(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -142,7 +160,7 @@ export default function AdminPostPage() {
               </Link>
 
               <button
-                onClick={() => handleDeletePost(post.id)}
+                onClick={() => openDeleteDialog(post.id)}
                 className="ml-2 text-red-500 hover:text-red-700"
               >
                 <svg
@@ -164,6 +182,17 @@ export default function AdminPostPage() {
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        title="Xác nhận xóa bài viết"
+        message="Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác."
+        confirmButtonText="Xóa"
+        cancelButtonText="Hủy"
+        onConfirm={confirmDeletePost}
+        onCancel={cancelDeletePost}
+        type="danger"
+      />
     </div>
   );
 }

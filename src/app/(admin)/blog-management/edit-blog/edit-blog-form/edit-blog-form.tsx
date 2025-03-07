@@ -9,6 +9,7 @@ import { BlogService } from "@/service/blog-service";
 import { BlogEnum } from "@/api/generated";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import ConfirmDialog from "@/components/common/dialog/confirm-dialog";
 
 // Định nghĩa kiểu dữ liệu cho phân loại blog
 interface BlogCategory {
@@ -52,6 +53,11 @@ export default function EditBlogForm() {
     mainImage: null,
   });
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Thêm state cho dialog xác nhận cập nhật blog
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [formDataToSubmit, setFormDataToSubmit] =
+    useState<EditBlogFormData | null>(null);
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -119,30 +125,48 @@ export default function EditBlogForm() {
     reader.readAsDataURL(file);
   };
 
-  // Xử lý khi submit form
-  const onSubmit = async (data: EditBlogFormData) => {
-    if (!id) return;
+  // Hàm mở dialog xác nhận cập nhật
+  const openUpdateDialog = (data: EditBlogFormData) => {
+    setFormDataToSubmit(data);
+    setIsUpdateDialogOpen(true);
+  };
+
+  // Hàm hủy cập nhật blog
+  const cancelUpdate = () => {
+    setIsUpdateDialogOpen(false);
+    setFormDataToSubmit(null);
+  };
+
+  // Sửa lại hàm onSubmit để hiển thị dialog xác nhận trước
+  const onSubmit = (data: EditBlogFormData) => {
+    openUpdateDialog(data);
+  };
+
+  // Hàm thực hiện cập nhật blog sau khi xác nhận
+  const confirmUpdate = async () => {
+    if (!id || !formDataToSubmit) return;
 
     setIsSaving(true);
     try {
       // Chuyển đổi status thành BlogEnum
-      const blogStatus = data.status as unknown as BlogEnum;
+      const blogStatus = formDataToSubmit.status as unknown as BlogEnum;
 
       // Gọi API cập nhật blog
       await BlogService.updateBlog(id as string, {
-        title: data.title,
-        description: data.description,
+        title: formDataToSubmit.title,
+        description: formDataToSubmit.description,
         status: blogStatus,
         isHidden: false,
       });
 
       // Nếu có hình ảnh mới, tải lên hình ảnh
       // Lưu ý: API uploadBlogImage chưa được triển khai
-      // if (data.mainImage) {
-      //   await BlogService.uploadBlogImage(id as string, data.mainImage);
+      // if (formDataToSubmit.mainImage) {
+      //   await BlogService.uploadBlogImage(id as string, formDataToSubmit.mainImage);
       // }
 
       toast.success("Cập nhật blog thành công!");
+      setIsUpdateDialogOpen(false);
 
       // Chuyển hướng về trang quản lý blog sau khi lưu thành công
       setTimeout(() => {
@@ -286,6 +310,18 @@ export default function EditBlogForm() {
           </div>
         </AdminForm>
       )}
+
+      {/* Dialog xác nhận cập nhật */}
+      <ConfirmDialog
+        isOpen={isUpdateDialogOpen}
+        title="Xác nhận cập nhật bài viết"
+        message="Bạn có chắc chắn muốn cập nhật bài viết này với những thay đổi đã nhập?"
+        confirmButtonText="Cập nhật"
+        cancelButtonText="Hủy"
+        onConfirm={confirmUpdate}
+        onCancel={cancelUpdate}
+        type="info"
+      />
     </div>
   );
 }

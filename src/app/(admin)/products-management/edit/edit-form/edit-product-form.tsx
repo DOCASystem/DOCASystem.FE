@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import AdminForm from "@/components/common/form/admin-form";
 import Input from "@/components/common/input/input";
 import { productSchema } from "@/utils/validation";
+import ConfirmDialog from "@/components/common/dialog/confirm-dialog";
 
 // Định nghĩa kiểu dữ liệu cho form
 type EditProductFormData = {
@@ -40,6 +41,11 @@ export default function EditProductForm() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [productData, setProductData] = useState<ProductData | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Thêm state cho dialog xác nhận cập nhật sản phẩm
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [formDataToSubmit, setFormDataToSubmit] =
+    useState<EditProductFormData | null>(null);
 
   // Giá trị mặc định
   const defaultValues: EditProductFormData = {
@@ -108,11 +114,30 @@ export default function EditProductForm() {
       }
     : defaultValues;
 
-  // Xử lý khi submit form
+  // Hàm mở dialog xác nhận cập nhật
+  const openUpdateDialog = (data: EditProductFormData) => {
+    setFormDataToSubmit(data);
+    setIsUpdateDialogOpen(true);
+  };
+
+  // Hàm hủy cập nhật sản phẩm
+  const cancelUpdate = () => {
+    setIsUpdateDialogOpen(false);
+    setFormDataToSubmit(null);
+  };
+
+  // Sửa lại hàm onSubmit để hiển thị dialog xác nhận trước
   const onSubmit = (data: EditProductFormData) => {
-    console.log("Dữ liệu sản phẩm cập nhật:", data);
-    // Xử lý cập nhật (gọi API, lưu dữ liệu, v.v)
-    alert("Đã cập nhật sản phẩm thành công!");
+    openUpdateDialog(data);
+  };
+
+  // Hàm thực hiện cập nhật sản phẩm sau khi xác nhận
+  const confirmUpdate = async () => {
+    if (!formDataToSubmit) return;
+
+    // Chuyển hướng về trang quản lý sản phẩm sau khi lưu thành công
+    alert("Cập nhật sản phẩm thành công!");
+    setIsUpdateDialogOpen(false);
     router.push("/products-management");
   };
 
@@ -231,6 +256,18 @@ export default function EditProductForm() {
           </div>
         </AdminForm>
       )}
+
+      {/* Dialog xác nhận cập nhật */}
+      <ConfirmDialog
+        isOpen={isUpdateDialogOpen}
+        title="Xác nhận cập nhật sản phẩm"
+        message="Bạn có chắc chắn muốn cập nhật sản phẩm này với những thay đổi đã nhập?"
+        confirmButtonText="Cập nhật"
+        cancelButtonText="Hủy"
+        onConfirm={confirmUpdate}
+        onCancel={cancelUpdate}
+        type="info"
+      />
     </div>
   );
 }

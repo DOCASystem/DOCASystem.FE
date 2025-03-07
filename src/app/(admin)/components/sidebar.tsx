@@ -43,7 +43,8 @@ export default function Sidebar() {
     <>
       <div className="w-[250px] h-screen p-6 bg-gray-50 overflow-hidden">
         {sidebarItems.map((item) => {
-          const isActive = pathname === item.path;
+          const isActive =
+            pathname === item.path || pathname.startsWith(`${item.path}/`);
           return (
             <LinkNav
               key={item.name}
