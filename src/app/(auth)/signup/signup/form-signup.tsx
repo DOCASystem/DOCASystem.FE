@@ -82,6 +82,14 @@ export default function SignupForm() {
               <Button className="h-12 w-[404px] bg-pink-doca text-white rounded-3xl text-[16px]">
                 Đăng ký
               </Button>
+              <div className="text-center">
+                <LinkNav
+                  href="/login"
+                  className="text-pink-doca hover:underline"
+                >
+                  Quay lại đăng nhập
+                </LinkNav>
+              </div>
             </div>
           </div>
         </form>

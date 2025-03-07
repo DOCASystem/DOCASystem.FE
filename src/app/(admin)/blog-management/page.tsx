@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Button from "@/components/common/button/button";
 import ConfirmDialog from "@/components/common/dialog/confirm-dialog";
+import Pagination from "@/components/common/pagination/pagination";
 
 type BlogPost = {
   id: string;
@@ -57,7 +58,35 @@ export default function AdminPostPage() {
       publishDate: "18/06/2024",
       image: "/images/dog-grooming.png",
     },
+    {
+      id: "6",
+      title: "Thức ăn cấm cho mèo biết",
+      category: "Dinh dưỡng",
+      status: "Đã đăng",
+      publishDate: "01/06/2024",
+      image: "/images/cat-food-guide.png",
+    },
+    {
+      id: "7",
+      title: "Làm thế nào để chó không sủa nhiều",
+      category: "Huấn luyện",
+      status: "Chờ đăng",
+      publishDate: "20/06/2024",
+      image: "/images/dog-barking.png",
+    },
+    {
+      id: "8",
+      title: "Ký sinh trùng ở mèo và cách phòng tránh",
+      category: "Sức khỏe",
+      status: "Đã đăng",
+      publishDate: "08/06/2024",
+      image: "/images/cat-parasites.png",
+    },
   ]);
+
+  // State cho phân trang
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
@@ -78,6 +107,20 @@ export default function AdminPostPage() {
   const cancelDeletePost = () => {
     setIsDeleteDialogOpen(false);
     setPostToDelete(null);
+  };
+
+  // Tính toán blog cần hiển thị cho trang hiện tại
+  const currentPosts = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return posts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [posts, currentPage]);
+
+  // Tính tổng số trang
+  const totalPages = Math.ceil(posts.length / ITEMS_PER_PAGE);
+
+  // Hàm xử lý khi thay đổi trang
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const getStatusColor = (status: string) => {
@@ -108,7 +151,7 @@ export default function AdminPostPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-2">
-        {posts.map((post) => (
+        {currentPosts.map((post) => (
           <div
             key={post.id}
             className="flex items-center p-4 border-b last:border-b-0 rounded-md my-2 bg-white shadow-sm"
@@ -182,6 +225,13 @@ export default function AdminPostPage() {
           </div>
         ))}
       </div>
+
+      {/* Thêm phân trang */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
 
       <ConfirmDialog
         isOpen={isDeleteDialogOpen}

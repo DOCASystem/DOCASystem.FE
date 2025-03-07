@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Button from "@/components/common/button/button";
 import ConfirmDialog from "@/components/common/dialog/confirm-dialog";
+import Pagination from "@/components/common/pagination/pagination";
 
 type Product = {
   id: string;
@@ -57,7 +58,35 @@ export default function AdminProductPage() {
       price: 100000,
       image: "/images/dog-food.png",
     },
+    {
+      id: "6",
+      name: "Thức ăn cho mèo Whiskas",
+      category: "Đồ ăn cho mèo",
+      quantity: 80,
+      price: 90000,
+      image: "/images/cat-food.png",
+    },
+    {
+      id: "7",
+      name: "Vòng cổ chó mèo",
+      category: "Phụ kiện",
+      quantity: 50,
+      price: 85000,
+      image: "/images/pet-collar.png",
+    },
+    {
+      id: "8",
+      name: "Cát vệ sinh cho mèo",
+      category: "Vệ sinh",
+      quantity: 60,
+      price: 125000,
+      image: "/images/cat-litter.png",
+    },
   ]);
+
+  // State cho phân trang
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
@@ -80,6 +109,20 @@ export default function AdminProductPage() {
     setProductToDelete(null);
   };
 
+  // Tính toán sản phẩm cần hiển thị cho trang hiện tại
+  const currentProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return products.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [products, currentPage]);
+
+  // Tính tổng số trang
+  const totalPages = Math.ceil(products.length / ITEMS_PER_PAGE);
+
+  // Hàm xử lý khi thay đổi trang
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   return (
     <div className=" mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -95,7 +138,7 @@ export default function AdminProductPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-2">
-        {products.map((product) => (
+        {currentProducts.map((product) => (
           <div
             key={product.id}
             className="flex items-center p-4 border-b last:border-b-0 rounded-md my-2 bg-white shadow-sm"
@@ -163,6 +206,13 @@ export default function AdminProductPage() {
           </div>
         ))}
       </div>
+
+      {/* Thêm phân trang */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
 
       <ConfirmDialog
         isOpen={isDeleteDialogOpen}

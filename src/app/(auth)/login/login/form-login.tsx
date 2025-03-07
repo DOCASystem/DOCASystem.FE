@@ -47,8 +47,8 @@ export default function LoginForm() {
             />
 
             <LinkNav
-              href="/auth/forgot-password"
-              className="text-pink-doca font-semibold left-0 "
+              href="/forgot-password"
+              className="text-pink-doca hover:underline left-0 "
             >
               Quên mật khẩu?
             </LinkNav>
@@ -59,8 +59,8 @@ export default function LoginForm() {
               <div className="flex gap-2 items-center justify-center">
                 <p>Bạn chưa có tài khoản? </p>
                 <LinkNav
-                  href="/auth/signup"
-                  className="text-pink-doca font-semibold left-0 text-right"
+                  href="/signup"
+                  className="text-pink-doca  left-0 text-right hover:underline"
                 >
                   Tạo tài khoản
                 </LinkNav>

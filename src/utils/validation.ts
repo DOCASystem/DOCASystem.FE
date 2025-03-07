@@ -45,6 +45,33 @@ export const signupSchema = formSchema.pick([
   "otp",
 ]);
 
+// Schema cho form quên mật khẩu
+export const forgotPasswordEmailSchema = yup.object().shape({
+  email: yup
+    .string()
+    .email("Email không hợp lệ")
+    .required("Email không được để trống"),
+});
+
+export const forgotPasswordOtpSchema = yup.object().shape({
+  otp: yup.string().required("OTP không được để trống"),
+});
+
+export const forgotPasswordResetSchema = yup.object().shape({
+  password: yup
+    .string()
+    .min(6, "Mật khẩu ít nhất 6 ký tự")
+    .matches(
+      /[!@#$%^&*(),.?":{}|<>]/,
+      "Mật khẩu cần có ít nhất 1 ký tự đặc biệt"
+    )
+    .required("Mật khẩu không được để trống"),
+  confirmPassword: yup
+    .string()
+    .oneOf([yup.ref("password")], "Mật khẩu xác nhận không khớp")
+    .required("Xác nhận mật khẩu không được để trống"),
+});
+
 // Product validation
 export const productSchema = yup.object().shape({
   name: yup.string().required("Tên sản phẩm không được để trống"),

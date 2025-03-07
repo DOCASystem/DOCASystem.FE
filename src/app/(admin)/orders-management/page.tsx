@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import ConfirmDialog from "@/components/common/dialog/confirm-dialog";
+import Pagination from "@/components/common/pagination/pagination";
 
 // Định nghĩa kiểu dữ liệu cho đơn hàng
 type Order = {
@@ -98,28 +99,24 @@ export default function AdminOrderPage() {
       customerEmail: "levanc@example.com",
       customerAddress: "789 Đường Trần Hưng Đạo, Q.5, TP.HCM",
       orderDate: "13/03/2024",
-      total: 750000,
+      total: 320000,
       status: "Đang vận chuyển",
       products: [
         {
           id: "5",
-          name: "Lồng chim inox",
+          name: "Túi đựng chó mèo",
           quantity: 1,
-          price: 450000,
-          category: "Nhà ở",
+          price: 250000,
+          category: "Phụ kiện",
         },
         {
           id: "6",
-          name: "Thức ăn cho chim",
-          quantity: 4,
-          price: 75000,
-          category: "Thức ăn",
+          name: "Đồ chơi cho chó",
+          quantity: 2,
+          price: 35000,
+          category: "Đồ chơi",
         },
       ],
-      blog: {
-        id: "3",
-        title: "Cách huấn luyện chim cảnh",
-      },
     },
     {
       id: "ORD-004",
@@ -128,21 +125,21 @@ export default function AdminOrderPage() {
       customerEmail: "phamthid@example.com",
       customerAddress: "101 Đường Võ Văn Tần, Q.3, TP.HCM",
       orderDate: "12/03/2024",
-      total: 320000,
+      total: 180000,
       status: "Đã giao hàng",
       products: [
         {
           id: "7",
-          name: "Đồ chơi cho chó",
-          quantity: 3,
-          price: 65000,
-          category: "Đồ chơi",
+          name: "Sữa tắm cho chó",
+          quantity: 1,
+          price: 120000,
+          category: "Vệ sinh",
         },
         {
           id: "8",
-          name: "Khay ăn cho mèo",
+          name: "Lược chải lông",
           quantity: 1,
-          price: 125000,
+          price: 60000,
           category: "Phụ kiện",
         },
       ],
@@ -152,98 +149,179 @@ export default function AdminOrderPage() {
       customerName: "Hoàng Văn E",
       customerPhone: "0944556677",
       customerEmail: "hoangvane@example.com",
-      customerAddress: "202 Đường Nam Kỳ Khởi Nghĩa, Q.3, TP.HCM",
+      customerAddress: "202 Đường Điện Biên Phủ, Q.Bình Thạnh, TP.HCM",
       orderDate: "11/03/2024",
-      total: 950000,
+      total: 220000,
       status: "Đã hủy",
       products: [
         {
           id: "9",
-          name: "Lồng mèo di chuyển",
-          quantity: 1,
-          price: 550000,
-          category: "Phụ kiện",
+          name: "Thức ăn cho cá",
+          quantity: 2,
+          price: 60000,
+          category: "Thức ăn",
         },
         {
           id: "10",
-          name: "Áo cho chó",
+          name: "Chuồng chim",
+          quantity: 1,
+          price: 100000,
+          category: "Phụ kiện",
+        },
+      ],
+    },
+    {
+      id: "ORD-006",
+      customerName: "Vũ Thị F",
+      customerPhone: "0955667788",
+      customerEmail: "vuthif@example.com",
+      customerAddress: "303 Đường Cách Mạng Tháng 8, Q.10, TP.HCM",
+      orderDate: "10/03/2024",
+      total: 350000,
+      status: "Chờ xác nhận",
+      products: [
+        {
+          id: "11",
+          name: "Thức ăn cho thỏ",
           quantity: 2,
-          price: 200000,
-          category: "Quần áo",
+          price: 85000,
+          category: "Thức ăn",
+        },
+        {
+          id: "12",
+          name: "Chuồng thỏ",
+          quantity: 1,
+          price: 180000,
+          category: "Phụ kiện",
+        },
+      ],
+    },
+    {
+      id: "ORD-007",
+      customerName: "Đặng Văn G",
+      customerPhone: "0966778899",
+      customerEmail: "dangvang@example.com",
+      customerAddress: "404 Đường Nguyễn Văn Linh, Q.7, TP.HCM",
+      orderDate: "09/03/2024",
+      total: 270000,
+      status: "Đã xác nhận",
+      products: [
+        {
+          id: "13",
+          name: "Thức ăn cho hamster",
+          quantity: 3,
+          price: 70000,
+          category: "Thức ăn",
+        },
+        {
+          id: "14",
+          name: "Chuồng hamster",
+          quantity: 1,
+          price: 130000,
+          category: "Phụ kiện",
         },
       ],
       blog: {
-        id: "1",
-        title: "Những loại thức ăn tốt cho chó",
+        id: "3",
+        title: "Cách chăm sóc hamster",
       },
     },
   ]);
 
-  // State để quản lý dialog xác nhận
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-  const [orderToConfirm, setOrderToConfirm] = useState<string | null>(null);
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
+  // State cho phân trang
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
-  // Hàm xử lý khi mở dialog xác nhận đơn hàng
+  // State cho các dialog
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+
+  // Tính toán đơn hàng cần hiển thị cho trang hiện tại
+  const currentOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return orders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [orders, currentPage]);
+
+  // Tính tổng số trang
+  const totalPages = Math.ceil(orders.length / ITEMS_PER_PAGE);
+
+  // Hàm xử lý khi thay đổi trang
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   const openConfirmDialog = (orderId: string) => {
-    setOrderToConfirm(orderId);
+    setSelectedOrderId(orderId);
     setIsConfirmDialogOpen(true);
   };
 
-  // Hàm xử lý khi xác nhận đơn hàng
+  // Xác nhận đơn hàng
   const confirmOrder = () => {
-    if (orderToConfirm) {
+    if (selectedOrderId) {
       setOrders(
         orders.map((order) =>
-          order.id === orderToConfirm
-            ? { ...order, status: "Đã xác nhận" }
+          order.id === selectedOrderId
+            ? {
+                ...order,
+                status:
+                  order.status === "Chờ xác nhận"
+                    ? "Đã xác nhận"
+                    : order.status === "Đã xác nhận"
+                    ? "Đang vận chuyển"
+                    : order.status === "Đang vận chuyển"
+                    ? "Đã giao hàng"
+                    : order.status,
+              }
             : order
         )
       );
       setIsConfirmDialogOpen(false);
-      setOrderToConfirm(null);
+      setSelectedOrderId(null);
     }
   };
 
-  // Hàm xử lý khi hủy xác nhận đơn hàng
   const cancelConfirm = () => {
     setIsConfirmDialogOpen(false);
-    setOrderToConfirm(null);
+    setSelectedOrderId(null);
   };
 
-  // Hàm xử lý khi mở dialog hủy đơn hàng
+  // Mở dialog hủy đơn hàng
   const openCancelDialog = (orderId: string) => {
-    setOrderToCancel(orderId);
+    setSelectedOrderId(orderId);
     setIsCancelDialogOpen(true);
   };
 
-  // Hàm xử lý khi xác nhận hủy đơn hàng
+  // Hủy đơn hàng
   const confirmCancel = () => {
-    if (orderToCancel) {
+    if (selectedOrderId) {
       setOrders(
         orders.map((order) =>
-          order.id === orderToCancel ? { ...order, status: "Đã hủy" } : order
+          order.id === selectedOrderId
+            ? {
+                ...order,
+                status: "Đã hủy",
+              }
+            : order
         )
       );
       setIsCancelDialogOpen(false);
-      setOrderToCancel(null);
+      setSelectedOrderId(null);
     }
   };
 
-  // Hàm xử lý khi hủy yêu cầu hủy đơn hàng
   const cancelCancelOrder = () => {
     setIsCancelDialogOpen(false);
-    setOrderToCancel(null);
+    setSelectedOrderId(null);
   };
 
-  // Hàm lấy màu sắc dựa theo trạng thái đơn hàng
+  // Lấy màu theo trạng thái
   const getStatusColor = (status: Order["status"]) => {
     switch (status) {
       case "Chờ xác nhận":
-        return "bg-yellow-100 text-yellow-600";
-      case "Đã xác nhận":
         return "bg-blue-100 text-blue-600";
+      case "Đã xác nhận":
+        return "bg-yellow-100 text-yellow-600";
       case "Đang vận chuyển":
         return "bg-purple-100 text-purple-600";
       case "Đã giao hàng":
@@ -255,130 +333,137 @@ export default function AdminOrderPage() {
     }
   };
 
+  const getNextStatusText = (status: Order["status"]) => {
+    switch (status) {
+      case "Chờ xác nhận":
+        return "Xác nhận";
+      case "Đã xác nhận":
+        return "Vận chuyển";
+      case "Đang vận chuyển":
+        return "Đã giao";
+      default:
+        return "";
+    }
+  };
+
   return (
-    <div className="mx-auto">
+    <div className=" mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-pink-doca">Quản lý đơn hàng</h1>
+        <h1 className="text-2xl font-semibold text-pink-doca">Đơn Hàng</h1>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Mã đơn hàng
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Khách hàng
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Ngày đặt
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Tổng tiền
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Trạng thái
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Thao tác
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {orders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {order.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="font-medium text-gray-900">
-                      {order.customerName}
-                    </div>
-                    <div className="text-gray-500">{order.customerPhone}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {order.orderDate}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {order.total.toLocaleString()}đ
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                        order.status
-                      )}`}
-                    >
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2">
-                      <Link
-                        href={`/orders-management/view/${order.id}`}
-                        className="px-2 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-all"
-                      >
-                        Chi tiết
-                      </Link>
+      <div className="bg-white rounded-lg shadow-md p-2">
+        {currentOrders.map((order) => (
+          <div
+            key={order.id}
+            className="flex flex-col p-4 border-b last:border-b-0 rounded-md my-2 bg-white shadow-sm"
+          >
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-semibold">
+                  Mã đơn hàng: {order.id}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Ngày đặt: {order.orderDate}
+                </p>
+              </div>
 
-                      <Link
-                        href={`/orders-management/edit/${order.id}`}
-                        className="px-2 py-1 text-sm text-green-600 bg-green-100 rounded-md hover:bg-green-200 transition-all"
-                      >
-                        Chỉnh sửa
-                      </Link>
+              <div className="flex items-center space-x-2">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs ${getStatusColor(
+                    order.status
+                  )}`}
+                >
+                  {order.status}
+                </span>
+                <span className="text-sm font-semibold">
+                  {order.total.toLocaleString()}đ
+                </span>
+              </div>
+            </div>
 
-                      {order.status === "Chờ xác nhận" && (
-                        <button
-                          onClick={() => openConfirmDialog(order.id)}
-                          className="px-2 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-all"
-                        >
-                          Xác nhận
-                        </button>
-                      )}
+            <div className="grid grid-cols-2 gap-4 mt-3">
+              <div>
+                <h4 className="text-sm font-medium text-gray-500">
+                  Thông tin khách hàng
+                </h4>
+                <p className="text-sm">{order.customerName}</p>
+                <p className="text-sm">{order.customerPhone}</p>
+                <p className="text-sm">{order.customerEmail}</p>
+                <p className="text-sm">{order.customerAddress}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-gray-500">
+                  Sản phẩm đã đặt
+                </h4>
+                <ul className="list-disc pl-5 text-sm">
+                  {order.products.map((product) => (
+                    <li key={product.id}>
+                      {product.name} - SL: {product.quantity} - Đơn giá:{" "}
+                      {product.price.toLocaleString()}đ
+                    </li>
+                  ))}
+                </ul>
+                {order.blog && (
+                  <div className="mt-2">
+                    <h4 className="text-sm font-medium text-gray-500">
+                      Bài viết liên quan
+                    </h4>
+                    <p className="text-sm">{order.blog.title}</p>
+                  </div>
+                )}
+              </div>
+            </div>
 
-                      {(order.status === "Chờ xác nhận" ||
-                        order.status === "Đã xác nhận") && (
-                        <button
-                          onClick={() => openCancelDialog(order.id)}
-                          className="px-2 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-all"
-                        >
-                          Hủy
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            <div className="flex justify-end mt-3 space-x-2">
+              <Link
+                href={`/orders-management/view?id=${order.id}`}
+                className="px-4 py-1 text-sm text-blue-600 bg-blue-100 rounded-md hover:bg-blue-200 transition-all"
+              >
+                Chi tiết
+              </Link>
+
+              <Link
+                href={`/orders-management/edit?id=${order.id}`}
+                className="px-4 py-1 text-sm text-green-600 bg-green-100 rounded-md hover:bg-green-200 transition-all"
+              >
+                Chỉnh sửa
+              </Link>
+
+              {order.status !== "Đã giao hàng" && order.status !== "Đã hủy" && (
+                <button
+                  onClick={() => openConfirmDialog(order.id)}
+                  className="px-4 py-1 text-sm text-yellow-600 bg-yellow-100 rounded-md hover:bg-yellow-200 transition-all"
+                >
+                  {getNextStatusText(order.status)}
+                </button>
+              )}
+
+              {order.status !== "Đã giao hàng" && order.status !== "Đã hủy" && (
+                <button
+                  onClick={() => openCancelDialog(order.id)}
+                  className="px-4 py-1 text-sm text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-all"
+                >
+                  Hủy đơn
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
+
+      {/* Thêm phân trang */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
 
       {/* Dialog xác nhận đơn hàng */}
       <ConfirmDialog
         isOpen={isConfirmDialogOpen}
-        title="Xác nhận đơn hàng"
-        message="Bạn có chắc chắn muốn xác nhận đơn hàng này? Khi xác nhận, đơn hàng sẽ được chuyển sang trạng thái 'Đã xác nhận'."
+        title="Xác nhận cập nhật trạng thái"
+        message="Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng này?"
         confirmButtonText="Xác nhận"
         cancelButtonText="Hủy"
         onConfirm={confirmOrder}
@@ -389,10 +474,10 @@ export default function AdminOrderPage() {
       {/* Dialog hủy đơn hàng */}
       <ConfirmDialog
         isOpen={isCancelDialogOpen}
-        title="Hủy đơn hàng"
+        title="Xác nhận hủy đơn hàng"
         message="Bạn có chắc chắn muốn hủy đơn hàng này? Hành động này không thể hoàn tác."
-        confirmButtonText="Hủy đơn hàng"
-        cancelButtonText="Quay lại"
+        confirmButtonText="Hủy đơn"
+        cancelButtonText="Đóng"
         onConfirm={confirmCancel}
         onCancel={cancelCancelOrder}
         type="danger"
