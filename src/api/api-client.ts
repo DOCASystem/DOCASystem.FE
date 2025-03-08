@@ -1,4 +1,5 @@
 import { Configuration } from "./generated";
+import { REAL_API_BASE_URL } from "../utils/api-config";
 
 // Helper để kiểm tra môi trường
 const isBrowser = () => typeof window !== "undefined";
@@ -14,7 +15,7 @@ const getToken = () => {
 // Tạo cấu hình cơ bản không có Authorization header cho SSR
 const createBaseConfig = () => {
   return new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
+    basePath: REAL_API_BASE_URL,
     baseOptions: {
       headers: {},
     },
@@ -24,7 +25,7 @@ const createBaseConfig = () => {
 // Tạo cấu hình với Authorization header cho client-side
 const createClientConfig = () => {
   return new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
+    basePath: REAL_API_BASE_URL,
     baseOptions: {
       headers: {
         Authorization: `Bearer ${getToken()}`,

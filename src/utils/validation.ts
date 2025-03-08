@@ -33,7 +33,12 @@ export const formSchema = yup.object().shape({
   message: yup.string().optional(),
 });
 
-export const loginSchema = formSchema.pick(["email", "password"]);
+// Schema riêng cho đăng nhập
+export const loginSchema = yup.object().shape({
+  email: yup.string().required("Email hoặc số điện thoại không được để trống"),
+  password: yup.string().required("Mật khẩu không được để trống"),
+});
+
 export const contactSchema = formSchema.pick(["firstName", "lastName"]);
 export const signupSchema = formSchema.pick([
   "firstName",

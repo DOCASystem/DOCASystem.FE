@@ -1,6 +1,6 @@
 import { Poppins } from "next/font/google";
 import "../styles/globals.css";
-import { AuthProvider } from "@/contexts/auth-provider";
+import AuthProvider from "@/contexts/AuthContext";
 
 export const metadata = {
   title: "DOCA",
@@ -25,7 +25,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi" className={poppins.className}>
-      <body className="bg-white mx-auto ">
+      <body className="bg-white mx-auto">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
