@@ -1,5 +1,5 @@
 import { ProductApi } from "@/api/generated";
-import { apiClient } from "@/api/api-client";
+import apiClient from "@/api/api-client";
 
 const productApi = new ProductApi(apiClient);
 
@@ -21,6 +21,14 @@ export const ProductService = {
         params.minPrice,
         params.maxPrice
       );
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  getProductById: async (id: string) => {
+    try {
+      return await productApi.apiV1ProductsIdGet(id);
     } catch (error) {
       throw error;
     }

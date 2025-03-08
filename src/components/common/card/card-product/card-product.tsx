@@ -5,23 +5,15 @@ import Link from "next/link";
 import { GetProductDetailResponse } from "@/api/generated";
 
 interface CardProductProps {
-  product?: GetProductDetailResponse;
+  product: GetProductDetailResponse;
 }
 
 export default function CardProduct({ product }: CardProductProps) {
-  // Sử dụng dữ liệu từ props hoặc dữ liệu mặc định nếu không có
-  const defaultProduct = {
-    id: "1",
-    img: "/images/food-test.png",
-    name: "Thức ăn cho mèo - Whiskas 1.2kg",
-    prices: 120000,
-  };
-
   // Lấy URL ảnh chính của sản phẩm (nếu có)
   const mainImage =
-    product?.productImages && product.productImages.length > 0
+    product.productImages && product.productImages.length > 0
       ? product.productImages[0].imageUrl || "/images/food-test.png"
-      : "/images/food-test.png"; // Ảnh mặc định
+      : "/images/food-test.png"; // Ảnh mặc định nếu không có
 
   // Format giá tiền
   const formatPrice = (price?: number) => {
@@ -33,24 +25,22 @@ export default function CardProduct({ product }: CardProductProps) {
   };
 
   return (
-    <div className="w-full border-2 border-slate-100 rounded-[20px]">
-      <Link href={`/shop/${product?.id || defaultProduct.id}`}>
+    <Link href={`/shop/${product.id}`}>
+      <div className="w-full border-2 border-slate-100 rounded-[20px] transition-transform hover:shadow-lg hover:-translate-y-1">
         <div className="relative aspect-square">
           <Image
             src={mainImage}
-            alt={product?.name || defaultProduct.name}
+            alt={product.name || "Sản phẩm"}
             fill
             sizes="100%"
             className="object-cover rounded-t-[20px]"
           />
         </div>
         <div className="p-5 bg-slate-100 rounded-b-[20px]">
-          <p className="mb-3 font-semibold line-clamp-2 h-12">
-            {product?.name || defaultProduct.name}
-          </p>
+          <p className="mb-3 font-semibold line-clamp-2 h-12">{product.name}</p>
           <div className="flex flex-row justify-between items-center">
             <p className="text-pink-doca font-bold">
-              {formatPrice(product?.price || defaultProduct.prices)}
+              {formatPrice(product.price)}
             </p>
             <button className="bg-pink-doca text-white p-2 rounded-full hover:bg-pink-600 transition-colors">
               <svg
@@ -73,7 +63,7 @@ export default function CardProduct({ product }: CardProductProps) {
             </button>
           </div>
         </div>
-      </Link>
-    </div>
+      </div>
+    </Link>
   );
 }
