@@ -87,10 +87,7 @@ export default function ViewUserPage() {
             Chi tiết người dùng
           </h1>
           <Link href="/users-management">
-            <Button
-              variant="outline"
-              className="border-gray-300 hover:bg-gray-100 py-2 px-4"
-            >
+            <Button className="bg-pink-doca hover:bg-pink-doca w-52 h-11 text-lg">
               Quay lại
             </Button>
           </Link>
@@ -111,10 +108,7 @@ export default function ViewUserPage() {
             Chi tiết người dùng
           </h1>
           <Link href="/users-management">
-            <Button
-              variant="outline"
-              className="border-gray-300 hover:bg-gray-100 py-2 px-4"
-            >
+            <Button className="border-pink-doca hover:bg-pink-doca w-52 h-11 text-lg">
               Quay lại
             </Button>
           </Link>
@@ -136,18 +130,12 @@ export default function ViewUserPage() {
         </h1>
         <div className="flex space-x-3">
           <Link href={`/users-management/edit/${user.id}`}>
-            <Button
-              variant="primary"
-              className="bg-blue-500 hover:bg-blue-600 py-2 px-4"
-            >
+            <Button className="bg-pink-doca hover:bg-pink-doca w-52 h-11 text-lg">
               Chỉnh sửa
             </Button>
           </Link>
           <Link href="/users-management">
-            <Button
-              variant="outline"
-              className="border-gray-300 hover:bg-gray-100 py-2 px-4"
-            >
+            <Button className="border-pink-doca hover:bg-pink-doca w-52 h-11 text-lg">
               Quay lại
             </Button>
           </Link>

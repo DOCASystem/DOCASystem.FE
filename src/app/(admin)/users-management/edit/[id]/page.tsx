@@ -189,10 +189,7 @@ export default function EditUserPage() {
             Chỉnh sửa người dùng
           </h1>
           <Link href={`/users-management/view/${userId}`}>
-            <Button
-              variant="outline"
-              className="border-gray-300 hover:bg-gray-100 py-2 px-4"
-            >
+            <Button className="bg-pink-doca hover:bg-pink-doca h-11 w-48">
               Quay lại
             </Button>
           </Link>
@@ -211,8 +208,7 @@ export default function EditUserPage() {
           Chỉnh sửa người dùng
         </h1>
         <Button
-          variant="outline"
-          className="border-gray-300 hover:bg-gray-100 py-2 px-4"
+          className="bg-pink-doca hover:bg-pink-doca h-11 w-48"
           onClick={handleBack}
           disabled={isSaving}
         >

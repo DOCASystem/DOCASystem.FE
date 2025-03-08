@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Button from "@/components/common/button/button";
+import LinkNav from "@/components/common/link/link";
 
 export default function AddUserPage() {
   const router = useRouter();
@@ -107,14 +108,11 @@ export default function AddUserPage() {
         <h1 className="text-2xl font-bold text-gray-800">
           Thêm người dùng mới
         </h1>
-        <Link href="/users-management">
-          <Button
-            variant="outline"
-            className="border-gray-300 hover:bg-gray-100 py-2 px-4"
-          >
+        <LinkNav href="/users-management">
+          <Button className="border-pink-doca hover:bg-pink-doca w-32 h-11 text-lg">
             Quay lại
           </Button>
-        </Link>
+        </LinkNav>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -268,23 +266,16 @@ export default function AddUserPage() {
           </div>
 
           <div className="mt-6 flex justify-end space-x-3">
-            <Link href="/users-management">
+            <LinkNav href="/users-management">
               <Button
-                variant="outline"
-                className="border-gray-300 hover:bg-gray-100 py-2 px-4"
+                type="submit"
+                variant="primary"
+                className="bg-pink-doca hover:bg-pink-doca w-56 h-11 text-lg"
                 disabled={isLoading}
               >
-                Hủy
-              </Button>
-            </Link>
-            <Button
-              type="submit"
-              variant="primary"
-              className="bg-pink-doca hover:bg-pink-doca-dark py-2 px-4"
-              disabled={isLoading}
-            >
-              {isLoading ? "Đang xử lý..." : "Thêm người dùng"}
-            </Button>
+                {isLoading ? "Đang xử lý..." : "Thêm người dùng"}
+              </Button>{" "}
+            </LinkNav>
           </div>
         </form>
       </div>

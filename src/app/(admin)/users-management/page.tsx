@@ -201,7 +201,7 @@ export default function AdminUsersPage() {
         <Link href="/users-management/add">
           <Button
             variant="primary"
-            className="bg-pink-doca hover:bg-pink-doca-dark py-2 px-4"
+            className="bg-pink-doca hover:bg-pink-doca w-56 h-11 text-base"
           >
             Thêm người dùng mới
           </Button>
