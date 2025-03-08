@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import {
   API_BASE_URL,
   API_ENDPOINTS,
-  REAL_API_BASE_URL,
-  REAL_LOGIN_API_URL,
   updateRealApiBaseUrl,
   updateRealLoginApiUrl,
 } from "@/utils/api-config";

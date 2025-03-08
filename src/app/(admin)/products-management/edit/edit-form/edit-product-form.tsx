@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import AdminForm from "@/components/common/form/admin-form";
 import Input from "@/components/common/input/input";
 import { productSchema } from "@/utils/validation";
 import ConfirmDialog from "@/components/common/dialog/confirm-dialog";
+import Image from "next/image";
 
 // Định nghĩa kiểu dữ liệu cho form
 type EditProductFormData = {
@@ -30,7 +31,7 @@ interface ProductData {
   imageUrl?: string;
 }
 
-export default function EditProductForm() {
+function EditProductContent() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -231,9 +232,11 @@ export default function EditProductForm() {
             {productData?.imageUrl && (
               <div className="mb-4">
                 <p className="text-sm text-gray-600 mb-2">Hình ảnh hiện tại:</p>
-                <img
+                <Image
                   src={productData.imageUrl}
                   alt={productData.name}
+                  width={128}
+                  height={128}
                   className="w-32 h-32 object-cover rounded-md border border-gray-300"
                 />
               </div>
@@ -269,5 +272,13 @@ export default function EditProductForm() {
         type="info"
       />
     </div>
+  );
+}
+
+export default function EditProductForm() {
+  return (
+    <Suspense fallback={<div className="p-4">Đang tải...</div>}>
+      <EditProductContent />
+    </Suspense>
   );
 }

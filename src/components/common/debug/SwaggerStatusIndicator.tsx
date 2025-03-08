@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { checkSwaggerConnection, checkApiConnection } from "@/api/api-status";
 import { SWAGGER_URL, API_BASE_URL } from "@/utils/api-config";
 import ConfigureApiDialog from "../dialog/ConfigureApiDialog";
@@ -15,7 +15,7 @@ export default function SwaggerStatusIndicator() {
   const [currentApiUrl, setCurrentApiUrl] = useState(API_BASE_URL);
   const [currentSwaggerUrl, setCurrentSwaggerUrl] = useState(SWAGGER_URL);
 
-  const checkApiStatus = async () => {
+  const checkApiStatus = useCallback(async () => {
     try {
       // Kiểm tra kết nối API trước
       const apiConnected = await checkApiConnection();
@@ -46,11 +46,11 @@ export default function SwaggerStatusIndicator() {
         }`
       );
     }
-  };
+  }, [currentApiUrl, currentSwaggerUrl]);
 
   useEffect(() => {
     checkApiStatus();
-  }, [currentApiUrl, currentSwaggerUrl]);
+  }, [checkApiStatus]);
 
   const handleSaveConfig = (apiUrl: string, swaggerUrl: string) => {
     setCurrentApiUrl(apiUrl);

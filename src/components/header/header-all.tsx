@@ -23,8 +23,8 @@ const nav = [
 ];
 
 const cart = [
-  { id: 1, icon: <HeartIcon />, text: "Yêu thích", path: "/#!" },
-  { id: 2, icon: <CartIcon />, text: "Giỏ hàng", path: "/#!" },
+  { id: 1, icon: <HeartIcon />, text: "Yêu thích", path: "/login" },
+  { id: 2, icon: <CartIcon />, text: "Giỏ hàng", path: "/login" },
 ];
 
 export default function Header() {

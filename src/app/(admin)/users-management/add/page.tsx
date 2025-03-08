@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import Button from "@/components/common/button/button";
 import LinkNav from "@/components/common/link/link";
 

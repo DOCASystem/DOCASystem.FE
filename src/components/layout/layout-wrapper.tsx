@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import Header from "@/components/header";
+import Header from "@/components/header/header-all";
 import Footer from "@/components/footer";
 
 export default function LayoutWrapper({

@@ -11,12 +11,6 @@ import Image from "next/image";
 import toast from "react-hot-toast";
 import ConfirmDialog from "@/components/common/dialog/confirm-dialog";
 
-// Định nghĩa kiểu dữ liệu cho phân loại blog
-interface BlogCategory {
-  id: string | number;
-  name?: string;
-}
-
 // Định nghĩa kiểu dữ liệu cho form
 type EditBlogFormData = {
   title: string;
@@ -74,9 +68,12 @@ export default function EditBlogForm() {
         const mockData: BlogData = {
           id: id as string,
           title: response?.data?.name || "Blog demo",
-          categoryIds: response?.data?.blogCategories?.map(
-            (cat: BlogCategory) => String(cat.id)
-          ) || ["news"],
+          categoryIds: Array.isArray(response?.data?.blogCategories)
+            ? response.data.blogCategories
+                .map((cat) => cat.id ?? "")
+                .filter(Boolean)
+                .map(String)
+            : ["news"],
           status: response?.data?.status || "PUBLISHED",
           description: response?.data?.description || "Mô tả blog demo",
           // Trong thực tế cần triển khai API để lấy ảnh từ server

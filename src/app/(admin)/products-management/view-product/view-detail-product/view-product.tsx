@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-
+import Image from "next/image";
 // Định nghĩa kiểu dữ liệu giả cho sản phẩm - giống với trang edit
 interface ProductData {
   id: string;
@@ -24,7 +24,7 @@ const categoryMap: Record<string, string> = {
   cat: "Mèo",
 };
 
-export default function ViewProductPage() {
+function ViewProductContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const productId = searchParams.get("id");
@@ -137,9 +137,11 @@ export default function ViewProductPage() {
           <div className="w-full md:w-1/3">
             <div className="aspect-square overflow-hidden rounded-lg shadow-md bg-gray-100 flex items-center justify-center">
               {product.imageUrl ? (
-                <img
+                <Image
                   src={product.imageUrl}
                   alt={product.name}
+                  width={128}
+                  height={128}
                   className="object-cover w-full h-full"
                 />
               ) : (
@@ -233,5 +235,13 @@ export default function ViewProductPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ViewProductPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Đang tải...</div>}>
+      <ViewProductContent />
+    </Suspense>
   );
 }

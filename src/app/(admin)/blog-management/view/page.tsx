@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -19,7 +19,7 @@ type BlogPost = {
   tags: string[];
 };
 
-export default function ViewBlogPage() {
+function BlogViewContent() {
   const searchParams = useSearchParams();
   const postId = searchParams.get("id");
   const [post, setPost] = useState<BlogPost | null>(null);
@@ -196,5 +196,13 @@ export default function ViewBlogPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ViewBlogPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Đang tải...</div>}>
+      <BlogViewContent />
+    </Suspense>
   );
 }

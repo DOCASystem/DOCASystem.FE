@@ -12,6 +12,9 @@ import Input from "@/components/common/input/input";
 import Button from "@/components/common/button/button";
 import LinkNav from "@/components/common/link/link";
 import Image from "next/image";
+import { customAuthApi } from "@/api/custom/auth-api";
+import { toast } from "react-hot-toast";
+import { AxiosError } from "axios";
 
 // Định nghĩa các kiểu dữ liệu cho form
 interface EmailFormData {
@@ -31,6 +34,10 @@ export default function ForgotPasswordForm() {
   // State để theo dõi bước hiện tại trong flow quên mật khẩu
   const [step, setStep] = useState<number>(1);
   const [email, setEmail] = useState<string>("");
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isResendingOtp, setIsResendingOtp] = useState<boolean>(false);
+  const [otpCode, setOtpCode] = useState<string>("");
 
   // Form cho bước 1: Nhập email
   const emailMethods = useForm<EmailFormData>({
@@ -51,41 +58,121 @@ export default function ForgotPasswordForm() {
   });
 
   // Xử lý submit cho form email (bước 1)
-  const handleEmailSubmit = emailMethods.handleSubmit((data) => {
-    console.log("Email đã nhập:", data.email);
-    setEmail(data.email);
-    // Trong thực tế, gửi request đến API để gửi OTP
-    console.log("Gửi OTP đến email:", data.email);
-    // Chuyển sang bước tiếp theo
-    setStep(2);
+  const handleEmailSubmit = emailMethods.handleSubmit(async (data) => {
+    try {
+      setIsSubmitting(true);
+      setEmail(data.email);
+
+      // Gọi API để gửi OTP
+      await customAuthApi.requestOtp({ email: data.email });
+
+      // Yêu cầu người dùng nhập số điện thoại để xác nhận (có thể lấy từ form khác hoặc dùng prompt)
+      const phone = prompt("Vui lòng nhập số điện thoại của bạn để xác thực:");
+      if (phone) {
+        setPhoneNumber(phone);
+        // Chuyển sang bước tiếp theo
+        setStep(2);
+        toast.success("Đã gửi mã OTP đến email của bạn!");
+      } else {
+        toast.error("Vui lòng nhập số điện thoại để tiếp tục.");
+      }
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message: string }>;
+      const errorMessage =
+        axiosError.response?.data?.message ||
+        "Không thể gửi OTP. Vui lòng thử lại.";
+      toast.error(errorMessage);
+      console.error("Lỗi khi gửi OTP:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   });
 
+  // Xử lý gửi lại OTP
+  const handleResendOtp = async () => {
+    try {
+      setIsResendingOtp(true);
+
+      // Gọi API để gửi lại OTP
+      await customAuthApi.requestOtp({ email });
+
+      // Thông báo thành công
+      toast.success("Đã gửi lại mã OTP đến email của bạn!");
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message: string }>;
+      const errorMessage =
+        axiosError.response?.data?.message ||
+        "Không thể gửi lại OTP. Vui lòng thử lại.";
+      toast.error(errorMessage);
+      console.error("Lỗi khi gửi lại OTP:", error);
+    } finally {
+      setIsResendingOtp(false);
+    }
+  };
+
   // Xử lý submit cho form OTP (bước 2)
-  const handleOtpSubmit = otpMethods.handleSubmit((data) => {
-    console.log("OTP đã nhập:", data.otp);
-    // Kiểm tra OTP - hiện tại cứng là 123456
-    if (data.otp === "123456") {
-      // OTP đúng, chuyển sang bước đặt lại mật khẩu
+  const handleOtpSubmit = otpMethods.handleSubmit(async (data) => {
+    try {
+      setIsSubmitting(true);
+      setOtpCode(data.otp);
+
+      // Chưa thực hiện kiểm tra OTP ở đây, sẽ kiểm tra khi đặt lại mật khẩu
       setStep(3);
-    } else {
-      otpMethods.setError("otp", {
-        type: "manual",
-        message: "OTP không chính xác. Vui lòng thử lại.",
-      });
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError<{ message: string }>;
+      const errorMessage =
+        axiosError.response?.data?.message ||
+        "Xác thực OTP thất bại. Vui lòng thử lại.";
+      toast.error(errorMessage);
+      console.error("Lỗi khi xác thực OTP:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   });
 
   // Xử lý submit cho form đặt lại mật khẩu (bước 3)
   const handleResetPasswordSubmit = resetPasswordMethods.handleSubmit(
-    (data) => {
-      console.log("Mật khẩu mới:", data.password);
-      // Trong thực tế, gửi request đến API để cập nhật mật khẩu
-      console.log("Đặt lại mật khẩu cho email:", email);
-      alert(
-        "Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới."
-      );
-      // Chuyển hướng đến trang đăng nhập có thể được thực hiện ở đây
-      window.location.href = "/login";
+    async (data) => {
+      try {
+        setIsSubmitting(true);
+
+        // Gọi API đặt lại mật khẩu
+        await customAuthApi.forgotPassword({
+          otp: otpCode,
+          phoneNumber: phoneNumber,
+          password: data.password,
+        });
+
+        toast.success(
+          "Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới."
+        );
+
+        // Chuyển hướng đến trang đăng nhập
+        window.location.href = "/login";
+      } catch (error: unknown) {
+        const axiosError = error as AxiosError<{ message: string }>;
+        const errorMessage =
+          axiosError.response?.data?.message ||
+          "Đặt lại mật khẩu thất bại. Vui lòng thử lại.";
+
+        // Kiểm tra nếu lỗi liên quan đến OTP
+        if (
+          errorMessage.toLowerCase().includes("otp") ||
+          errorMessage.toLowerCase().includes("mã xác thực")
+        ) {
+          toast.error(
+            "Mã OTP không hợp lệ hoặc đã hết hạn. Vui lòng quay lại bước xác nhận OTP."
+          );
+          // Quay lại bước OTP
+          setStep(2);
+        } else {
+          toast.error(errorMessage);
+        }
+
+        console.error("Lỗi khi đặt lại mật khẩu:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   );
 
@@ -113,9 +200,10 @@ export default function ForgotPasswordForm() {
                 <div className="mt-6 flex flex-col gap-4">
                   <Button
                     type="submit"
+                    disabled={isSubmitting}
                     className="h-12 w-[404px] bg-pink-doca text-white rounded-3xl text-[16px]"
                   >
-                    Tiếp tục
+                    {isSubmitting ? "Đang xử lý..." : "Tiếp tục"}
                   </Button>
                   <div className="text-center">
                     <LinkNav
@@ -149,12 +237,25 @@ export default function ForgotPasswordForm() {
                   placeholder="Nhập mã OTP"
                   className="w-[404px]"
                 />
+
+                <div className="text-center mt-2">
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={isResendingOtp}
+                    className="text-pink-doca hover:underline text-sm"
+                  >
+                    {isResendingOtp ? "Đang gửi lại..." : "Gửi lại mã OTP"}
+                  </button>
+                </div>
+
                 <div className="mt-6 flex flex-col gap-4">
                   <Button
                     type="submit"
+                    disabled={isSubmitting}
                     className="h-12 w-[404px] bg-pink-doca text-white rounded-3xl text-[16px]"
                   >
-                    Xác nhận
+                    {isSubmitting ? "Đang xử lý..." : "Xác nhận"}
                   </Button>
                   <div className="text-center">
                     <button
@@ -199,9 +300,10 @@ export default function ForgotPasswordForm() {
                 <div className="mt-6 flex flex-col gap-4">
                   <Button
                     type="submit"
+                    disabled={isSubmitting}
                     className="h-12 w-[404px] bg-pink-doca text-white rounded-3xl text-[16px]"
                   >
-                    Hoàn tất
+                    {isSubmitting ? "Đang xử lý..." : "Hoàn tất"}
                   </Button>
                 </div>
               </div>
@@ -210,7 +312,7 @@ export default function ForgotPasswordForm() {
         )}
       </div>
 
-      <LinkNav href="/home" className="w-[700px] h-[700px] rounded-l-2xl">
+      <LinkNav href="/" className="w-[700px] h-[700px] rounded-l-2xl">
         <Image
           src="/images/bg-login.png"
           alt="bg-login"

@@ -199,13 +199,15 @@ export default function LoginForm() {
           </div>
         </form>
       </FormProvider>
-      <Image
-        src="/images/bg-login.png"
-        alt="bg-login"
-        width={600}
-        height={900}
-        className="w-[700px] h-[700px] rounded-l-2xl"
-      />
+      <LinkNav href="/">
+        <Image
+          src="/images/bg-login.png"
+          alt="bg-login"
+          width={600}
+          height={900}
+          className="w-[700px] h-[700px] rounded-l-2xl"
+        />
+      </LinkNav>
     </div>
   );
 }
