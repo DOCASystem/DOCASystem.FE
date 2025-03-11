@@ -87,7 +87,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role>(Role.GUEST);
 
+  // Bỏ qua kiểm tra xác thực trong quá trình build
+  const isBuildProcess = process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === "true";
+
   useEffect(() => {
+    // Nếu đang trong quá trình build, bỏ qua việc kiểm tra xác thực
+    if (isBuildProcess) {
+      // Tạo mock user cho quá trình build
+      const mockUser: User = {
+        id: "build-user",
+        name: "Build Admin",
+        email: "admin@example.com",
+        role: Role.ADMIN,
+      };
+
+      setUser(mockUser);
+      setRole(Role.ADMIN);
+      setTokenState("mock-token-for-build");
+      return;
+    }
+
     // Lấy token và user từ localStorage khi component được mount (chỉ ở client-side)
     if (typeof window !== "undefined") {
       const storedToken = localStorage.getItem("token");
@@ -107,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     }
-  }, []);
+  }, [isBuildProcess]);
 
   const setToken = (newToken: string) => {
     setTokenState(newToken);

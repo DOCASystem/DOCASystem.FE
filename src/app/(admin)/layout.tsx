@@ -1,40 +1,35 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React from "react";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { Toaster } from "react-hot-toast";
 import AdminHeader from "./components/admin-header";
 import Sidebar from "./components/sidebar";
-import { useAuth } from "@/contexts/auth-provider";
-import { Role } from "@/auth/types";
+import AdminAuthGuard from "./auth-guard";
 
 export default function AdminRootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const { isAuthenticated, role } = useAuth();
-
-  useEffect(() => {
-    // Kiểm tra xác thực và quyền admin
-    if (!isAuthenticated || role !== Role.ADMIN) {
-      // Chuyển hướng về trang đăng nhập nếu chưa đăng nhập hoặc không phải admin
-      router.push("/login");
-    }
-  }, [isAuthenticated, role, router]);
-
-  // Không hiển thị nội dung cho đến khi xác thực hoàn tất
-  if (!isAuthenticated || role !== Role.ADMIN) {
-    return null; // Hoặc có thể hiển thị trang loading
+  // Kiểm tra nếu đang trong quá trình build và cần bỏ qua các trang admin
+  if (process.env.NEXT_PUBLIC_SKIP_ADMIN_PAGES === "true") {
+    // Trả về một trang trống khi đang build
+    return <div>Admin pages are skipped during build</div>;
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <AdminHeader />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-6  overflow-auto">{children}</main>
-      </div>
-    </div>
+    <AuthProvider>
+      <Toaster position="top-center" />
+      <AdminAuthGuard>
+        <div className="min-h-screen flex flex-col">
+          <AdminHeader />
+          <div className="flex flex-1">
+            <Sidebar />
+            <main className="flex-1 p-6 overflow-auto">{children}</main>
+          </div>
+        </div>
+      </AdminAuthGuard>
+    </AuthProvider>
   );
 }
