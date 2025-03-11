@@ -54,12 +54,27 @@ const getUserData = (): Partial<LoginResponse> | null => {
   return null;
 };
 
+// Hàm xóa cookie
+const deleteCookie = (name: string) => {
+  if (isBrowser()) {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  }
+};
+
 // Đăng xuất
 const logout = () => {
   if (isBrowser()) {
+    // Xóa dữ liệu từ localStorage
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("userData");
+
+    // Xóa cookie
+    deleteCookie("token");
+    deleteCookie("userData");
+
+    // Chuyển hướng về trang đăng nhập
+    window.location.href = "/login";
   }
 };
 

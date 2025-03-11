@@ -39,6 +39,49 @@ const MOCK_USERS = [
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Thời gian hết hạn token (7 ngày tính bằng ms)
+const TOKEN_EXPIRY_TIME = 7 * 24 * 60 * 60 * 1000;
+
+// Hàm lưu cookie
+const setCookie = (name: string, value: string, days: number) => {
+  if (typeof window !== "undefined") {
+    const expires = new Date(Date.now() + days * 864e5).toUTCString();
+    // Thêm các flag bảo mật
+    document.cookie = `${name}=${encodeURIComponent(
+      value
+    )}; expires=${expires}; path=/; SameSite=Strict; Secure`;
+  }
+};
+
+// Hàm xóa cookie
+const deleteCookie = (name: string) => {
+  if (typeof window !== "undefined") {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Strict; Secure`;
+  }
+};
+
+// Hàm tạo một token ngẫu nhiên an toàn hơn
+const generateSecureToken = () => {
+  // Tạo một token ngẫu nhiên 32 bytes và mã hóa base64
+  const randomValues = new Uint8Array(32);
+  if (typeof window !== "undefined" && window.crypto) {
+    // Sử dụng Web Crypto API nếu có
+    window.crypto.getRandomValues(randomValues);
+  } else {
+    // Fallback cho môi trường không hỗ trợ Crypto API
+    for (let i = 0; i < randomValues.length; i++) {
+      randomValues[i] = Math.floor(Math.random() * 256);
+    }
+  }
+
+  // Chuyển mảng bytes thành chuỗi Base64
+  const base64 = btoa(
+    String.fromCharCode.apply(null, Array.from(randomValues))
+  );
+  // Làm sạch chuỗi để an toàn cho URL
+  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setTokenState] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -69,7 +112,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setToken = (newToken: string) => {
     setTokenState(newToken);
     if (typeof window !== "undefined") {
+      // Lưu token với các biện pháp bảo mật
       localStorage.setItem("token", newToken);
+
+      // Tính thời gian hết hạn
+      const expiryTime = Date.now() + TOKEN_EXPIRY_TIME;
+
+      // Lưu token và thời gian hết hạn vào cookie
+      setCookie("token", newToken, 7); // Lưu cookie trong 7 ngày
+      setCookie("token_expiry", expiryTime.toString(), 7);
     }
   };
 
@@ -78,8 +129,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setRole(Role.GUEST);
     if (typeof window !== "undefined") {
+      // Xóa dữ liệu từ localStorage
       localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
       localStorage.removeItem("user");
+
+      // Xóa cookies
+      deleteCookie("token");
+      deleteCookie("token_expiry");
+      deleteCookie("userData");
     }
   };
 
@@ -102,17 +160,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     if (mockUser) {
-      const { ...userWithoutPassword } = mockUser;
+      // Tạo bản sao đối tượng người dùng và loại bỏ mật khẩu để bảo mật
+      const userWithoutPassword = Object.fromEntries(
+        Object.entries(mockUser).filter(([key]) => key !== "password")
+      ) as Omit<typeof mockUser, "password">;
+
       setUser(userWithoutPassword);
       setRole(mockUser.role);
 
-      // Tạo mock token
-      const mockToken = `mock_token_${Date.now()}`;
+      // Tạo mock token an toàn hơn
+      const mockToken = generateSecureToken();
       setToken(mockToken);
 
       // Lưu thông tin user
       if (typeof window !== "undefined") {
         localStorage.setItem("user", JSON.stringify(userWithoutPassword));
+        setCookie("userData", JSON.stringify(userWithoutPassword), 7); // Lưu cookie trong 7 ngày
       }
 
       return true;
@@ -123,6 +186,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     clearToken();
+
+    // Chuyển hướng về trang đăng nhập sau khi đăng xuất
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
   };
 
   // Hàm kiểm tra quyền hạn
@@ -132,6 +200,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const isAuthenticated = !!token && !!user;
+
+  // Thêm hàm kiểm tra token hết hạn
+  const checkTokenExpiry = () => {
+    if (typeof window !== "undefined") {
+      const expiryStr = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("token_expiry="))
+        ?.split("=")[1];
+
+      if (expiryStr) {
+        const expiry = parseInt(expiryStr);
+        if (expiry < Date.now()) {
+          // Token đã hết hạn, đăng xuất
+          clearToken();
+          return false;
+        }
+      }
+    }
+
+    return true;
+  };
+
+  // Kiểm tra token hết hạn khi component được mount
+  useEffect(() => {
+    if (token) {
+      const isValid = checkTokenExpiry();
+      if (!isValid) {
+        clearToken();
+      }
+    }
+  }, [token]);
 
   return (
     <AuthContext.Provider

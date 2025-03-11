@@ -7,7 +7,7 @@ import Input from "@/components/common/input/input";
 import Button from "@/components/common/button/button";
 import Image from "next/image";
 import LinkNav from "@/components/common/link/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/api/services";
 import { toast } from "react-hot-toast";
@@ -23,14 +23,42 @@ interface FormData {
   password: string;
 }
 
+// Thêm hàm setCookie để lưu cookie
+const setCookie = (name: string, value: string, days: number) => {
+  if (isBrowser()) {
+    const expires = new Date(Date.now() + days * 864e5).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(
+      value
+    )}; expires=${expires}; path=/`;
+  }
+};
+
+// Tạo anti-CSRF token
+const generateCSRFToken = () => {
+  if (typeof window !== "undefined" && window.crypto) {
+    const array = new Uint8Array(16);
+    window.crypto.getRandomValues(array);
+    return Array.from(array, (byte) =>
+      ("0" + (byte & 0xff).toString(16)).slice(-2)
+    ).join("");
+  }
+  return Math.random().toString(36).substring(2);
+};
+
 export default function LoginForm() {
   const [loading, setLoading] = useState(false);
+  const [csrfToken, setCsrfToken] = useState("");
   const router = useRouter();
 
   const methods = useForm<FormData>({
     resolver: yupResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
+
+  // Tạo CSRF token khi component mount
+  useEffect(() => {
+    setCsrfToken(generateCSRFToken());
+  }, []);
 
   const onSubmit = methods.handleSubmit(async (data) => {
     console.log("Form submitted with data:", data);
@@ -55,10 +83,18 @@ export default function LoginForm() {
 
         // Thử gọi trực tiếp bằng axios nếu Swagger client gặp lỗi
         console.log("Trying direct API call with axios...");
-        const directResponse = await axios.post(loginUrl, {
-          usernameOrPhoneNumber: data.email,
-          password: data.password,
-        });
+        const directResponse = await axios.post(
+          loginUrl,
+          {
+            usernameOrPhoneNumber: data.email,
+            password: data.password,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         console.log("Direct API response:", directResponse);
 
@@ -66,9 +102,10 @@ export default function LoginForm() {
         response = { data: directResponse.data };
       }
 
-      // Lưu token vào localStorage
+      // Lưu token vào localStorage và cookie
       if (response.data.token && isBrowser()) {
         localStorage.setItem("token", response.data.token);
+        setCookie("token", response.data.token, 7); // Lưu cookie trong 7 ngày
       } else if (!response.data.token) {
         throw new Error("Token không được trả về từ server");
       }
@@ -83,6 +120,7 @@ export default function LoginForm() {
 
       if (isBrowser()) {
         localStorage.setItem("userData", JSON.stringify(userData));
+        setCookie("userData", JSON.stringify(userData), 7); // Lưu cookie trong 7 ngày
       }
 
       toast.success("Đăng nhập thành công!");
@@ -149,12 +187,17 @@ export default function LoginForm() {
     <div className="flex flex-row">
       <FormProvider {...methods}>
         <form
+          method="POST"
           onSubmit={(e) => {
+            e.preventDefault();
             console.log("Form submitted via native submit");
             onSubmit(e);
           }}
           className="bg-gray-100 flex flex-col justify-center items-center max-w-[1536px] p-6 rounded-xl shadow-md min-w-[700px]"
         >
+          {/* CSRF token ẩn */}
+          <input type="hidden" name="csrf_token" value={csrfToken} />
+
           <h1 className="text-2xl font-semibold">Đăng nhập</h1>
 
           <div className="flex flex-col gap-4 mt-6">
@@ -163,6 +206,7 @@ export default function LoginForm() {
               label="Email hoặc số điện thoại"
               placeholder="Nhập email hoặc số điện thoại"
               className="w-[404px]"
+              autoComplete="username"
             />
             <Input
               name="password"
@@ -170,6 +214,7 @@ export default function LoginForm() {
               placeholder="Nhập mật khẩu"
               type="password"
               className="w-[404px]"
+              autoComplete="current-password"
             />
 
             <LinkNav
