@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import LogoDoca from "../common/logo/logo-doca";
 import CartIcon from "../assets/icon-svg/cart-svg";
-import HeartIcon from "../assets/icon-svg/heart-svg";
+import UserDropdown from "../assets/icon-svg/user-dropdown";
 import LinkNav from "../common/link/link";
+import { useAuthContext } from "@/contexts/auth-provider";
 
 const info = [
   { id: 1, icon: "/icons/phone.png", text: "083 722 0173" },
@@ -22,13 +23,14 @@ const nav = [
   { id: 5, text: "Liên hệ", path: "/contact" },
 ];
 
-const cart = [
-  { id: 1, icon: <HeartIcon />, text: "Yêu thích", path: "/login" },
-  { id: 2, icon: <CartIcon />, text: "Giỏ hàng", path: "/login" },
-];
-
 export default function Header() {
   const pathname = usePathname();
+  const { isAuthenticated } = useAuthContext();
+
+  // Kiểm tra nếu là trang admin thì không hiển thị header
+  if (pathname.startsWith("/admin")) {
+    return null;
+  }
 
   return (
     <div className="py-6">
@@ -67,15 +69,13 @@ export default function Header() {
         </div>
 
         <div className="flex gap-6">
-          {cart.map((item) => (
-            <Link
-              key={item.id}
-              href={item.path}
-              className="hover:text-pink-doca"
-            >
-              {item.icon}
-            </Link>
-          ))}
+          <UserDropdown />
+          <Link
+            href={isAuthenticated ? "/cart" : "/login"}
+            className="hover:text-pink-doca"
+          >
+            <CartIcon />
+          </Link>
         </div>
       </div>
     </div>

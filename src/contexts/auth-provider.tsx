@@ -1,280 +1,183 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { Configuration } from "../api/generated";
-import { Role, Permission, ROLE_PERMISSIONS, User } from "@/auth/types";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import AuthServiceFixed from "@/service/auth.service.fixed";
+import { LoginResponse } from "@/api/generated";
+import { AxiosError } from "axios";
+import { useRouter } from "next/navigation";
 
+// Tạo interface cho context
 interface AuthContextType {
-  token: string | null;
-  user: User | null;
-  role: Role;
-  setToken: (token: string) => void;
-  clearToken: () => void;
-  updateApiConfig: () => Configuration;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  hasPermission: (permission: Permission) => boolean;
   isAuthenticated: boolean;
+  userData: Partial<LoginResponse> | null;
+  loading: boolean;
+  error: string | null;
+  login: (
+    usernameOrPhoneNumber: string,
+    password: string
+  ) => Promise<LoginResponse>;
+  logout: () => void;
+  refreshAuth: () => void;
 }
 
-// Dữ liệu người dùng mẫu cho 3 vai trò
-const MOCK_USERS = [
-  {
-    id: "1",
-    name: "Admin",
-    email: "admin@example.com",
-    password: "admin123",
-    role: Role.ADMIN,
-    avatar: "https://i.pravatar.cc/150?img=1",
+// Tạo context với giá trị mặc định
+const AuthContext = createContext<AuthContextType>({
+  isAuthenticated: false,
+  userData: null,
+  loading: false,
+  error: null,
+  login: async () => {
+    console.warn("AuthContext chưa được khởi tạo đúng cách");
+    return {} as LoginResponse;
   },
-  {
-    id: "2",
-    name: "Người dùng",
-    email: "user@example.com",
-    password: "user123",
-    role: Role.USER,
-    avatar: "https://i.pravatar.cc/150?img=2",
+  logout: () => {
+    console.warn("AuthContext chưa được khởi tạo đúng cách");
   },
-];
+  refreshAuth: () => {
+    console.warn("AuthContext chưa được khởi tạo đúng cách");
+  },
+});
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Custom hook để sử dụng context
+export const useAuthContext = () => useContext(AuthContext);
 
-// Thời gian hết hạn token (7 ngày tính bằng ms)
-const TOKEN_EXPIRY_TIME = 7 * 24 * 60 * 60 * 1000;
+// Props cho Provider
+interface AuthProviderProps {
+  children: ReactNode;
+}
 
-// Hàm lưu cookie
-const setCookie = (name: string, value: string, days: number) => {
-  if (typeof window !== "undefined") {
-    const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    // Thêm các flag bảo mật
-    document.cookie = `${name}=${encodeURIComponent(
-      value
-    )}; expires=${expires}; path=/; SameSite=Strict; Secure`;
-  }
-};
+// Provider chính
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [userData, setUserData] = useState<Partial<LoginResponse> | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
-// Hàm xóa cookie
-const deleteCookie = (name: string) => {
-  if (typeof window !== "undefined") {
-    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Strict; Secure`;
-  }
-};
+  // Hàm kiểm tra và cập nhật trạng thái xác thực
+  const refreshAuth = () => {
+    // Chỉ thực hiện ở client-side
+    if (typeof window === "undefined") return;
 
-// Hàm tạo một token ngẫu nhiên an toàn hơn
-const generateSecureToken = () => {
-  // Tạo một token ngẫu nhiên 32 bytes và mã hóa base64
-  const randomValues = new Uint8Array(32);
-  if (typeof window !== "undefined" && window.crypto) {
-    // Sử dụng Web Crypto API nếu có
-    window.crypto.getRandomValues(randomValues);
-  } else {
-    // Fallback cho môi trường không hỗ trợ Crypto API
-    for (let i = 0; i < randomValues.length; i++) {
-      randomValues[i] = Math.floor(Math.random() * 256);
+    console.log("Đang kiểm tra trạng thái xác thực...");
+
+    try {
+      const authenticated = AuthServiceFixed.isAuthenticated();
+      setIsAuthenticated(authenticated);
+
+      if (authenticated) {
+        const user = AuthServiceFixed.getUserData();
+        setUserData(user);
+        console.log("Xác thực thành công, userData:", user);
+      } else {
+        setUserData(null);
+        console.log("Không có token xác thực");
+      }
+    } catch (error) {
+      console.error("Lỗi khi kiểm tra xác thực:", error);
+      setIsAuthenticated(false);
+      setUserData(null);
     }
-  }
 
-  // Chuyển mảng bytes thành chuỗi Base64
-  const base64 = btoa(
-    String.fromCharCode.apply(null, Array.from(randomValues))
-  );
-  // Làm sạch chuỗi để an toàn cho URL
-  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-};
+    setLoading(false);
+  };
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setTokenState] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<Role>(Role.GUEST);
-
-  // Bỏ qua kiểm tra xác thực trong quá trình build
-  const isBuildProcess = process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === "true";
-
+  // Khởi tạo trạng thái khi component mount
   useEffect(() => {
-    // Nếu đang trong quá trình build, bỏ qua việc kiểm tra xác thực
-    if (isBuildProcess) {
-      // Tạo mock user cho quá trình build
-      const mockUser: User = {
-        id: "build-user",
-        name: "Build Admin",
-        email: "admin@example.com",
-        role: Role.ADMIN,
-      };
+    refreshAuth();
 
-      setUser(mockUser);
-      setRole(Role.ADMIN);
-      setTokenState("mock-token-for-build");
-      return;
-    }
+    // Kiểm tra lại trạng thái xác thực khi focus lại tab
+    const handleFocus = () => {
+      console.log("Tab được focus, kiểm tra lại xác thực");
+      refreshAuth();
+    };
 
-    // Lấy token và user từ localStorage khi component được mount (chỉ ở client-side)
-    if (typeof window !== "undefined") {
-      const storedToken = localStorage.getItem("token");
-      const storedUser = localStorage.getItem("user");
+    // Đăng ký sự kiện focus
+    window.addEventListener("focus", handleFocus);
 
-      if (storedToken) {
-        setTokenState(storedToken);
+    // Kiểm tra định kỳ trạng thái xác thực (mỗi 5 phút)
+    const intervalId = setInterval(() => {
+      console.log("Kiểm tra định kỳ trạng thái xác thực");
+      refreshAuth();
+    }, 5 * 60 * 1000);
+
+    // Kiểm tra trạng thái xác thực khi có thay đổi trong localStorage
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "token" || e.key === "userData") {
+        console.log("Phát hiện thay đổi trong localStorage:", e.key);
+        refreshAuth();
       }
+    };
 
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser) as User;
-          setUser(parsedUser);
-          setRole(parsedUser.role);
-        } catch (error) {
-          console.error("Lỗi phân tích dữ liệu người dùng:", error);
-        }
-      }
-    }
-  }, [isBuildProcess]);
+    window.addEventListener("storage", handleStorageChange);
 
-  const setToken = (newToken: string) => {
-    setTokenState(newToken);
-    if (typeof window !== "undefined") {
-      // Lưu token với các biện pháp bảo mật
-      localStorage.setItem("token", newToken);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(intervalId);
+    };
+  }, []);
 
-      // Tính thời gian hết hạn
-      const expiryTime = Date.now() + TOKEN_EXPIRY_TIME;
+  // Hàm đăng nhập
+  const login = async (
+    usernameOrPhoneNumber: string,
+    password: string
+  ): Promise<LoginResponse> => {
+    setLoading(true);
+    setError(null);
 
-      // Lưu token và thời gian hết hạn vào cookie
-      setCookie("token", newToken, 7); // Lưu cookie trong 7 ngày
-      setCookie("token_expiry", expiryTime.toString(), 7);
-    }
-  };
+    try {
+      const response = await AuthServiceFixed.login(
+        usernameOrPhoneNumber,
+        password
+      );
 
-  const clearToken = () => {
-    setTokenState(null);
-    setUser(null);
-    setRole(Role.GUEST);
-    if (typeof window !== "undefined") {
-      // Xóa dữ liệu từ localStorage
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
+      // Cập nhật trạng thái
+      setIsAuthenticated(true);
+      setUserData(AuthServiceFixed.getUserData());
+      console.log("Đăng nhập thành công, đã lưu token và userData");
 
-      // Xóa cookies
-      deleteCookie("token");
-      deleteCookie("token_expiry");
-      deleteCookie("userData");
+      return response;
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ message?: string }>;
+      const errorMessage =
+        axiosError.response?.data?.message || "Đăng nhập thất bại";
+      setError(errorMessage);
+
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const updateApiConfig = () => {
-    return new Configuration({
-      basePath: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
-      baseOptions: {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      },
-    });
-  };
-
-  // Mock login function - sau này sẽ thay bằng API thật
-  const login = async (email: string, password: string): Promise<boolean> => {
-    // Giả lập gọi API để đăng nhập
-    const mockUser = MOCK_USERS.find(
-      (u) => u.email === email && u.password === password
-    );
-
-    if (mockUser) {
-      // Tạo bản sao đối tượng người dùng và loại bỏ mật khẩu để bảo mật
-      const userWithoutPassword = Object.fromEntries(
-        Object.entries(mockUser).filter(([key]) => key !== "password")
-      ) as Omit<typeof mockUser, "password">;
-
-      setUser(userWithoutPassword);
-      setRole(mockUser.role);
-
-      // Tạo mock token an toàn hơn
-      const mockToken = generateSecureToken();
-      setToken(mockToken);
-
-      // Lưu thông tin user
-      if (typeof window !== "undefined") {
-        localStorage.setItem("user", JSON.stringify(userWithoutPassword));
-        setCookie("userData", JSON.stringify(userWithoutPassword), 7); // Lưu cookie trong 7 ngày
-      }
-
-      return true;
-    }
-
-    return false;
-  };
-
+  // Hàm đăng xuất
   const logout = () => {
-    clearToken();
-
-    // Chuyển hướng về trang đăng nhập sau khi đăng xuất
-    if (typeof window !== "undefined") {
-      window.location.href = "/login";
-    }
+    AuthServiceFixed.logout();
+    setIsAuthenticated(false);
+    setUserData(null);
+    router.push("/login");
   };
 
-  // Hàm kiểm tra quyền hạn
-  const hasPermission = (permission: Permission): boolean => {
-    if (!user) return ROLE_PERMISSIONS[Role.GUEST].includes(permission);
-    return ROLE_PERMISSIONS[role].includes(permission);
+  // Giá trị cho context
+  const contextValue: AuthContextType = {
+    isAuthenticated,
+    userData,
+    loading,
+    error,
+    login,
+    logout,
+    refreshAuth,
   };
-
-  const isAuthenticated = !!token && !!user;
-
-  // Thêm hàm kiểm tra token hết hạn
-  const checkTokenExpiry = () => {
-    if (typeof window !== "undefined") {
-      const expiryStr = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("token_expiry="))
-        ?.split("=")[1];
-
-      if (expiryStr) {
-        const expiry = parseInt(expiryStr);
-        if (expiry < Date.now()) {
-          // Token đã hết hạn, đăng xuất
-          clearToken();
-          return false;
-        }
-      }
-    }
-
-    return true;
-  };
-
-  // Kiểm tra token hết hạn khi component được mount
-  useEffect(() => {
-    if (token) {
-      const isValid = checkTokenExpiry();
-      if (!isValid) {
-        clearToken();
-      }
-    }
-  }, [token]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        token,
-        user,
-        role,
-        setToken,
-        clearToken,
-        updateApiConfig,
-        login,
-        logout,
-        hasPermission,
-        isAuthenticated,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-}
+export default AuthProvider;

@@ -6,7 +6,7 @@ interface HeartIconProps {
   className?: string;
 }
 
-const HeartIcon: React.FC<HeartIconProps> = ({
+const UserIcon: React.FC<HeartIconProps> = ({
   width = 24,
   height = 24,
   viewBox = "0 0 24 24",
@@ -33,4 +33,4 @@ const HeartIcon: React.FC<HeartIconProps> = ({
     />{" "}
   </svg>
 );
-export default HeartIcon;
+export default UserIcon;

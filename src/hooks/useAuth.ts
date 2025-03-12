@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LoginResponse } from "../api/generated";
 import AuthService from "../service/auth.service";
 import { AxiosError } from "axios";
@@ -16,19 +16,37 @@ export interface UseAuthResult {
 }
 
 export function useAuth(): UseAuthResult {
+  // Khai báo state theo quy tắc hooks - phải gọi ở đầu và không có điều kiện
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    AuthService.isAuthenticated()
-  );
-  const [userData, setUserData] = useState<Partial<LoginResponse> | null>(
-    AuthService.getUserData()
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [userData, setUserData] = useState<Partial<LoginResponse> | null>(null);
 
+  // Dùng useEffect để khởi tạo giá trị sau khi component mount
+  useEffect(() => {
+    // Chỉ thực hiện khi ở client-side và không phải lúc build
+    if (
+      typeof window !== "undefined" &&
+      process.env.NEXT_PUBLIC_SKIP_ADMIN_PAGES !== "true"
+    ) {
+      setIsAuthenticated(AuthService.isAuthenticated());
+      setUserData(AuthService.getUserData());
+    }
+  }, []);
+
+  // Hàm login an toàn
   const login = async (
     usernameOrPhoneNumber: string,
     password: string
   ): Promise<LoginResponse> => {
+    // Kiểm tra môi trường
+    if (
+      typeof window === "undefined" ||
+      process.env.NEXT_PUBLIC_SKIP_ADMIN_PAGES === "true"
+    ) {
+      return {} as LoginResponse;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -48,7 +66,15 @@ export function useAuth(): UseAuthResult {
     }
   };
 
+  // Hàm logout an toàn
   const logout = () => {
+    if (
+      typeof window === "undefined" ||
+      process.env.NEXT_PUBLIC_SKIP_ADMIN_PAGES === "true"
+    ) {
+      return;
+    }
+
     AuthService.logout();
     setIsAuthenticated(false);
     setUserData(null);

@@ -26,10 +26,15 @@ interface FormData {
 // Thêm hàm setCookie để lưu cookie
 const setCookie = (name: string, value: string, days: number) => {
   if (isBrowser()) {
-    const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    document.cookie = `${name}=${encodeURIComponent(
-      value
-    )}; expires=${expires}; path=/`;
+    try {
+      const expires = new Date(Date.now() + days * 864e5).toUTCString();
+      document.cookie = `${name}=${encodeURIComponent(
+        value
+      )}; expires=${expires}; path=/; SameSite=Lax`;
+      console.log(`Đã lưu cookie ${name}`);
+    } catch (error) {
+      console.error(`Lỗi khi lưu cookie ${name}:`, error);
+    }
   }
 };
 
@@ -104,8 +109,13 @@ export default function LoginForm() {
 
       // Lưu token vào localStorage và cookie
       if (response.data.token && isBrowser()) {
-        localStorage.setItem("token", response.data.token);
-        setCookie("token", response.data.token, 7); // Lưu cookie trong 7 ngày
+        try {
+          localStorage.setItem("token", response.data.token);
+          setCookie("token", response.data.token, 7); // Lưu cookie trong 7 ngày
+          console.log("Token đã được lưu trữ");
+        } catch (error) {
+          console.error("Lỗi khi lưu token:", error);
+        }
       } else if (!response.data.token) {
         throw new Error("Token không được trả về từ server");
       }
@@ -119,8 +129,24 @@ export default function LoginForm() {
       };
 
       if (isBrowser()) {
-        localStorage.setItem("userData", JSON.stringify(userData));
-        setCookie("userData", JSON.stringify(userData), 7); // Lưu cookie trong 7 ngày
+        try {
+          const userDataString = JSON.stringify(userData);
+          localStorage.setItem("userData", userDataString);
+          setCookie("userData", userDataString, 7); // Lưu cookie trong 7 ngày
+          console.log("userData đã được lưu trữ");
+
+          // Kiểm tra lại xem đã lưu thành công chưa
+          console.log(
+            "Token trong localStorage:",
+            !!localStorage.getItem("token")
+          );
+          console.log(
+            "userData trong localStorage:",
+            !!localStorage.getItem("userData")
+          );
+        } catch (error) {
+          console.error("Lỗi khi lưu userData:", error);
+        }
       }
 
       toast.success("Đăng nhập thành công!");
@@ -131,6 +157,14 @@ export default function LoginForm() {
           "Đăng nhập với tài khoản admin, chuyển hướng đến trang admin"
         );
         router.push("/admin");
+
+        // Xác nhận và log thông tin điều hướng
+        setTimeout(() => {
+          console.log(
+            "URL hiện tại sau khi điều hướng:",
+            window.location.pathname
+          );
+        }, 500);
       } else {
         // Chuyển hướng người dùng về trang chủ
         router.push("/");

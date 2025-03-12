@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/auth-provider";
+import { useAuthContext } from "@/contexts/auth-provider";
 import { Role } from "@/auth/types";
 
 export default function AdminAuthGuard({
@@ -11,33 +11,37 @@ export default function AdminAuthGuard({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, role } = useAuth();
+  const { isAuthenticated, userData } = useAuthContext();
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const role = userData?.username === "admin" ? Role.ADMIN : null;
+
   useEffect(() => {
-    // Bỏ qua kiểm tra xác thực trong quá trình build
+    if (
+      typeof window === "undefined" ||
+      process.env.NEXT_PUBLIC_SKIP_ADMIN_PAGES === "true"
+    ) {
+      return;
+    }
+
     if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === "true") {
       setIsAuthorized(true);
       setIsLoading(false);
       return;
     }
 
-    // Kiểm tra trạng thái xác thực phía client
     const checkAuth = () => {
-      // Nếu chưa xác thực, chuyển hướng đến trang đăng nhập
       if (!isAuthenticated) {
         router.replace("/login");
         return;
       }
 
-      // Nếu không phải admin, chuyển hướng về trang chủ
       if (role !== Role.ADMIN) {
         router.replace("/");
         return;
       }
 
-      // Nếu đã xác thực và có quyền admin
       setIsAuthorized(true);
     };
 
@@ -45,7 +49,13 @@ export default function AdminAuthGuard({
     setIsLoading(false);
   }, [isAuthenticated, role, router]);
 
-  // Hiển thị loading state khi đang kiểm tra
+  if (
+    typeof window === "undefined" ||
+    process.env.NEXT_PUBLIC_SKIP_ADMIN_PAGES === "true"
+  ) {
+    return <>{children}</>;
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -54,6 +64,5 @@ export default function AdminAuthGuard({
     );
   }
 
-  // Chỉ hiển thị nội dung nếu đã được phân quyền
   return isAuthorized ? <>{children}</> : null;
 }
