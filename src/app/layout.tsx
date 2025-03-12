@@ -1,6 +1,8 @@
 import { Poppins } from "next/font/google";
 import "../styles/globals.css";
 import { AuthProvider } from "@/contexts/auth-provider";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export const metadata = {
   title: "DOCA",
@@ -26,7 +28,10 @@ export default function RootLayout({
   return (
     <html lang="vi" className={poppins.className}>
       <body className="bg-white mx-auto">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <ToastContainer position="top-right" autoClose={3000} />
+        </AuthProvider>
       </body>
     </html>
   );

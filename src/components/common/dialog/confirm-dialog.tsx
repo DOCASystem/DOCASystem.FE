@@ -1,35 +1,44 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/utils/cn";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
   title: string;
-  message: string;
-  confirmButtonText: string;
-  cancelButtonText: string;
+  message?: string;
+  confirmText?: string;
+  cancelText?: string;
   onConfirm: () => void;
   onCancel: () => void;
   confirmButtonClass?: string;
   cancelButtonClass?: string;
   type?: "warning" | "danger" | "info";
+  children?: React.ReactNode;
 }
 
 const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   isOpen,
   title,
   message,
-  confirmButtonText,
-  cancelButtonText,
+  confirmText = "Xác nhận",
+  cancelText = "Hủy",
   onConfirm,
   onCancel,
   confirmButtonClass,
   cancelButtonClass,
   type = "info",
+  children,
 }) => {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   // Các màu sắc dựa theo loại dialog
   const typeClasses = {
@@ -50,49 +59,56 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     },
   };
 
-  // Client-side only
-  if (typeof window === "object") {
-    return createPortal(
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 overflow-hidden">
-          <div className={cn("px-6 py-4 border-b", typeClasses[type].header)}>
-            <h3 className={cn("text-lg font-medium", typeClasses[type].title)}>
-              {title}
-            </h3>
-          </div>
+  // Sử dụng createPortal để render dialog bên ngoài DOM hiện tại
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Overlay nền mờ */}
+      <div
+        className="fixed inset-0 bg-black/50 transition-opacity"
+        onClick={onCancel}
+      ></div>
 
-          <div className="px-6 py-4">
-            <p className="text-gray-700">{message}</p>
-          </div>
-
-          <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
-            <button
-              onClick={onCancel}
-              className={cn(
-                "px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors",
-                cancelButtonClass
-              )}
-            >
-              {cancelButtonText}
-            </button>
-            <button
-              onClick={onConfirm}
-              className={cn(
-                "px-4 py-2 text-white rounded-md transition-colors",
-                typeClasses[type].confirmButton,
-                confirmButtonClass
-              )}
-            >
-              {confirmButtonText}
-            </button>
-          </div>
+      {/* Dialog container */}
+      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-lg bg-white shadow-xl sm:max-w-lg">
+        {/* Dialog header */}
+        <div className={cn("border-b p-4", typeClasses[type].header)}>
+          <h3 className={cn("text-lg font-semibold", typeClasses[type].title)}>
+            {title}
+          </h3>
         </div>
-      </div>,
-      document.body
-    );
-  }
 
-  return null;
+        {/* Dialog body */}
+        <div className="p-4 sm:p-6">
+          {message && <p className="text-gray-700">{message}</p>}
+          {children}
+        </div>
+
+        {/* Dialog footer */}
+        <div className="flex justify-end gap-3 border-t bg-gray-50 p-4">
+          <button
+            onClick={onCancel}
+            className={cn(
+              "rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50",
+              cancelButtonClass
+            )}
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={onConfirm}
+            className={cn(
+              "rounded-md px-4 py-2 text-sm font-medium text-white shadow-sm",
+              typeClasses[type].confirmButton,
+              confirmButtonClass
+            )}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
 };
 
 export default ConfirmDialog;

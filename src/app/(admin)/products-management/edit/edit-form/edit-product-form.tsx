@@ -1,284 +1,296 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import AdminForm from "@/components/common/form/admin-form";
 import Input from "@/components/common/input/input";
 import { productSchema } from "@/utils/validation";
-import ConfirmDialog from "@/components/common/dialog/confirm-dialog";
-import Image from "next/image";
+import { ProductService, CategoryService } from "@/service/product-service";
+import { toast } from "react-toastify";
+import Select from "@/components/common/select/select";
+import Textarea from "@/components/common/textarea/textarea";
+import ImageUpload from "@/components/common/image-upload/image-upload";
+import Checkbox from "@/components/common/checkbox/checkbox";
+
+// Định nghĩa kiểu dữ liệu cho API response
+interface CategoryResponse {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+interface CategoryResponseIPaginate {
+  items: CategoryResponse[];
+  totalPages: number;
+  totalItems: number;
+  currentPage: number;
+}
+
+interface ProductImage {
+  id: string;
+  imageUrl: string;
+  isMain: boolean;
+}
+
+interface ProductResponse {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+  volume: number;
+  isHidden: boolean;
+  productImages: ProductImage[];
+  categories: CategoryResponse[];
+  createdAt: string;
+  modifiedAt: string;
+}
 
 // Định nghĩa kiểu dữ liệu cho form
 type EditProductFormData = {
   name: string;
   categoryIds: string[];
-  size: string;
-  price: number;
   description: string;
+  price: number;
   quantity: number;
-  mainImage: File | null;
+  volume: number;
+  isHidden: boolean;
+  productImages: {
+    id?: string;
+    imageUrl: string;
+    isMain: boolean;
+  }[];
 };
 
-// Định nghĩa kiểu dữ liệu giả cho sản phẩm
-interface ProductData {
-  id: string;
-  name: string;
-  categoryIds: string[];
-  size: string;
-  price: number;
-  description: string;
-  quantity: number;
-  imageUrl?: string;
+export interface EditProductFormProps {
+  productId: string;
 }
 
-function EditProductContent() {
+export default function EditProductContent({
+  productId,
+}: EditProductFormProps) {
   const router = useRouter();
-  const params = useParams();
-  const searchParams = useSearchParams();
-
-  // Lấy ID từ cả params và searchParams để đảm bảo
-  const id = (params?.id as string) || searchParams.get("id");
-
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [productData, setProductData] = useState<ProductData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // Thêm state cho dialog xác nhận cập nhật sản phẩm
-  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
-  const [formDataToSubmit, setFormDataToSubmit] =
-    useState<EditProductFormData | null>(null);
+  const [categories, setCategories] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFormLoading, setIsFormLoading] = useState(true);
+  const [product, setProduct] = useState<ProductResponse | null>(null);
 
   // Giá trị mặc định
   const defaultValues: EditProductFormData = {
     name: "",
     categoryIds: [],
-    size: "",
-    price: 0,
     description: "",
+    price: 0,
     quantity: 0,
-    mainImage: null,
+    volume: 0,
+    isHidden: false,
+    productImages: [],
   };
 
-  // Giả lập việc fetch dữ liệu
+  // Lấy danh sách danh mục và thông tin sản phẩm
   useEffect(() => {
-    console.log("ID sản phẩm:", id);
-
-    if (!id) {
-      setError("Không tìm thấy ID sản phẩm");
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchProductData = async () => {
+    const fetchData = async () => {
+      setIsFormLoading(true);
       try {
-        setIsLoading(true);
+        // Lấy danh sách danh mục
+        const categoryResponse = await CategoryService.getCategories({
+          page: 0,
+          size: 100,
+        });
 
-        // Đây là nơi bạn sẽ gọi API thực tế
-        // const response = await fetch(`/api/products/${id}`);
-        // const data = await response.json();
+        if (categoryResponse && categoryResponse.data) {
+          const categoryData =
+            categoryResponse.data as CategoryResponseIPaginate;
+          const categoryOptions = categoryData.items.map(
+            (category: CategoryResponse) => ({
+              value: category.id,
+              label: category.name,
+            })
+          );
+          setCategories(categoryOptions);
+        }
 
-        // Mô phỏng việc gọi API
-        // Sử dụng dữ liệu hardcode để đảm bảo luôn hiển thị
-        const mockData: ProductData = {
-          id: id || "1",
-          name: "Thức ăn cho chó ROYAL CANIN",
-          categoryIds: ["dog"],
-          size: "2kg",
-          price: 250000,
-          description: "Thức ăn dinh dưỡng cao cấp dành cho chó",
-          quantity: 50,
-          imageUrl: "https://example.com/product-image.jpg",
-        };
-
-        setProductData(mockData);
-        setIsLoading(false);
-      } catch (err) {
-        console.error("Lỗi khi lấy dữ liệu sản phẩm:", err);
-        setError("Không thể tải dữ liệu sản phẩm. Vui lòng thử lại sau.");
-        setIsLoading(false);
+        // Lấy thông tin sản phẩm
+        if (productId) {
+          const productResponse = await ProductService.getProductById(
+            productId
+          );
+          if (productResponse && productResponse.data) {
+            const productData = productResponse.data as ProductResponse;
+            setProduct(productData);
+          }
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu:", error);
+        toast.error("Không thể lấy dữ liệu");
+      } finally {
+        setIsFormLoading(false);
       }
     };
 
-    fetchProductData();
-  }, [id]);
+    fetchData();
+  }, [productId]);
 
-  // Cập nhật giá trị mặc định khi có dữ liệu sản phẩm
-  const formValues = productData
-    ? {
-        name: productData.name,
-        categoryIds: productData.categoryIds,
-        size: productData.size,
-        price: productData.price,
-        description: productData.description,
-        quantity: productData.quantity,
-        mainImage: null,
+  // Xử lý khi submit form
+  const onSubmit = async (data: EditProductFormData) => {
+    setIsLoading(true);
+    try {
+      // Cập nhật thông tin cơ bản
+      await ProductService.updateProduct(productId, {
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        quantity: data.quantity,
+        volume: data.volume,
+        isHidden: data.isHidden,
+      });
+
+      // Cập nhật hình ảnh sản phẩm
+      if (data.productImages && data.productImages.length > 0) {
+        await ProductService.updateProductImage(productId, data.productImages);
       }
-    : defaultValues;
 
-  // Hàm mở dialog xác nhận cập nhật
-  const openUpdateDialog = (data: EditProductFormData) => {
-    setFormDataToSubmit(data);
-    setIsUpdateDialogOpen(true);
+      // Cập nhật danh mục sản phẩm
+      if (data.categoryIds && data.categoryIds.length > 0) {
+        // Lưu ý: API hiện tại không hỗ trợ cập nhật danh mục
+        // Chúng ta chỉ gọi API này để duy trì tính nhất quán của code
+        await ProductService.updateProductCategories(
+          productId,
+          data.categoryIds
+        );
+      }
+
+      toast.success("Cập nhật sản phẩm thành công");
+      router.push("/products-management");
+    } catch (error) {
+      console.error("Lỗi khi cập nhật sản phẩm:", error);
+      toast.error("Không thể cập nhật sản phẩm");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Hàm hủy cập nhật sản phẩm
-  const cancelUpdate = () => {
-    setIsUpdateDialogOpen(false);
-    setFormDataToSubmit(null);
+  // Xử lý tạo danh mục mới
+  const handleCreateCategory = async (name: string) => {
+    try {
+      const response = await CategoryService.createCategory({
+        name,
+        description: "",
+      });
+
+      if (response && response.data) {
+        const newCategory = response.data as CategoryResponse;
+        toast.success("Thêm danh mục thành công");
+        // Thêm danh mục mới vào danh sách
+        setCategories((prev) => [
+          ...prev,
+          { value: newCategory.id, label: newCategory.name },
+        ]);
+        return { value: newCategory.id, label: newCategory.name };
+      }
+      return null;
+    } catch (error) {
+      console.error("Lỗi khi thêm danh mục:", error);
+      toast.error("Không thể thêm danh mục");
+      return null;
+    }
   };
 
-  // Sửa lại hàm onSubmit để hiển thị dialog xác nhận trước
-  const onSubmit = (data: EditProductFormData) => {
-    openUpdateDialog(data);
+  // Chuẩn bị dữ liệu form từ sản phẩm
+  const prepareFormData = (): EditProductFormData => {
+    if (!product) return defaultValues;
+
+    return {
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      quantity: product.quantity,
+      volume: product.volume,
+      isHidden: product.isHidden,
+      productImages: product.productImages,
+      categoryIds: product.categories.map((category) => category.id),
+    };
   };
 
-  // Hàm thực hiện cập nhật sản phẩm sau khi xác nhận
-  const confirmUpdate = async () => {
-    if (!formDataToSubmit) return;
-
-    // Chuyển hướng về trang quản lý sản phẩm sau khi lưu thành công
-    alert("Cập nhật sản phẩm thành công!");
-    setIsUpdateDialogOpen(false);
-    router.push("/products-management");
-  };
-
-  // Hiển thị không sử dụng điều kiện loading để đảm bảo form luôn hiển thị
   return (
     <div>
-      {error ? (
-        <div className="text-center py-10 text-red-500">
-          {error}
-          <div className="mt-4">
-            <button
-              onClick={() => router.push("/products-management")}
-              className="px-4 py-2 bg-pink-doca text-white rounded-md hover:bg-pink-500"
-            >
-              Quay lại danh sách
-            </button>
+      <AdminForm<EditProductFormData>
+        title="Chỉnh sửa sản phẩm"
+        schema={productSchema}
+        defaultValues={prepareFormData()}
+        onSubmit={onSubmit}
+        backLink="/products-management"
+        submitButtonText="Lưu sản phẩm"
+        maxHeight="max-h-[calc(100vh-200px)]"
+        formClassName="h-[calc(100vh-150px)]"
+        contentClassName="pb-4 custom-scrollbar"
+        isSubmitting={isLoading}
+      >
+        {isFormLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <p>Đang tải...</p>
           </div>
-        </div>
-      ) : (
-        <AdminForm<EditProductFormData>
-          title="Chỉnh sửa sản phẩm"
-          schema={productSchema}
-          defaultValues={formValues}
-          onSubmit={onSubmit}
-          backLink="/products-management"
-          submitButtonText="Cập nhật sản phẩm"
-          maxHeight="max-h-[calc(100vh-200px)]"
-          formClassName="h-[calc(100vh-150px)]"
-          contentClassName="pb-4 custom-scrollbar"
-        >
-          {isLoading && (
-            <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center z-10">
-              <div className="text-lg font-medium text-pink-doca">
-                Đang tải dữ liệu sản phẩm...
-              </div>
-            </div>
-          )}
-
-          <Input
-            name="name"
-            label="Tên sản phẩm"
-            placeholder="Nhập tên sản phẩm"
-          />
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col">
-              <p className="text-base font-semibold mb-2">Danh mục</p>
-              <select
-                className="w-full p-2 border border-gray-300 rounded-md"
-                name="categoryIds"
-                defaultValue={productData?.categoryIds[0] || ""}
-              >
-                <option value="">Chọn danh mục</option>
-                <option value="dog">Chó</option>
-                <option value="cat">Mèo</option>
-              </select>
-            </div>
-
+        ) : (
+          <>
             <Input
-              name="size"
-              label="Kích thước"
-              placeholder="Nhập kích thước sản phẩm"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              name="price"
-              label="Giá"
-              placeholder="Nhập giá sản phẩm"
-              type="number"
+              name="name"
+              label="Tên sản phẩm"
+              placeholder="Nhập tên sản phẩm"
             />
 
-            <Input
-              name="quantity"
-              label="Số lượng"
-              placeholder="Nhập số lượng"
-              type="number"
+            <Select
+              name="categoryIds"
+              label="Danh mục"
+              placeholder="Chọn danh mục"
+              options={categories}
+              isMulti
+              isCreatable
+              onCreateOption={handleCreateCategory}
             />
-          </div>
 
-          <Input
-            name="description"
-            label="Mô tả"
-            placeholder="Nhập mô tả sản phẩm"
-            isTextArea={true}
-          />
+            <Textarea
+              name="description"
+              label="Mô tả"
+              placeholder="Nhập mô tả sản phẩm"
+            />
 
-          <div className="mt-4">
-            <p className="text-base font-semibold mb-2">Hình ảnh sản phẩm</p>
-            {productData?.imageUrl && (
-              <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-2">Hình ảnh hiện tại:</p>
-                <Image
-                  src={productData.imageUrl}
-                  alt={productData.name}
-                  width={128}
-                  height={128}
-                  className="w-32 h-32 object-cover rounded-md border border-gray-300"
-                />
-              </div>
-            )}
-            <div className="border-2 border-dashed border-gray-300 p-6 rounded-lg text-center">
-              <p>Kéo và thả ảnh hoặc nhấp để chọn ảnh mới</p>
-              <input
-                type="file"
-                name="mainImage"
-                className="hidden"
-                id="product-image"
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input
+                name="price"
+                label="Giá (VNĐ)"
+                type="number"
+                placeholder="Nhập giá sản phẩm"
               />
-              <label
-                htmlFor="product-image"
-                className="mt-2 inline-block px-4 py-2 bg-pink-doca text-white rounded-md cursor-pointer"
-              >
-                Chọn ảnh
-              </label>
+
+              <Input
+                name="quantity"
+                label="Số lượng"
+                type="number"
+                placeholder="Nhập số lượng"
+              />
+
+              <Input
+                name="volume"
+                label="Khối lượng"
+                type="number"
+                placeholder="Nhập khối lượng"
+              />
             </div>
-          </div>
-        </AdminForm>
-      )}
 
-      {/* Dialog xác nhận cập nhật */}
-      <ConfirmDialog
-        isOpen={isUpdateDialogOpen}
-        title="Xác nhận cập nhật sản phẩm"
-        message="Bạn có chắc chắn muốn cập nhật sản phẩm này với những thay đổi đã nhập?"
-        confirmButtonText="Cập nhật"
-        cancelButtonText="Hủy"
-        onConfirm={confirmUpdate}
-        onCancel={cancelUpdate}
-        type="info"
-      />
+            <ImageUpload
+              name="productImages"
+              label="Hình ảnh sản phẩm"
+              multiple
+            />
+
+            <Checkbox name="isHidden" label="Ẩn sản phẩm" />
+          </>
+        )}
+      </AdminForm>
     </div>
-  );
-}
-
-export default function EditProductForm() {
-  return (
-    <Suspense fallback={<div className="p-4">Đang tải...</div>}>
-      <EditProductContent />
-    </Suspense>
   );
 }

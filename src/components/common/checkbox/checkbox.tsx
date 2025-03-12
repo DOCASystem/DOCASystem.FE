@@ -1,47 +1,60 @@
+import React from "react";
 import { cn } from "@/utils/cn";
 
 interface CheckboxProps {
-  label: string;
-  checked: boolean;
+  name: string;
+  label?: string;
+  checked?: boolean;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   itemCount?: number;
   classNameInput?: string;
   classNameLabel?: string;
   classNameItemCount?: string;
-
-  onChange: () => void;
 }
 
-export default function Checkbox({
+const Checkbox: React.FC<CheckboxProps> = ({
+  name,
   label,
   checked,
+  onChange,
   itemCount,
   classNameInput,
   classNameLabel,
   classNameItemCount,
-  onChange,
-}: CheckboxProps) {
+}) => {
   return (
-    <label className="flex justify-between items-center">
-      <div className="flex justify-center items-center gap-2">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={onChange}
-          className={cn(
-            "w-4 h-4 accent-slate-500 border-2 text-[16px] font-medium",
-            classNameInput
-          )}
-        />
-        <span className={cn("", classNameLabel)}>{label}</span>
-      </div>
-      <span
+    <div className="flex items-center mb-4">
+      <input
+        type="checkbox"
+        id={name}
+        name={name}
+        checked={checked}
+        onChange={onChange}
         className={cn(
-          "py-1 px-2 flex items-center justify-center text-pink-doca rounded-xl bg-gray-100",
-          classNameItemCount
+          "h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500",
+          classNameInput
         )}
-      >
-        {itemCount}
-      </span>
-    </label>
+      />
+      {label && (
+        <label
+          htmlFor={name}
+          className={cn("ml-2 text-sm text-gray-700", classNameLabel)}
+        >
+          {label}
+        </label>
+      )}
+      {itemCount !== undefined && (
+        <span
+          className={cn(
+            "py-1 px-2 ml-2 flex items-center justify-center text-pink-doca rounded-xl bg-gray-100",
+            classNameItemCount
+          )}
+        >
+          {itemCount}
+        </span>
+      )}
+    </div>
   );
-}
+};
+
+export default Checkbox;

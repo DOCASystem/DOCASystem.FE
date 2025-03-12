@@ -29,6 +29,7 @@ interface AdminFormProps<T extends Record<string, unknown>> {
   submitButtonClassName?: string;
   contentClassName?: string;
   maxHeight?: string;
+  isSubmitting?: boolean;
 }
 
 export default function AdminForm<T extends Record<string, unknown>>({
@@ -46,6 +47,7 @@ export default function AdminForm<T extends Record<string, unknown>>({
   submitButtonClassName,
   contentClassName,
   maxHeight = "max-h-[70vh]",
+  isSubmitting = false,
 }: AdminFormProps<T>) {
   const internalMethods = useForm<T>({
     resolver: yupResolver(schema) as unknown as Resolver<T>,
@@ -93,8 +95,9 @@ export default function AdminForm<T extends Record<string, unknown>>({
                 "h-12 bg-pink-doca text-white text-base rounded-md px-6",
                 submitButtonClassName
               )}
+              disabled={isSubmitting}
             >
-              {submitButtonText}
+              {isSubmitting ? "Đang xử lý..." : submitButtonText}
             </Button>
           </div>
         </form>
