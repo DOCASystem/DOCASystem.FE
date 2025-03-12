@@ -58,8 +58,14 @@ export default function AdminAuthGuard({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-2xl font-semibold">Đang tải...</div>
+      <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-80 z-50">
+        <div className="bg-white p-8 rounded-lg shadow-lg text-center">
+          <div className="w-16 h-16 border-4 border-pink-doca border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="text-2xl font-semibold text-gray-800">
+            Đang tải...
+          </div>
+          <p className="text-gray-500 mt-2">Vui lòng đợi trong giây lát</p>
+        </div>
       </div>
     );
   }
