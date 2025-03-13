@@ -8,7 +8,7 @@ import Button from "@/components/common/button/button";
 import Image from "next/image";
 import LinkNav from "@/components/common/link/link";
 import { customAuthApi } from "@/api/custom/auth-api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { AxiosError } from "axios";
 
@@ -26,6 +26,8 @@ export default function SignupForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [isOtpDisabled, setIsOtpDisabled] = useState(false);
 
   const methods = useForm<FormData>({
     resolver: yupResolver(signupSchema),
@@ -38,6 +40,20 @@ export default function SignupForm() {
       otp: "",
     },
   });
+
+  // Đếm ngược cho nút OTP
+  useEffect(() => {
+    if (countdown <= 0) {
+      setIsOtpDisabled(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown(countdown - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   const onSubmit = methods.handleSubmit(async (data) => {
     try {
@@ -61,12 +77,14 @@ export default function SignupForm() {
 
       // Tạo đối tượng dữ liệu phù hợp với API
       const signupData = {
-        username: data.email, // Sử dụng email làm username
+        username: data.email, // Username chính là email
         password: data.password,
         phoneNumber: data.phone,
-        fullName: `${data.firstName} ${data.lastName}`,
+        fullName: `${data.firstName} ${data.lastName}`.trim(), // fullName chính là họ + tên
         otp: data.otp,
       };
+
+      console.log("Dữ liệu đăng ký:", signupData);
 
       // Gọi API đăng ký
       const response = await customAuthApi.signup(signupData);
@@ -75,14 +93,18 @@ export default function SignupForm() {
       toast.success("Đăng ký thành công!");
       console.log("Đăng ký thành công:", response);
 
-      // Chuyển hướng đến trang đăng nhập
-      window.location.href = "/login";
+      // Chuyển hướng đến trang đăng nhập sau 2 giây
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 2000);
     } catch (error: unknown) {
       // Xử lý lỗi
       const axiosError = error as AxiosError<{ message: string }>;
       const errorMessage =
         axiosError.response?.data?.message ||
         "Đăng ký thất bại. Vui lòng thử lại.";
+
+      console.error("Lỗi chi tiết khi đăng ký:", axiosError.response?.data);
 
       // Kiểm tra nếu lỗi liên quan đến OTP
       if (
@@ -94,6 +116,12 @@ export default function SignupForm() {
           type: "manual",
           message: "Mã OTP không hợp lệ hoặc đã hết hạn",
         });
+      } else if (
+        errorMessage.toLowerCase().includes("token") ||
+        errorMessage.toLowerCase().includes("xác thực")
+      ) {
+        toast.error("Lỗi xác thực. Vui lòng gửi lại OTP và thử lại.");
+        setOtpSent(false);
       } else {
         toast.error(errorMessage);
       }
@@ -122,12 +150,19 @@ export default function SignupForm() {
     try {
       setIsRequestingOtp(true);
 
+      console.log("Gửi yêu cầu OTP đến email:", email);
+
       // Gọi API gửi OTP
-      await customAuthApi.requestOtp({ email });
+      const otpResponse = await customAuthApi.requestOtp({ email });
+      console.log("Kết quả gửi OTP:", otpResponse);
 
       // Thông báo thành công
       toast.success("Đã gửi mã OTP đến email của bạn!");
       setOtpSent(true);
+
+      // Bắt đầu đếm ngược 30 giây
+      setCountdown(30);
+      setIsOtpDisabled(true);
     } catch (error: unknown) {
       // Xử lý lỗi
       const axiosError = error as AxiosError<{ message: string }>;
@@ -201,11 +236,13 @@ export default function SignupForm() {
                 <Button
                   type="button"
                   onClick={handleSendOtp}
-                  disabled={isRequestingOtp}
+                  disabled={isRequestingOtp || isOtpDisabled}
                   className="h-11 w-[100px] bg-pink-doca text-white rounded-md text-[16px]"
                 >
                   {isRequestingOtp
                     ? "Đang gửi..."
+                    : isOtpDisabled
+                    ? `${countdown}s`
                     : otpSent
                     ? "Gửi lại"
                     : "Gửi OTP"}

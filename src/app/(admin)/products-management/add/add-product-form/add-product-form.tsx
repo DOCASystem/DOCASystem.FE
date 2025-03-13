@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import AdminForm from "@/components/common/form/admin-form";
 import Input from "@/components/common/input/input";
 import { productSchema } from "@/utils/validation";
-import { ProductService, CategoryService } from "@/service/product-service";
+import { ProductService } from "@/service/product-service";
+import { CategoryService } from "@/service/category-service";
 import { toast } from "react-toastify";
 import Select from "@/components/common/select/select";
 import Textarea from "@/components/common/textarea/textarea";
@@ -68,24 +69,40 @@ export default function AddProductForm() {
     const fetchCategories = async () => {
       setIsFetchingCategories(true);
       try {
+        console.log("Đang gọi API lấy danh sách danh mục...");
         const response = await CategoryService.getCategories({
           page: 0,
           size: 100,
         });
 
         if (response && response.data) {
+          console.log("Dữ liệu danh mục nhận được:", response.data);
           const data = response.data as CategoryResponseIPaginate;
-          const categoryOptions = data.items.map(
-            (category: CategoryResponse) => ({
-              value: category.id,
-              label: category.name,
-            })
-          );
-          setCategories(categoryOptions);
+          if (data.items && Array.isArray(data.items)) {
+            if (data.items.length === 0) {
+              console.log("Danh sách danh mục trống");
+              setCategories([]);
+            } else {
+              const categoryOptions = data.items.map(
+                (category: CategoryResponse) => ({
+                  value: category.id,
+                  label: category.name,
+                })
+              );
+              setCategories(categoryOptions);
+              console.log("Đã xử lý danh mục:", categoryOptions);
+            }
+          } else {
+            console.error("Dữ liệu danh mục không đúng định dạng:", data);
+            setCategories([]);
+          }
+        } else {
+          console.error("Không nhận được dữ liệu từ API danh mục");
+          setCategories([]);
         }
       } catch (error) {
-        console.error("Lỗi khi lấy danh sách danh mục:", error);
-        toast.error("Không thể lấy danh sách danh mục");
+        console.error("Lỗi chi tiết khi lấy danh sách danh mục:", error);
+        setCategories([]);
       } finally {
         setIsFetchingCategories(false);
       }
@@ -120,27 +137,54 @@ export default function AddProductForm() {
   };
 
   // Xử lý tạo danh mục mới
-  const handleCreateCategory = async (name: string) => {
+  const handleCreateCategory = async (
+    name: string,
+    description: string = ""
+  ) => {
+    // Kiểm tra token admin
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("Không có token admin");
+      return null;
+    }
+
     try {
+      console.log("Đang tạo danh mục mới:", { name, description });
+
+      if (!CategoryService || !CategoryService.createCategory) {
+        console.error(
+          "CategoryService hoặc CategoryService.createCategory không tồn tại"
+        );
+        return null;
+      }
+
       const response = await CategoryService.createCategory({
         name,
-        description: "",
+        description,
       });
+
+      console.log("Kết quả tạo danh mục:", response);
 
       if (response && response.data) {
         const newCategory = response.data as CategoryResponse;
-        toast.success("Thêm danh mục thành công");
+        console.log("Danh mục mới đã được tạo:", newCategory);
+
         // Thêm danh mục mới vào danh sách
-        setCategories((prev) => [
-          ...prev,
-          { value: newCategory.id, label: newCategory.name },
-        ]);
-        return { value: newCategory.id, label: newCategory.name };
+        const newCategoryOption = {
+          value: newCategory.id,
+          label: newCategory.name,
+        };
+
+        setCategories((prev) => [...prev, newCategoryOption]);
+        toast.success(`Đã thêm danh mục "${newCategory.name}" thành công`);
+
+        return newCategoryOption;
+      } else {
+        console.error("Không nhận được dữ liệu từ API tạo danh mục");
+        return null;
       }
-      return null;
     } catch (error) {
-      console.error("Lỗi khi thêm danh mục:", error);
-      toast.error("Không thể thêm danh mục");
+      console.error("Chi tiết lỗi khi thêm danh mục:", error);
       return null;
     }
   };
@@ -161,7 +205,7 @@ export default function AddProductForm() {
       >
         {isFetchingCategories ? (
           <div className="flex items-center justify-center h-full">
-            <p>Đang tải...</p>
+            <p>Đang tải danh mục...</p>
           </div>
         ) : (
           <>

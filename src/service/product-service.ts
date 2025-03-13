@@ -1,8 +1,28 @@
-import { ProductApi, CategoryApi } from "@/api/generated";
-import apiClient from "@/api/api-client";
+import { ProductApi, Configuration } from "@/api/generated";
+import { REAL_API_BASE_URL } from "@/utils/api-config";
 
-const productApi = new ProductApi(apiClient);
-const categoryApi = new CategoryApi(apiClient);
+// Hàm lấy token an toàn từ localStorage
+const getToken = () => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("token") || "";
+  }
+  return "";
+};
+
+// Tạo instance mới của API client
+const getProductApiInstance = () => {
+  // Tạo cấu hình với Authorization header
+  const config = new Configuration({
+    basePath: REAL_API_BASE_URL,
+    baseOptions: {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    },
+  });
+
+  return new ProductApi(config);
+};
 
 export const ProductService = {
   getProducts: async (params: {
@@ -13,6 +33,7 @@ export const ProductService = {
     maxPrice?: number;
   }) => {
     try {
+      const productApi = getProductApiInstance();
       return await productApi.apiV1ProductsGet(
         params.page,
         params.size,
@@ -23,14 +44,17 @@ export const ProductService = {
         params.maxPrice
       );
     } catch (error) {
+      console.error("Lỗi khi lấy danh sách sản phẩm:", error);
       throw error;
     }
   },
 
   getProductById: async (id: string) => {
     try {
+      const productApi = getProductApiInstance();
       return await productApi.apiV1ProductsIdGet(id);
     } catch (error) {
+      console.error("Lỗi khi lấy thông tin sản phẩm:", error);
       throw error;
     }
   },
@@ -49,6 +73,7 @@ export const ProductService = {
     categoryIds?: string[];
   }) => {
     try {
+      const productApi = getProductApiInstance();
       // API chỉ chấp nhận mainImage và secondaryImages dưới dạng File
       // Chúng ta cần tạo request phù hợp với cách API hoạt động
       const mainImage =
@@ -72,6 +97,7 @@ export const ProductService = {
       );
       return response;
     } catch (error) {
+      console.error("Lỗi khi tạo sản phẩm:", error);
       throw error;
     }
   },
@@ -88,6 +114,7 @@ export const ProductService = {
     }
   ) => {
     try {
+      const productApi = getProductApiInstance();
       const response = await productApi.apiV1ProductsIdPatch(id, {
         name: data.name,
         description: data.description,
@@ -98,6 +125,7 @@ export const ProductService = {
       });
       return response;
     } catch (error) {
+      console.error("Lỗi khi cập nhật sản phẩm:", error);
       throw error;
     }
   },
@@ -111,8 +139,8 @@ export const ProductService = {
     }[]
   ) => {
     try {
-      // ProductApi không có phương thức apiV1ProductsIdImagesPost
-      // Thay vào đó, chúng ta sử dụng apiV1ProductsIdProductImagePost
+      const productApi = getProductApiInstance();
+      // Tạo request phù hợp với API
       const request = productImages.map((img) => ({
         imageUrl: new File([img.imageUrl], "image.jpg", { type: "image/jpeg" }),
         isMain: img.isMain,
@@ -124,85 +152,10 @@ export const ProductService = {
       );
       return response;
     } catch (error) {
+      console.error("Lỗi khi cập nhật hình ảnh sản phẩm:", error);
       throw error;
     }
   },
 
-  updateProductCategories: async (
-    productId: string,
-    _categoryIds: string[]
-  ) => {
-    try {
-      // ProductApi không có phương thức apiV1ProductsIdCategoriesPut
-      // Chúng ta cần kiểm tra API để tìm phương thức thích hợp
-      // Có thể cần sử dụng API từ CategoryApi
-      const response = await categoryApi.apiV1CategoriesIdProductCategoryPatch(
-        productId,
-        {
-          productIds: [productId],
-        }
-      );
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  deleteProduct: async (_id: string) => {
-    try {
-      // ProductApi có thể không có phương thức apiV1ProductsIdDelete
-      // Cần kiểm tra API để tìm phương thức thích hợp để xóa sản phẩm
-      // Tạm thời trả về null
-      return null;
-    } catch (error) {
-      throw error;
-    }
-  },
-};
-
-export const CategoryService = {
-  getCategories: async (params: { page?: number; size?: number }) => {
-    try {
-      return await categoryApi.apiV1CategoriesGet(params.page, params.size);
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  getCategoryById: async (id: string) => {
-    try {
-      return await categoryApi.apiV1CategoriesIdGet(id);
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  createCategory: async (data: { name: string; description: string }) => {
-    try {
-      return await categoryApi.apiV1CategoriesPost(data);
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  updateCategory: async (
-    id: string,
-    data: { name: string; description: string }
-  ) => {
-    try {
-      return await categoryApi.apiV1CategoriesIdPatch(id, data);
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  deleteCategory: async (_id: string) => {
-    try {
-      // CategoryApi có thể không có phương thức xóa
-      // Trả về null hoặc sử dụng phương thức thích hợp nếu có
-      return null;
-    } catch (error) {
-      throw error;
-    }
-  },
+  // Các phương thức khác đã được chuyển sang category-service.ts
 };

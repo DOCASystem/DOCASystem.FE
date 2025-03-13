@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, ChangeEvent } from "react";
-import { CategoryService } from "@/service/product-service";
+import { CategoryService } from "@/service/category-service";
 import { toast } from "react-toastify";
 import Button from "@/components/common/button/button";
 import ConfirmDialog from "@/components/common/dialog/confirm-dialog";
 import Pagination from "@/components/common/pagination/pagination";
+import { createPortal } from "react-dom";
 
 interface CategoryResponse {
   id: string;
@@ -20,6 +21,136 @@ interface CategoryResponseIPaginate {
   totalPages: number;
   totalItems: number;
   currentPage: number;
+}
+
+// Tạo component Dialog mới theo yêu cầu
+interface AddCategoryDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onBack?: () => void;
+  newCategory: { name: string; description: string };
+  onNameChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onSubmit: () => Promise<void>;
+}
+
+function AddCategoryDialog({
+  isOpen,
+  onClose,
+  onBack,
+  newCategory,
+  onNameChange,
+  onSubmit,
+}: AddCategoryDialogProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
+  if (!isOpen || !isMounted) return null;
+
+  const handleSubmit = async () => {
+    if (!newCategory.name.trim()) {
+      toast.error("Tên danh mục không được để trống");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onSubmit();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose}></div>
+      <div className="relative z-10 w-full max-w-md rounded-lg bg-white shadow-lg">
+        {/* Header với nút quay lại và nút đóng */}
+        <div className="relative flex items-center justify-between border-b border-gray-100 p-4">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="text-pink-doca hover:text-pink-700"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </button>
+          )}
+          {!onBack && <div></div>}
+          <button
+            onClick={onClose}
+            className="text-pink-doca hover:text-pink-700"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6">
+          <div className="mb-8 text-center">
+            <h3 className="text-xl font-medium text-pink-doca mb-4">
+              Nhập tên danh mục mới:
+            </h3>
+            <input
+              id="categoryName"
+              type="text"
+              placeholder="Nhập tên danh mục"
+              value={newCategory.name}
+              onChange={onNameChange}
+              className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-pink-doca focus:outline-none focus:ring-1 focus:ring-pink-doca"
+              required
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="flex justify-end space-x-3 mt-5">
+            <button
+              onClick={onClose}
+              className="rounded-md bg-gray-200 px-8 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-300"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="rounded-md bg-blue-600 px-8 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
 }
 
 export default function CategoriesManagementPage() {
@@ -131,11 +262,6 @@ export default function CategoriesManagementPage() {
     setNewCategory({ ...newCategory, name: e.target.value });
   };
 
-  // Cập nhật mô tả danh mục
-  const handleDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setNewCategory({ ...newCategory, description: e.target.value });
-  };
-
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
@@ -241,54 +367,14 @@ export default function CategoriesManagementPage() {
         </>
       )}
 
-      {/* Dialog thêm danh mục - Đã cập nhật để hiển thị đẹp hơn */}
-      <ConfirmDialog
+      {/* Dialog thêm danh mục kiểu mới */}
+      <AddCategoryDialog
         isOpen={showAddDialog}
-        title="Thêm danh mục mới"
-        confirmText="Thêm"
-        cancelText="Hủy"
-        onConfirm={handleAddCategory}
-        onCancel={() => setShowAddDialog(false)}
-        type="info"
-      >
-        <div className="space-y-4 px-2">
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="categoryName"
-              className="text-sm font-medium text-gray-700"
-            >
-              Tên danh mục <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="categoryName"
-              type="text"
-              placeholder="Nhập tên danh mục"
-              value={newCategory.name}
-              onChange={handleNameChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="categoryDescription"
-              className="text-sm font-medium text-gray-700"
-            >
-              Mô tả
-            </label>
-            <textarea
-              id="categoryDescription"
-              placeholder="Nhập mô tả danh mục"
-              value={newCategory.description}
-              onChange={handleDescriptionChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[120px] resize-none"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Mô tả ngắn gọn về danh mục này
-            </p>
-          </div>
-        </div>
-      </ConfirmDialog>
+        onClose={() => setShowAddDialog(false)}
+        newCategory={newCategory}
+        onNameChange={handleNameChange}
+        onSubmit={handleAddCategory}
+      />
 
       {/* Dialog xác nhận xóa */}
       <ConfirmDialog

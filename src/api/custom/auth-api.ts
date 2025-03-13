@@ -22,6 +22,9 @@ export interface ForgotPasswordData {
   password: string;
 }
 
+// Email người dùng đã gửi OTP
+let otpEmail: string | null = null;
+
 // Class API tùy chỉnh cho xác thực
 export class CustomAuthApi {
   private baseUrl: string;
@@ -37,14 +40,47 @@ export class CustomAuthApi {
    */
   async signup(data: SignupData) {
     try {
-      const response = await axios.post(`${this.baseUrl}/api/v1/signup`, data, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      // Tạo đúng format dữ liệu theo API
+      const payload = {
+        username: data.username, // Username là email
+        password: data.password,
+        phoneNumber: data.phoneNumber,
+        fullName: data.fullName,
+        otp: data.otp,
+      };
+
+      // Kiểm tra nếu email đăng ký khác với email đã gửi OTP
+      if (otpEmail && otpEmail !== data.username) {
+        console.warn("Email đăng ký khác với email đã gửi OTP:", {
+          otpEmail,
+          signupEmail: data.username,
+        });
+      }
+
+      console.log("Dữ liệu đăng ký gửi đi:", JSON.stringify(payload));
+
+      // Gọi API đăng ký theo cách đơn giản nhất
+      const response = await axios.post(
+        `${this.baseUrl}/api/v1/signup`,
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("Phản hồi từ API đăng ký:", response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Lỗi khi đăng ký:", error);
+
+      // Hiển thị lỗi chi tiết
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Chi tiết lỗi:", error.response.data);
+        console.error("Mã lỗi:", error.response.status);
+      }
+
       throw error;
     }
   }
@@ -56,14 +92,32 @@ export class CustomAuthApi {
    */
   async requestOtp(data: OtpRequestData) {
     try {
-      const response = await axios.post(`${this.baseUrl}/api/v1/otp`, data, {
+      // Lưu email đã gửi OTP để kiểm tra tính nhất quán
+      otpEmail = data.email;
+
+      console.log("Gửi yêu cầu OTP đến email:", data.email);
+
+      // Tạo payload đúng format
+      const payload = { email: data.email };
+
+      // Gọi API OTP theo cách đơn giản nhất
+      const response = await axios.post(`${this.baseUrl}/api/v1/otp`, payload, {
         headers: {
           "Content-Type": "application/json",
         },
       });
+
+      console.log("Phản hồi từ API OTP:", response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Lỗi khi gửi OTP:", error);
+
+      // Hiển thị lỗi chi tiết
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Chi tiết lỗi:", error.response.data);
+        console.error("Mã lỗi:", error.response.status);
+      }
+
       throw error;
     }
   }
@@ -75,6 +129,9 @@ export class CustomAuthApi {
    */
   async forgotPassword(data: ForgotPasswordData) {
     try {
+      console.log("Gửi yêu cầu quên mật khẩu:", data.phoneNumber);
+
+      // Gọi API quên mật khẩu theo cách đơn giản nhất
       const response = await axios.post(
         `${this.baseUrl}/api/v1/forget-password`,
         data,
@@ -84,9 +141,18 @@ export class CustomAuthApi {
           },
         }
       );
+
+      console.log("Phản hồi từ API quên mật khẩu:", response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Lỗi khi đặt lại mật khẩu:", error);
+
+      // Hiển thị lỗi chi tiết
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Chi tiết lỗi:", error.response.data);
+        console.error("Mã lỗi:", error.response.status);
+      }
+
       throw error;
     }
   }

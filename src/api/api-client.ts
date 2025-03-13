@@ -22,13 +22,16 @@ const createBaseConfig = () => {
   });
 };
 
-// Tạo cấu hình với Authorization header cho client-side
+// Tạo cấu hình với Authorization header cho client-side, lấy token mới mỗi lần gọi API
 const createClientConfig = () => {
   return new Configuration({
     basePath: REAL_API_BASE_URL,
     baseOptions: {
       headers: {
-        Authorization: `Bearer ${getToken()}`,
+        // Sử dụng hàm để lấy token mới nhất mỗi khi gọi API
+        get Authorization() {
+          return `Bearer ${getToken()}`;
+        },
       },
     },
   });

@@ -74,7 +74,7 @@ export default function AdminProductPage() {
       }
     } catch (error) {
       console.error("Lỗi khi lấy danh sách sản phẩm:", error);
-      toast.error("Không thể lấy danh sách sản phẩm");
+      // toast.error("Không thể lấy danh sách sản phẩm");
     } finally {
       setIsLoading(false);
     }
