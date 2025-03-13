@@ -8,7 +8,6 @@ import Button from "@/components/common/button/button";
 import Image from "next/image";
 import LinkNav from "@/components/common/link/link";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { authApi } from "@/api/services";
 import { toast } from "react-hot-toast";
 import { AxiosError } from "axios";
@@ -53,7 +52,6 @@ const generateCSRFToken = () => {
 export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [csrfToken, setCsrfToken] = useState("");
-  const router = useRouter();
 
   const methods = useForm<FormData>({
     resolver: yupResolver(loginSchema),
@@ -126,6 +124,7 @@ export default function LoginForm() {
         username: response.data.username,
         phoneNumber: response.data.phoneNumber,
         fullName: response.data.fullName,
+        role: response.data.role || "USER", // Đảm bảo có thông tin role
       };
 
       if (isBrowser()) {
@@ -133,7 +132,7 @@ export default function LoginForm() {
           const userDataString = JSON.stringify(userData);
           localStorage.setItem("userData", userDataString);
           setCookie("userData", userDataString, 7); // Lưu cookie trong 7 ngày
-          console.log("userData đã được lưu trữ");
+          console.log("userData đã được lưu trữ", userData);
 
           // Kiểm tra lại xem đã lưu thành công chưa
           console.log(
@@ -144,6 +143,16 @@ export default function LoginForm() {
             "userData trong localStorage:",
             !!localStorage.getItem("userData")
           );
+
+          // Kiểm tra cookie
+          const savedToken = document.cookie.includes("token=");
+          const savedUserData = document.cookie.includes("userData=");
+          console.log(
+            "Kiểm tra cookie - token:",
+            savedToken,
+            "userData:",
+            savedUserData
+          );
         } catch (error) {
           console.error("Lỗi khi lưu userData:", error);
         }
@@ -152,22 +161,29 @@ export default function LoginForm() {
       toast.success("Đăng nhập thành công!");
 
       // Kiểm tra nếu là admin thì chuyển đến trang admin, ngược lại về trang chủ
-      if (data.email === "admin" || userData.username === "admin") {
-        console.log(
-          "Đăng nhập với tài khoản admin, chuyển hướng đến trang admin"
-        );
-        router.push("/admin");
+      const isAdmin =
+        data.email === "admin" ||
+        userData.username === "admin" ||
+        userData.role === "ADMIN";
 
-        // Xác nhận và log thông tin điều hướng
+      console.log("Vai trò người dùng:", isAdmin ? "ADMIN" : "USER");
+
+      // Sử dụng window.location.href để đảm bảo trang được reload
+      if (isAdmin) {
+        console.log(
+          "Đăng nhập với tài khoản admin, chuyển hướng đến trang quản lý"
+        );
+        // Sử dụng setTimeout để đảm bảo toast message hiển thị trước khi chuyển trang
         setTimeout(() => {
-          console.log(
-            "URL hiện tại sau khi điều hướng:",
-            window.location.pathname
-          );
-        }, 500);
+          window.location.href = "/products-management";
+        }, 1000);
       } else {
-        // Chuyển hướng người dùng về trang chủ
-        router.push("/");
+        console.log(
+          "Đăng nhập với tài khoản người dùng, chuyển hướng đến trang chủ"
+        );
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1000);
       }
     } catch (error: unknown) {
       console.error("Lỗi đăng nhập:", error);

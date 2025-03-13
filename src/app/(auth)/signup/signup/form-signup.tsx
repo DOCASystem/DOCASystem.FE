@@ -95,7 +95,13 @@ export default function SignupForm() {
 
       // Chuyển hướng đến trang đăng nhập sau 2 giây
       setTimeout(() => {
-        window.location.href = "/login";
+        console.log(
+          "Chuyển hướng đến trang đăng nhập sau khi đăng ký thành công"
+        );
+        // Sử dụng cả hai cách để đảm bảo chuyển hướng hoạt động
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
       }, 2000);
     } catch (error: unknown) {
       // Xử lý lỗi

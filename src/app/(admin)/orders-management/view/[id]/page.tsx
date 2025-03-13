@@ -63,19 +63,19 @@ export default function ViewOrderPage() {
           products: [
             {
               id: "1",
-              name: "Thức ăn cho chó Royal Canin",
+              name: "Mì Ý cao cấp nhập khẩu",
               quantity: 2,
               price: 120000,
-              category: "Thức ăn",
-              image: "/images/dog-food.png",
+              category: "Thực phẩm khô",
+              image: "/images/blog-placeholder.png",
             },
             {
               id: "3",
-              name: "Vòng cổ chó mèo",
+              name: "Gạo Nhật Bản đặc biệt",
               quantity: 1,
               price: 85000,
-              category: "Phụ kiện",
-              image: "/images/dog-collar.png",
+              category: "Gạo & Ngũ cốc",
+              image: "/images/blog-placeholder.png",
             },
           ],
           blog: {
@@ -173,7 +173,7 @@ export default function ViewOrderPage() {
         <div className="flex space-x-2">
           <Link
             href={`/orders-management/edit/${order.id}`}
-            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-all"
+            className="px-4 py-2 bg-pink-doca text-white rounded-md hover:bg-pink-600 transition-all"
           >
             Chỉnh sửa
           </Link>
@@ -303,8 +303,9 @@ export default function ViewOrderPage() {
                             <Image
                               src={product.image}
                               alt={product.name}
-                              width={40}
-                              height={40}
+                              width={80}
+                              height={80}
+                              sizes="100%"
                               className="h-full w-full object-cover"
                             />
                           ) : (

@@ -116,34 +116,35 @@ export default function EditOrderPage() {
           products: [
             {
               id: "1",
-              name: "Thức ăn cho chó Royal Canin",
+              name: "Mì Ý cao cấp nhập khẩu",
               quantity: 2,
               price: 120000,
-              category: "Thức ăn",
-              image: "/images/dog-food.png",
+              category: "Thực phẩm khô",
+              image: "/images/blog-placeholder.png",
             },
             {
               id: "3",
-              name: "Vòng cổ chó mèo",
+              name: "Gạo Nhật Bản đặc biệt",
               quantity: 1,
               price: 85000,
-              category: "Phụ kiện",
-              image: "/images/dog-collar.png",
+              category: "Gạo & Ngũ cốc",
+              image: "/images/blog-placeholder.png",
             },
           ],
           blog: {
             id: "2",
-            title: "Cách chăm sóc thú cưng mùa nóng",
+            title: "Cách bảo quản thực phẩm trong mùa hè",
           },
         };
 
+        // Cập nhật danh sách blog để có nội dung phù hợp với đồ ăn
         // Dữ liệu mẫu cho danh sách blog
         const sampleBlogs: Blog[] = [
-          { id: "1", title: "Những loại thức ăn tốt cho chó" },
-          { id: "2", title: "Cách chăm sóc thú cưng mùa nóng" },
-          { id: "3", title: "Cách huấn luyện chim cảnh" },
-          { id: "4", title: "Bệnh thường gặp ở thú cưng" },
-          { id: "5", title: "Mẹo chăm sóc lông cho chó" },
+          { id: "1", title: "Những loại thực phẩm tốt cho sức khỏe" },
+          { id: "2", title: "Cách bảo quản thực phẩm trong mùa hè" },
+          { id: "3", title: "Mẹo nấu ăn ngon mỗi ngày" },
+          { id: "4", title: "Thực phẩm giàu protein cho người tập gym" },
+          { id: "5", title: "Công thức làm các món ăn vặt tại nhà" },
         ];
 
         setOrder(sampleOrder);
@@ -430,8 +431,9 @@ export default function EditOrderPage() {
                             <Image
                               src={product.image}
                               alt={product.name}
-                              width={40}
-                              height={40}
+                              width={80}
+                              height={80}
+                              sizes="100%"
                               className="h-full w-full object-cover"
                             />
                           ) : (

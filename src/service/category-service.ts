@@ -1,5 +1,5 @@
-import { CategoryApi, Configuration } from "@/api/generated";
 import { REAL_API_BASE_URL } from "@/utils/api-config";
+import axios from "axios";
 
 // Hàm lấy token an toàn từ localStorage
 const getToken = () => {
@@ -19,87 +19,122 @@ const getToken = () => {
   return "";
 };
 
-// Tạo instance mới của API client
-const getCategoryApiInstance = () => {
-  // Tạo cấu hình với Authorization header
-  const token = getToken();
-  const config = new Configuration({
-    basePath: REAL_API_BASE_URL,
-    baseOptions: {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : undefined,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-    },
-  });
-
-  return new CategoryApi(config);
-};
-
-// Hàm retry khi gọi API thất bại
-const retryApiCall = async <T>(
-  apiCall: () => Promise<T>,
-  maxRetries = 2
-): Promise<T> => {
-  let lastError: Error | unknown;
-  for (let retry = 0; retry <= maxRetries; retry++) {
-    try {
-      if (retry > 0) {
-        console.log(`Đang thử lại lần ${retry}/${maxRetries}...`);
-        // Đợi một khoảng thời gian trước khi thử lại
-        await new Promise((resolve) => setTimeout(resolve, retry * 500));
-      }
-      return await apiCall();
-    } catch (error) {
-      console.error(`Lỗi khi gọi API (lần thử ${retry}/${maxRetries}):`, error);
-      lastError = error;
-    }
-  }
-  // Nếu đã hết số lần thử, ném ra lỗi cuối cùng
-  throw lastError;
-};
-
-// Hàm thử gọi API mà không sử dụng retry để tránh chặn luồng quá lâu khi server gặp lỗi
-const safeApiCall = async <T>(apiCall: () => Promise<T>): Promise<T | null> => {
-  try {
-    return await apiCall();
-  } catch (error: unknown) {
-    // Kiểm tra nếu lỗi là do mạng hoặc server
-    const axiosError = error as {
-      response?: { status: number };
-      message?: string;
-    };
-    if (axiosError?.response?.status === 500) {
-      console.error(
-        "Lỗi server (500):",
-        axiosError?.message || "Lỗi không xác định"
-      );
-      console.log(
-        "Server có thể đang bảo trì hoặc gặp sự cố. Vui lòng thử lại sau."
-      );
-      return null;
-    }
-    throw error;
-  }
-};
-
 export const CategoryService = {
   getCategories: async (params: { page?: number; size?: number }) => {
     console.log("Gọi getCategories với params:", params);
     try {
-      const categoryApi = getCategoryApiInstance();
-      return await categoryApi.apiV1CategoriesGet(params.page, params.size);
+      // Sử dụng axios trực tiếp để tránh lỗi
+      const token = getToken();
+      const url = `${REAL_API_BASE_URL}/api/v1/categories`;
+
+      // Cố định size=30 nếu không được truyền vào
+      const size = params.size || 30;
+      // Quan trọng: API bắt đầu page từ 1, không phải từ 0
+      const page = params.page || 1;
+
+      console.log(
+        `Gọi API danh mục từ URL: ${url} với page=${page}, size=${size}`
+      );
+
+      const response = await axios.get(url, {
+        params: {
+          page: page,
+          size: size,
+        },
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        timeout: 10000, // 10 giây timeout
+        withCredentials: false, // Tắt credentials để tránh vấn đề CORS
+      });
+
+      console.log(
+        `Kết quả API danh mục: ${response.status}, số lượng items: ${
+          response.data?.items?.length || 0
+        }`
+      );
+
+      return {
+        data: response.data,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        config: response.config,
+      };
     } catch (error) {
       console.error("Lỗi khi lấy danh mục:", error);
-      throw error;
+
+      // Nếu gặp lỗi, thử lại bằng fetch API với mode no-cors
+      console.log("Đang thử lại với fetch API...");
+      try {
+        const token = getToken();
+        // Cố định size=30
+        const size = params.size || 30;
+        // Quan trọng: API bắt đầu page từ 1, không phải từ 0
+        const page = params.page || 1;
+
+        const url = `${REAL_API_BASE_URL}/api/v1/categories?page=${page}&size=${size}`;
+        console.log(`Thử lại với fetch, URL: ${url}`);
+
+        const response = await fetch(url, {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          // mode: "cors", // Cho phép CORS
+          credentials: "omit", // Không gửi credentials
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log(
+          `Kết quả fetch API: ${response.status}, số lượng items: ${
+            data?.items?.length || 0
+          }`
+        );
+
+        return {
+          data: data,
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+          config: {},
+        };
+      } catch (fetchError) {
+        console.error("Lỗi khi thử lại bằng fetch API:", fetchError);
+        throw error; // Ném lỗi gốc nếu cả hai cách đều thất bại
+      }
     }
   },
 
   getCategoryById: async (id: string) => {
     try {
-      const categoryApi = getCategoryApiInstance();
-      return await categoryApi.apiV1CategoriesIdGet(id);
+      // Sử dụng axios trực tiếp thay vì API client
+      const token = getToken();
+      const url = `${REAL_API_BASE_URL}/api/v1/categories/${id}`;
+
+      console.log("Gọi API lấy chi tiết danh mục:", url);
+
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+          Accept: "application/json",
+        },
+      });
+
+      return {
+        data: response.data,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        config: response.config,
+      };
     } catch (error) {
       console.error("Lỗi khi lấy thông tin danh mục:", error);
       throw error;
@@ -125,17 +160,26 @@ export const CategoryService = {
         throw new Error("Không tìm thấy token, vui lòng đăng nhập lại");
       }
 
-      // Khởi tạo API client
-      const categoryApi = getCategoryApiInstance();
-
-      if (!categoryApi) {
-        throw new Error("categoryApi không được khởi tạo");
-      }
-
+      // Sử dụng axios trực tiếp
+      const url = `${REAL_API_BASE_URL}/api/v1/categories`;
       console.log("Gọi API tạo danh mục với:", data);
-      const response = await categoryApi.apiV1CategoriesPost(data);
+
+      const response = await axios.post(url, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      });
+
       console.log("Kết quả API tạo danh mục:", response);
-      return response;
+      return {
+        data: response.data,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        config: response.config,
+      };
     } catch (error) {
       console.error("Lỗi từ API tạo danh mục:", error);
       throw error;
@@ -147,8 +191,25 @@ export const CategoryService = {
     data: { name: string; description: string }
   ) => {
     try {
-      const categoryApi = getCategoryApiInstance();
-      return await categoryApi.apiV1CategoriesIdPatch(id, data);
+      // Sử dụng axios trực tiếp
+      const token = getToken();
+      const url = `${REAL_API_BASE_URL}/api/v1/categories/${id}`;
+
+      const response = await axios.patch(url, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      });
+
+      return {
+        data: response.data,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        config: response.config,
+      };
     } catch (error) {
       console.error("Lỗi khi cập nhật danh mục:", error);
       throw error;

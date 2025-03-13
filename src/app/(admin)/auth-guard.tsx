@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/auth-provider";
 import { Role } from "@/auth/types";
@@ -14,20 +14,34 @@ export default function AdminAuthGuard({
   const { isAuthenticated, userData } = useAuthContext();
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [mounted, setMounted] = useState<boolean>(false);
+  const authCheckDone = useRef(false);
 
   const role = userData?.username === "admin" ? Role.ADMIN : null;
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    if (authCheckDone.current) return;
+
     if (
       typeof window === "undefined" ||
       process.env.NEXT_PUBLIC_SKIP_ADMIN_PAGES === "true"
     ) {
+      setIsLoading(false);
+      setIsAuthorized(true);
+      authCheckDone.current = true;
       return;
     }
 
     if (process.env.NEXT_PUBLIC_SKIP_AUTH_CHECK === "true") {
       setIsAuthorized(true);
       setIsLoading(false);
+      authCheckDone.current = true;
       return;
     }
 
@@ -43,11 +57,16 @@ export default function AdminAuthGuard({
       }
 
       setIsAuthorized(true);
+      authCheckDone.current = true;
     };
 
     checkAuth();
     setIsLoading(false);
-  }, [isAuthenticated, role, router]);
+  }, [isAuthenticated, role, router, mounted]);
+
+  if (!mounted) {
+    return <>{children}</>;
+  }
 
   if (
     typeof window === "undefined" ||
@@ -56,19 +75,17 @@ export default function AdminAuthGuard({
     return <>{children}</>;
   }
 
+  if (isAuthorized) {
+    return <>{children}</>;
+  }
+
   if (isLoading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-80 z-50">
-        <div className="bg-white p-8 rounded-lg shadow-lg text-center">
-          <div className="w-16 h-16 border-4 border-pink-doca border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <div className="text-2xl font-semibold text-gray-800">
-            Đang tải...
-          </div>
-          <p className="text-gray-500 mt-2">Vui lòng đợi trong giây lát</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
-  return isAuthorized ? <>{children}</> : null;
+  return null;
 }

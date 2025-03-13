@@ -73,7 +73,7 @@ export default function BlogList() {
                 <Link href={`/blog/${blog.id}`}>
                   <div className="relative h-48">
                     <Image
-                      src={"/images/blog-placeholder.jpg"}
+                      src={"/images/blog-placeholder.png"}
                       alt={blog.name || "Bài viết"}
                       fill
                       sizes="100%"

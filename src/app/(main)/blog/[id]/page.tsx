@@ -139,7 +139,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
 
         <div className="relative w-full h-64 md:h-96 mb-8 rounded-lg overflow-hidden">
           <Image
-            src="/images/blog-placeholder.jpg"
+            src="/images/blog-placeholder.png"
             alt={blog.name || "Bài viết"}
             fill
             sizes="100%"

@@ -30,7 +30,13 @@ export default function RootLayout({
       <body className="bg-white mx-auto">
         <AuthProvider>
           {children}
-          <ToastContainer position="top-right" autoClose={3000} />
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            limit={1}
+            newestOnTop={true}
+            pauseOnFocusLoss={false}
+          />
         </AuthProvider>
       </body>
     </html>

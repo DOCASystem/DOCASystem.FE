@@ -20,67 +20,67 @@ export default function AdminPostPage() {
   const [posts, setPosts] = useState<BlogPost[]>([
     {
       id: "1",
-      title: "Chăm sóc thú cưng mùa nóng",
-      category: "Chăm sóc thú cưng",
+      title: "Cách bảo quản thực phẩm trong mùa hè",
+      category: "Bảo quản thực phẩm",
       status: "Đã đăng",
       publishDate: "12/06/2024",
-      image: "/images/pet-care.png",
+      image: "/images/blog-placeholder.png",
     },
     {
       id: "2",
-      title: "Những loại thức ăn tốt cho chó",
+      title: "Những loại thực phẩm tốt cho sức khỏe",
       category: "Dinh dưỡng",
       status: "Đã đăng",
       publishDate: "10/06/2024",
-      image: "/images/dog-food.png",
+      image: "/images/blog-placeholder.png",
     },
     {
       id: "3",
-      title: "Cách huấn luyện mèo con",
-      category: "Huấn luyện",
+      title: "Mẹo nấu ăn ngon mỗi ngày",
+      category: "Nấu ăn",
       status: "Chờ đăng",
       publishDate: "15/06/2024",
-      image: "/images/cat-training.png",
+      image: "/images/blog-placeholder.png",
     },
     {
       id: "4",
-      title: "Bệnh thường gặp ở thú cưng",
-      category: "Sức khỏe",
+      title: "Thực phẩm giàu protein cho người tập gym",
+      category: "Dinh dưỡng",
       status: "Đã đăng",
       publishDate: "05/06/2024",
-      image: "/images/pet-health.png",
+      image: "/images/blog-placeholder.png",
     },
     {
       id: "5",
-      title: "Mẹo chăm sóc lông cho chó",
-      category: "Chăm sóc",
+      title: "Công thức làm các món ăn vặt tại nhà",
+      category: "Công thức",
       status: "Chờ duyệt",
       publishDate: "18/06/2024",
-      image: "/images/dog-grooming.png",
+      image: "/images/blog-placeholder.png",
     },
     {
       id: "6",
-      title: "Thức ăn cấm cho mèo biết",
+      title: "Thực phẩm kiêng khem cho người giảm cân",
       category: "Dinh dưỡng",
       status: "Đã đăng",
       publishDate: "01/06/2024",
-      image: "/images/cat-food-guide.png",
+      image: "/images/blog-placeholder.png",
     },
     {
       id: "7",
-      title: "Làm thế nào để chó không sủa nhiều",
-      category: "Huấn luyện",
+      title: "Hướng dẫn nấu các món ăn Á Đông tại nhà",
+      category: "Công thức",
       status: "Chờ đăng",
       publishDate: "20/06/2024",
-      image: "/images/dog-barking.png",
+      image: "/images/blog-placeholder.png",
     },
     {
       id: "8",
-      title: "Ký sinh trùng ở mèo và cách phòng tránh",
-      category: "Sức khỏe",
+      title: "Cách bảo quản rau củ quả tươi lâu hơn",
+      category: "Bảo quản thực phẩm",
       status: "Đã đăng",
       publishDate: "08/06/2024",
-      image: "/images/cat-parasites.png",
+      image: "/images/blog-placeholder.png",
     },
   ]);
 
@@ -160,9 +160,10 @@ export default function AdminPostPage() {
               <Image
                 src={post.image}
                 alt={post.title}
-                width={64}
-                height={64}
-                className="object-cover"
+                width={100}
+                height={100}
+                sizes="100%"
+                className="object-cover w-full h-full"
               />
             </div>
 

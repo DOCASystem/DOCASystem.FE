@@ -82,19 +82,28 @@ export const productSchema = yup.object().shape({
   name: yup.string().required("Tên sản phẩm không được để trống"),
   price: yup
     .number()
+    .transform((value) => (isNaN(value) ? undefined : value))
     .positive("Giá phải là số dương")
     .required("Giá không được để trống"),
   description: yup.string().required("Mô tả không được để trống"),
   categoryIds: yup.array().min(1, "Phải chọn ít nhất 1 danh mục"),
-  mainImage: yup
-    .mixed<File>()
-    .test(
-      "fileSize",
-      "File quá lớn",
-      (value) => !value || value.size <= 5000000
-    ),
-  quantity: yup.number().required("Số lượng không được để trống"),
-  size: yup.string().required("Kích thước không được để trống"),
+  quantity: yup
+    .number()
+    .transform((value) => (isNaN(value) ? undefined : value))
+    .min(0, "Số lượng không được âm")
+    .required("Số lượng không được để trống"),
+  volume: yup
+    .number()
+    .transform((value) => (isNaN(value) ? undefined : value))
+    .positive("Khối lượng phải là số dương")
+    .required("Khối lượng không được để trống"),
+  isHidden: yup.boolean().default(false),
+  productImages: yup.array().of(
+    yup.object().shape({
+      imageUrl: yup.string().required("URL hình ảnh không được để trống"),
+      isMain: yup.boolean(),
+    })
+  ),
 });
 
 // Blog validation

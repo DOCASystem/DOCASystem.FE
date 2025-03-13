@@ -17,6 +17,11 @@ export const updateRealApiBaseUrl = (url: string) => {
   }
 };
 
+// Log URL API hiện tại khi ứng dụng khởi động
+if (typeof window !== "undefined") {
+  console.log("API URL hiện tại:", REAL_API_BASE_URL);
+}
+
 // URL của swagger spec
 export const SWAGGER_URL =
   process.env.NEXT_PUBLIC_SWAGGER_URL ||
@@ -32,6 +37,11 @@ export const API_ENDPOINTS = {
     SIGNUP: "/api/v1/signup",
     FORGET_PASSWORD: "/api/v1/forget-password",
     OTP: "/api/v1/otp",
+  },
+  CATEGORIES: {
+    BASE: "/api/v1/categories",
+    GET_ALL: "/api/v1/categories",
+    GET_BY_ID: (id: string) => `/api/v1/categories/${id}`,
   },
   // Thêm các endpoint khác khi cần
 };

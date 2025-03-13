@@ -161,14 +161,17 @@ export default function CategoriesManagementPage() {
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState({ name: "", description: "" });
   const [pagination, setPagination] = useState({
-    currentPage: 0,
+    currentPage: 1,
     totalPages: 0,
     totalItems: 0,
     pageSize: 10,
   });
 
   // Lấy danh sách danh mục
-  const fetchCategories = async (page = 0) => {
+  const fetchCategories = async (page = 1) => {
+    // Tránh nhiều request cùng lúc
+    if (isLoading) return;
+
     setIsLoading(true);
     try {
       const response = await CategoryService.getCategories({
@@ -178,13 +181,19 @@ export default function CategoriesManagementPage() {
 
       if (response && response.data) {
         const data = response.data as CategoryResponseIPaginate;
-        setCategories(data.items);
-        setPagination({
-          currentPage: data.currentPage || 0,
-          totalPages: data.totalPages || 0,
-          totalItems: data.totalItems || 0,
-          pageSize: pagination.pageSize,
-        });
+        // Kiểm tra dữ liệu trước khi cập nhật state
+        if (Array.isArray(data.items)) {
+          setCategories(data.items);
+          setPagination({
+            currentPage: data.currentPage || 1,
+            totalPages: data.totalPages || 1,
+            totalItems: data.totalItems || 0,
+            pageSize: pagination.pageSize,
+          });
+        } else {
+          console.error("Dữ liệu danh mục không hợp lệ:", data);
+          toast.error("Dữ liệu danh mục không hợp lệ");
+        }
       }
     } catch (error) {
       console.error("Lỗi khi lấy danh sách danh mục:", error);

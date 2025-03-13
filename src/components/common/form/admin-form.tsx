@@ -64,7 +64,7 @@ export default function AdminForm<T extends Record<string, unknown>>({
           <h1 className="text-2xl font-semibold text-pink-doca">{title}</h1>
         )}
         {backLink && (
-          <Button className="w-32 h-11 text-lg">
+          <Button className="w-32 h-11 text-lg" variant="primary">
             <LinkNav href={backLink}>{backButtonText}</LinkNav>
           </Button>
         )}
@@ -91,8 +91,9 @@ export default function AdminForm<T extends Record<string, unknown>>({
           <div className="mt-6 flex justify-end sticky bottom-0 pt-4 bg-white border-t border-gray-100">
             <Button
               type="submit"
+              variant="primary"
               className={cn(
-                "h-12 bg-pink-doca text-white text-base rounded-md px-6",
+                "h-12 text-white text-base rounded-md px-6",
                 submitButtonClassName
               )}
               disabled={isSubmitting}

@@ -1,8 +1,26 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ["localhost", "res.cloudinary.com"],
-    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "localhost",
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
+      {
+        protocol: "https",
+        hostname: "s3-hcm5-r1.longvan.net",
+      },
+    ],
+    domains: ["localhost", "127.0.0.1", "s3-hcm5-r1.longvan.net"],
+    unoptimized: false,
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
+    formats: ["image/webp"],
+    minimumCacheTTL: 60,
   },
   typescript: {
     // !! WARN !!
@@ -27,17 +45,62 @@ const nextConfig = {
   skipTrailingSlashRedirect: true,
   // Bỏ qua lỗi middleware
   skipMiddlewareUrlNormalize: true,
-  // Bỏ qua lỗi build
+  // Cấu hình bộ đệm động để tăng hiệu suất
   onDemandEntries: {
-    // Thời gian giữ các trang trong bộ nhớ cache (ms)
-    maxInactiveAge: 25 * 1000,
-    // Số lượng trang tối đa được giữ trong bộ nhớ cache
-    pagesBufferLength: 2,
+    // Tăng thời gian lưu trữ trang trong bộ nhớ đệm (ms)
+    maxInactiveAge: 60 * 1000, // 60 giây
+    // Tăng số lượng trang được lưu trong bộ nhớ đệm
+    pagesBufferLength: 5,
   },
-  // Bỏ qua lỗi build
+  // Cấu hình thực nghiệm (cải thiện hiệu suất)
   experimental: {
-    // Bỏ qua lỗi build
+    // Cho phép sử dụng thư mục bên ngoài
     externalDir: true,
+    // Tắt tối ưu hóa CSS để tránh lỗi với critters
+    optimizeCss: false,
+    // Kích hoạt bộ nhớ đệm tối ưu
+    turbotrace: {
+      logLevel: "error",
+    },
+    // Kích hoạt chế độ nhanh
+    optimizeServerReact: true,
+    // Tăng tốc quá trình build
+    serverMinification: true,
+    // Sử dụng phiên bản mới hơn của React (nếu có)
+    serverComponentsExternalPackages: [],
+  },
+  // Cấu hình nén tệp
+  compress: true,
+  // Tối ưu hóa webpack
+  webpack: (config, { dev, isServer }) => {
+    // Tối ưu cả môi trường phát triển và sản xuất
+    if (!dev) {
+      // Tối ưu hóa cho production
+      config.optimization.minimize = true;
+    } else {
+      // Tối ưu hóa cho development
+      config.optimization.removeAvailableModules = false;
+      config.optimization.removeEmptyChunks = false;
+    }
+
+    // Tăng tốc độ khởi động
+    if (isServer) {
+      config.optimization.concatenateModules = true;
+    }
+
+    return config;
+  },
+  // Tăng tốc độ phân tích module
+  modularizeImports: {
+    "@mui/icons-material": {
+      transform: "@mui/icons-material/{{member}}",
+    },
+    "@mui/material": {
+      transform: "@mui/material/{{member}}",
+    },
+    lodash: {
+      transform: "lodash/{{member}}",
+    },
   },
 };
 

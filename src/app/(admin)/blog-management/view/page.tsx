@@ -31,17 +31,17 @@ function BlogViewContent() {
     setTimeout(() => {
       setPost({
         id: postId || "1",
-        title: "Chăm sóc thú cưng mùa nóng",
-        category: "Chăm sóc thú cưng",
+        title: "Cách bảo quản thực phẩm trong mùa hè",
+        category: "Bảo quản thực phẩm",
         status: "Đã đăng",
         content:
-          "Mùa hè với nhiệt độ cao có thể gây ra nhiều vấn đề sức khỏe cho thú cưng của bạn. Bài viết này sẽ cung cấp những lời khuyên hữu ích để giúp thú cưng của bạn vượt qua mùa nóng một cách thoải mái và khỏe mạnh.\n\nĐầu tiên, hãy đảm bảo thú cưng của bạn luôn có đủ nước uống. Thú cưng cần uống nhiều nước hơn trong thời tiết nóng để tránh mất nước. Đặt nhiều bát nước ở các vị trí khác nhau trong nhà và thường xuyên thay nước mới.\n\nTiếp theo, tránh cho thú cưng ra ngoài vào những giờ nóng nhất trong ngày (thường từ 11 giờ sáng đến 3 giờ chiều). Nếu cần đưa chúng ra ngoài, hãy chọn những khu vực có bóng râm và mang theo nước.\n\nĐối với những chú chó có lông dày, việc cắt tỉa lông vào mùa hè là rất quan trọng. Tuy nhiên, không nên cắt quá ngắn vì lông cũng giúp bảo vệ da chúng khỏi ánh nắng mặt trời.\n\nCuối cùng, hãy chú ý đến các dấu hiệu của say nắng như: thở gấp, nướu răng đỏ bất thường, yếu ớt, hoặc nôn mửa. Nếu thấy những dấu hiệu này, hãy đưa thú cưng vào nơi mát mẻ ngay lập tức và liên hệ với bác sĩ thú y.",
+          "Mùa hè với nhiệt độ cao có thể gây ra nhiều vấn đề cho việc bảo quản thực phẩm. Bài viết này sẽ cung cấp những lời khuyên hữu ích để giúp bạn bảo quản thực phẩm an toàn và tươi ngon trong mùa nóng.\n\nĐầu tiên, hãy đảm bảo tủ lạnh của bạn luôn được điều chỉnh ở nhiệt độ phù hợp. Ngăn mát nên giữ ở nhiệt độ từ 2-4 độ C, ngăn đông từ -18 đến -20 độ C. Kiểm tra nhiệt kế trong tủ lạnh thường xuyên để đảm bảo nhiệt độ ổn định.\n\nTiếp theo, tránh để thực phẩm dễ hỏng như thịt, cá, sữa ở ngoài quá lâu, đặc biệt trong thời tiết nóng. Sau khi mua về, hãy để ngay vào tủ lạnh. Không nên để thực phẩm dễ hỏng ở nhiệt độ phòng quá 2 giờ (hoặc 1 giờ nếu nhiệt độ ngoài trời trên 32 độ C).\n\nĐối với rau củ quả, nên rửa sạch, để khô và bảo quản trong hộp hoặc túi có lỗ thông khí để tránh bị úng nước. Một số loại rau củ cần được bảo quản riêng vì chúng sinh ra khí ethylene làm cho các loại rau củ khác chín nhanh hơn.\n\nCuối cùng, hãy chú ý đến dấu hiệu của thực phẩm hỏng như: mùi lạ, thay đổi màu sắc, xuất hiện nấm mốc. Nếu nghi ngờ thực phẩm đã hỏng, tốt nhất nên bỏ đi để đảm bảo sức khỏe.",
         publishDate: "12/06/2024",
         author: "Nguyễn Văn A",
-        image: "/images/pet-care.png",
+        image: "/images/blog-placeholder.png",
         createdAt: "10/06/2024",
         updatedAt: "12/06/2024",
-        tags: ["Chó", "Mèo", "Chăm sóc", "Mùa hè"],
+        tags: ["Bảo quản", "Thực phẩm", "Mùa hè", "An toàn thực phẩm"],
       });
       setLoading(false);
     }, 500);
@@ -120,6 +120,7 @@ function BlogViewContent() {
             alt={post.title}
             width={1200}
             height={675}
+            sizes="100%"
             className="object-cover w-full h-full"
           />
         </div>

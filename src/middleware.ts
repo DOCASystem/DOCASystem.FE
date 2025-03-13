@@ -10,6 +10,9 @@ const PROTECTED_PATHS = [
   "/users-management",
 ];
 
+// Danh sách các đường dẫn dành cho người dùng đã đăng nhập
+const AUTH_PATHS = ["/login", "/signup", "/forgot-password"];
+
 // Danh sách các IP được phép truy cập admin (tùy chọn)
 // const ALLOWED_IPS = ['127.0.0.1', '::1']; // Chỉ localhost
 
@@ -17,6 +20,8 @@ const PROTECTED_PATHS = [
 export function middleware(request: NextRequest) {
   // Lấy đường dẫn hiện tại
   const { pathname } = request.nextUrl;
+
+  console.log("Middleware xử lý đường dẫn:", pathname);
 
   // Không thực hiện bất kỳ redirect nào trong quá trình build
   // Khi chạy build trên máy local: NODE_ENV=production
@@ -28,22 +33,64 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Lấy token từ cookie
+  const token = request.cookies.get("token")?.value;
+  const isAuthenticated = !!token;
+
+  console.log(
+    "Auth state:",
+    isAuthenticated ? "Đã đăng nhập" : "Chưa đăng nhập"
+  );
+
   // Kiểm tra xem đường dẫn có nằm trong danh sách bảo vệ không
   const isProtectedPath = PROTECTED_PATHS.some((path) =>
     pathname.startsWith(path)
   );
 
-  // Chỉ kiểm tra bảo mật cho các đường dẫn được bảo vệ
-  if (isProtectedPath) {
-    // Lấy token từ cookie
-    const token = request.cookies.get("token")?.value;
+  // Kiểm tra xem đường dẫn có nằm trong danh sách dành cho người dùng chưa đăng nhập không
+  const isAuthPath = AUTH_PATHS.some((path) => pathname.startsWith(path));
 
-    // Nếu không có token, chuyển hướng về trang đăng nhập
-    if (!token) {
-      // Xóa tất cả tham số URL và chuyển hướng về trang đăng nhập
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.search = "";
-      return NextResponse.redirect(loginUrl);
+  // Nếu đường dẫn được bảo vệ và người dùng chưa đăng nhập
+  if (isProtectedPath && !isAuthenticated) {
+    // Chuyển hướng về trang đăng nhập
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.search = "";
+    console.log("Chuyển hướng đến trang đăng nhập:", loginUrl.toString());
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Nếu người dùng đã đăng nhập và đang truy cập trang đăng nhập/đăng ký
+  if (isAuthPath && isAuthenticated) {
+    // Lấy thông tin người dùng từ cookie
+    let isAdmin = false;
+    let userRole = "USER";
+    try {
+      const userDataCookie = request.cookies.get("userData")?.value;
+      if (userDataCookie) {
+        const userData = JSON.parse(decodeURIComponent(userDataCookie));
+        userRole = userData.role || "USER";
+        isAdmin = userRole === "ADMIN" || userData.username === "admin";
+        console.log("Thông tin người dùng:", {
+          username: userData.username,
+          role: userRole,
+          isAdmin,
+        });
+      } else {
+        console.log("Không tìm thấy cookie userData mặc dù đã xác thực");
+      }
+    } catch (error) {
+      console.error("Lỗi khi phân tích userData:", error);
+    }
+
+    // Chuyển hướng đến trang phù hợp dựa trên vai trò
+    if (isAdmin) {
+      const redirectUrl = new URL("/products-management", request.url);
+      console.log("Chuyển hướng admin đến:", redirectUrl.toString());
+      return NextResponse.redirect(redirectUrl);
+    } else {
+      const redirectUrl = new URL("/", request.url);
+      console.log("Chuyển hướng người dùng đến:", redirectUrl.toString());
+      return NextResponse.redirect(redirectUrl);
     }
   }
 
@@ -63,5 +110,7 @@ export const config = {
     "/blog-management/:path*",
     "/users-management/:path*",
     "/login",
+    "/signup",
+    "/forgot-password",
   ],
 };

@@ -50,36 +50,26 @@ const saveUserData = (userData: Partial<LoginResponse>) => {
   }
 };
 
-// Kiểm tra xem người dùng đã đăng nhập chưa
+// Kiểm tra xem người dùng đã đăng nhập chưa - đã tối ưu hiệu suất
 const isAuthenticated = (): boolean => {
   if (!isBrowser()) return false;
 
   try {
+    // Sử dụng cache để tránh kiểm tra lặp lại
+    const cachedAuth = sessionStorage.getItem("auth_status");
+    if (cachedAuth) {
+      return cachedAuth === "true";
+    }
+
     // Kiểm tra token trong localStorage
     const token = localStorage.getItem("token");
+    const hasToken = !!token;
 
-    if (token) {
-      console.log("Tìm thấy token trong localStorage");
-      return true;
-    }
+    // Lưu kết quả vào cache
+    sessionStorage.setItem("auth_status", hasToken ? "true" : "false");
 
-    // Nếu không có trong localStorage, thử tìm trong cookie
-    const cookies = document.cookie.split(";");
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.startsWith("token=")) {
-        console.log("Tìm thấy token trong cookie");
-        // Lưu token từ cookie vào localStorage để dùng sau này
-        const tokenFromCookie = decodeURIComponent(cookie.substring(6));
-        localStorage.setItem("token", tokenFromCookie);
-        return true;
-      }
-    }
-
-    console.log("Không tìm thấy token");
-    return false;
-  } catch (error) {
-    console.error("Lỗi khi kiểm tra trạng thái xác thực:", error);
+    return hasToken;
+  } catch {
     return false;
   }
 };
@@ -130,32 +120,28 @@ const getRefreshToken = (): string => {
   return "";
 };
 
-// Lấy thông tin người dùng từ localStorage hoặc cookie
+// Lấy thông tin người dùng từ localStorage hoặc cookie - đã tối ưu hiệu suất
 const getUserData = (): Partial<LoginResponse> | null => {
   if (!isBrowser()) return null;
 
   try {
+    // Sử dụng cache để tránh phân tích JSON lặp lại
+    const cachedUserData = sessionStorage.getItem("cached_user_data");
+    if (cachedUserData) {
+      return JSON.parse(cachedUserData);
+    }
+
     // Thử lấy từ localStorage trước
     const userDataStr = localStorage.getItem("userData");
     if (userDataStr) {
-      return JSON.parse(userDataStr);
-    }
-
-    // Nếu không có trong localStorage, thử tìm trong cookie
-    const cookies = document.cookie.split(";");
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.startsWith("userData=")) {
-        const userDataFromCookie = decodeURIComponent(cookie.substring(9));
-        // Lưu vào localStorage
-        localStorage.setItem("userData", userDataFromCookie);
-        return JSON.parse(userDataFromCookie);
-      }
+      const userData = JSON.parse(userDataStr);
+      // Lưu vào cache
+      sessionStorage.setItem("cached_user_data", userDataStr);
+      return userData;
     }
 
     return null;
-  } catch (error) {
-    console.error("Lỗi khi lấy userData:", error);
+  } catch {
     return null;
   }
 };

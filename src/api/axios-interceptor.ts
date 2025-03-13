@@ -10,7 +10,9 @@ const axiosInstance = axios.create({
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
+    Accept: "application/json",
   },
+  withCredentials: false, // Tắt credentials để tránh vấn đề CORS
 });
 
 // Interceptor cho request - thêm token vào header
@@ -20,9 +22,11 @@ axiosInstance.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    console.log("Request headers:", config.headers);
     return config;
   },
   (error) => {
+    console.error("Lỗi request interceptor:", error);
     return Promise.reject(error);
   }
 );
@@ -31,6 +35,8 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
+    console.error("Lỗi response:", error.message, error.response?.status);
+
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
@@ -63,5 +69,9 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Cấu hình toàn cầu cho axios
+axios.defaults.headers.common["Accept"] = "application/json";
+axios.defaults.headers.common["Content-Type"] = "application/json";
 
 export default axiosInstance;

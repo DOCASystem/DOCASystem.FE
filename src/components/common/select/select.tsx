@@ -164,19 +164,37 @@ const Select: React.FC<SelectProps> = ({
   value,
   onChange,
 }) => {
+  // Đảm bảo options không bao giờ là undefined hoặc null
+  const safeOptions = Array.isArray(options) ? options : [];
+
   const [selectedValues, setSelectedValues] = useState<string[]>(
     Array.isArray(value) ? value : value ? [value] : []
   );
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Đảm bảo options không bao giờ là undefined
-  const safeOptions = options || [];
+  // Log ra thông tin options và giá trị đã chọn khi component mount
+  useEffect(() => {
+    console.log(`Select [${name}] - Số lượng options:`, safeOptions.length);
+    console.log(`Select [${name}] - Giá trị đã chọn:`, selectedValues);
+
+    // Log chi tiết các options để dễ debug
+    if (safeOptions.length > 0) {
+      console.log(
+        `Select [${name}] - Chi tiết 5 options đầu tiên:`,
+        safeOptions.slice(0, 5).map((opt) => ({ ...opt }))
+      );
+    }
+  }, [name, safeOptions, selectedValues]);
 
   // Cập nhật selectedValues khi prop value thay đổi
   useEffect(() => {
-    setSelectedValues(Array.isArray(value) ? value : value ? [value] : []);
-  }, [value]);
+    if (value !== undefined) {
+      const newValues = Array.isArray(value) ? value : value ? [value] : [];
+      console.log(`Select [${name}] - Value prop thay đổi:`, newValues);
+      setSelectedValues(newValues);
+    }
+  }, [value, name]);
 
   // Cập nhật selectedValues khi options thay đổi để loại bỏ các giá trị không hợp lệ
   useEffect(() => {
@@ -186,12 +204,15 @@ const Select: React.FC<SelectProps> = ({
         validOptionValues.includes(val)
       );
 
+      // Chỉ cập nhật nếu có thay đổi để tránh render lại không cần thiết
       if (validSelectedValues.length !== selectedValues.length) {
         console.log(
-          "Đã loại bỏ các giá trị không hợp lệ:",
+          `Select [${name}] - Loại bỏ các giá trị không hợp lệ:`,
           selectedValues.filter((val) => !validOptionValues.includes(val))
         );
         setSelectedValues(validSelectedValues);
+
+        // Chỉ gọi onChange nếu thực sự có thay đổi
         if (onChange) {
           onChange(
             isMulti ? validSelectedValues : validSelectedValues[0] || ""
@@ -208,6 +229,8 @@ const Select: React.FC<SelectProps> = ({
     const selectedOptions = Array.from(e.target.selectedOptions).map(
       (option) => option.value
     );
+
+    console.log(`Select [${name}] - Lựa chọn mới:`, selectedOptions);
 
     if (isMulti) {
       // Nếu là multiselect, trả về mảng các giá trị
@@ -227,13 +250,13 @@ const Select: React.FC<SelectProps> = ({
   ) => {
     if (newCategory && onCreateOption) {
       try {
-        console.log("Select component - Đang thêm danh mục mới:", {
+        console.log(`Select [${name}] - Đang thêm danh mục mới:`, {
           name: newCategory,
           description,
         });
 
         const result = await onCreateOption(newCategory, description);
-        console.log("Kết quả thêm danh mục:", result);
+        console.log(`Select [${name}] - Kết quả thêm danh mục:`, result);
 
         if (result) {
           toast.success(`Đã thêm danh mục "${newCategory}" thành công`);
@@ -249,21 +272,22 @@ const Select: React.FC<SelectProps> = ({
           }
           setShowAddDialog(false);
         } else {
-          console.error("Không thể thêm danh mục");
+          console.error(`Select [${name}] - Không thể thêm danh mục`);
+          toast.error("Không thể thêm danh mục");
           setShowAddDialog(false);
         }
       } catch (error) {
-        console.error(
-          "Lỗi chi tiết khi thêm danh mục từ Select component:",
-          error
-        );
+        console.error(`Select [${name}] - Lỗi khi thêm danh mục:`, error);
+        toast.error("Đã xảy ra lỗi khi thêm danh mục");
         setShowAddDialog(false);
       }
     } else {
       if (!newCategory) {
-        console.error("Tên danh mục không được để trống");
+        console.error(`Select [${name}] - Tên danh mục không được để trống`);
       } else if (!onCreateOption) {
-        console.error("Không có hàm onCreateOption được cung cấp");
+        console.error(
+          `Select [${name}] - Không có hàm onCreateOption được cung cấp`
+        );
       }
       setShowAddDialog(false);
     }
@@ -275,6 +299,7 @@ const Select: React.FC<SelectProps> = ({
       {label && (
         <label className="block text-sm font-medium text-gray-700 mb-1">
           {label}
+          {isMulti && <span className="text-xs text-gray-500 ml-1"></span>}
         </label>
       )}
 
@@ -289,12 +314,13 @@ const Select: React.FC<SelectProps> = ({
           onClick={() => setIsOpen(!isOpen)}
           onBlur={() => setIsOpen(false)}
           style={{
-            maxHeight: isMulti ? "60px" : "auto",
-            overflowY: isMulti ? "auto" : "hidden",
+            height: isMulti ? "auto" : "36px",
+            overflowY: isMulti ? "visible" : "hidden",
             minHeight: isMulti ? "36px" : "auto",
             fontSize: "13px",
             lineHeight: "1.2",
           }}
+          size={isMulti ? Math.min(safeOptions.length, 6) : 1}
         >
           {!isMulti && (
             <option value="">{placeholder || "Chọn danh mục"}</option>

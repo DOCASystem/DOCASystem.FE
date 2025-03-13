@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import AdminForm from "@/components/common/form/admin-form";
 import Input from "@/components/common/input/input";
 import { productSchema } from "@/utils/validation";
-import { ProductService, CategoryService } from "@/service/product-service";
+import { ProductService } from "@/service/product-service";
+import { CategoryService } from "@/service/category-service";
 import { toast } from "react-toastify";
 import Select from "@/components/common/select/select";
 import Textarea from "@/components/common/textarea/textarea";
-import ImageUpload from "@/components/common/image-upload/image-upload";
+import ImageUpload from "../../../../../components/common/image-upload/image-upload";
 import Checkbox from "@/components/common/checkbox/checkbox";
 
 // Định nghĩa kiểu dữ liệu cho API response
@@ -98,7 +99,7 @@ export default function EditProductContent({
       try {
         // Lấy danh sách danh mục
         const categoryResponse = await CategoryService.getCategories({
-          page: 0,
+          page: 1,
           size: 100,
         });
 
@@ -156,12 +157,9 @@ export default function EditProductContent({
 
       // Cập nhật danh mục sản phẩm
       if (data.categoryIds && data.categoryIds.length > 0) {
-        // Lưu ý: API hiện tại không hỗ trợ cập nhật danh mục
-        // Chúng ta chỉ gọi API này để duy trì tính nhất quán của code
-        await ProductService.updateProductCategories(
-          productId,
-          data.categoryIds
-        );
+        // TODO: API hiện tại không hỗ trợ cập nhật danh mục
+        // Cần phát triển tính năng này sau
+        console.log("Danh mục được chọn:", data.categoryIds);
       }
 
       toast.success("Cập nhật sản phẩm thành công");
@@ -251,6 +249,10 @@ export default function EditProductContent({
               isCreatable
               onCreateOption={handleCreateCategory}
             />
+            <div className="text-xs text-gray-500 mt-1">
+              * Chọn một hoặc nhiều danh mục. Mỗi danh mục sẽ hiển thị tên nhưng
+              lưu trữ ID.
+            </div>
 
             <Textarea
               name="description"
