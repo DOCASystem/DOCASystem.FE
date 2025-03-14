@@ -173,30 +173,30 @@ export default function EditProductContent({
   };
 
   // Xử lý tạo danh mục mới
-  const handleCreateCategory = async (name: string) => {
-    try {
-      const response = await CategoryService.createCategory({
-        name,
-        description: "",
-      });
+  // const handleCreateCategory = async (name: string) => {
+  //   try {
+  //     const response = await CategoryService.createCategory({
+  //       name,
+  //       description: "",
+  //     });
 
-      if (response && response.data) {
-        const newCategory = response.data as CategoryResponse;
-        toast.success("Thêm danh mục thành công");
-        // Thêm danh mục mới vào danh sách
-        setCategories((prev) => [
-          ...prev,
-          { value: newCategory.id, label: newCategory.name },
-        ]);
-        return { value: newCategory.id, label: newCategory.name };
-      }
-      return null;
-    } catch (error) {
-      console.error("Lỗi khi thêm danh mục:", error);
-      toast.error("Không thể thêm danh mục");
-      return null;
-    }
-  };
+  //     if (response && response.data) {
+  //       const newCategory = response.data as CategoryResponse;
+  //       toast.success("Thêm danh mục thành công");
+  //       // Thêm danh mục mới vào danh sách
+  //       setCategories((prev) => [
+  //         ...prev,
+  //         { value: newCategory.id, label: newCategory.name },
+  //       ]);
+  //       return { value: newCategory.id, label: newCategory.name };
+  //     }
+  //     return null;
+  //   } catch (error) {
+  //     console.error("Lỗi khi thêm danh mục:", error);
+  //     toast.error("Không thể thêm danh mục");
+  //     return null;
+  //   }
+  // };
 
   // Chuẩn bị dữ liệu form từ sản phẩm
   const prepareFormData = (): EditProductFormData => {
@@ -246,8 +246,6 @@ export default function EditProductContent({
               placeholder="Chọn danh mục"
               options={categories}
               isMulti
-              isCreatable
-              onCreateOption={handleCreateCategory}
             />
 
             <Textarea

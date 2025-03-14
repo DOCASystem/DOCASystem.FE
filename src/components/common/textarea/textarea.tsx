@@ -31,7 +31,7 @@ const Textarea: React.FC<TextareaProps> = ({
         required={required}
         value={value}
         onChange={onChange}
-        className="w-full min-h-[100px] rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring focus:ring-pink-500 focus:ring-opacity-50"
+        className="w-full min-h-[100px] rounded-md p-2 border-gray-300 shadow-sm focus:border-pink-doca focus:ring focus:ring-pink-doca focus:ring-opacity-50"
       />
     </div>
   );

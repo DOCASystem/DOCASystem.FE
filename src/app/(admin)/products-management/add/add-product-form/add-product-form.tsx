@@ -59,6 +59,15 @@ export default function AddProductForm() {
   >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingCategories, setIsFetchingCategories] = useState(true);
+  const [apiUrl, setApiUrl] = useState<string>("");
+
+  // Lấy và lưu API URL để debug
+  useEffect(() => {
+    const url =
+      process.env.NEXT_PUBLIC_API_URL || "https://production.doca.love";
+    setApiUrl(url);
+    console.log("API URL hiện tại:", url);
+  }, []);
 
   // Giá trị mặc định
   const defaultValues: AddProductFormData = {
@@ -82,7 +91,7 @@ export default function AddProductForm() {
 
       setIsFetchingCategories(true);
       try {
-        // Bỏ các console.log không cần thiết để tăng hiệu suất
+        console.log("Đang lấy danh sách danh mục...");
         const response = await CategoryService.getCategories({
           page: 1,
           size: 30,
@@ -90,6 +99,8 @@ export default function AddProductForm() {
 
         if (response && response.data && isMounted) {
           const data = response.data as CategoryResponseIPaginate;
+          console.log("Dữ liệu danh mục nhận được:", data);
+
           if (data.items && Array.isArray(data.items)) {
             if (data.items.length === 0) {
               if (isMounted) {
@@ -107,9 +118,8 @@ export default function AddProductForm() {
               );
 
               if (isMounted) {
+                console.log("Danh sách danh mục đã tải:", categoryOptions);
                 setCategories(categoryOptions);
-                // Chỉ hiển thị thông báo nếu cần thiết
-                // toast.info(`Đã tải ${categoryOptions.length} danh mục`);
               }
             }
           } else if (isMounted) {
@@ -152,6 +162,7 @@ export default function AddProductForm() {
     setIsLoading(true);
     try {
       console.log("Dữ liệu form trước khi gửi:", JSON.stringify(data, null, 2));
+      console.log("API URL khi submit:", apiUrl);
 
       // Kiểm tra kỹ dữ liệu form
       const validationErrors = [];
@@ -181,15 +192,15 @@ export default function AddProductForm() {
         validationErrors.push("Khối lượng phải lớn hơn 0");
       }
 
-      // Chuyển đổi categoryIds thành mảng để API xử lý
-      const categoryIds = data.categoryIds ? [data.categoryIds] : [];
-
-      console.log("Danh mục đã chọn (ID):", categoryIds);
-
-      // Kiểm tra nếu không có danh mục nào được chọn
-      if (categoryIds.length === 0) {
+      // Kiểm tra danh mục - đây là trường đơn, không phải mảng
+      if (!data.categoryIds) {
         validationErrors.push("Vui lòng chọn một danh mục");
       }
+
+      // Tạo mảng categoryIds từ giá trị chuỗi để gửi đến API
+      const categoryIdArray = data.categoryIds ? [data.categoryIds] : [];
+      console.log("Danh mục đã chọn (ID):", data.categoryIds);
+      console.log("Mảng danh mục để gửi API:", categoryIdArray);
 
       // Nếu có lỗi, hiển thị và dừng
       if (validationErrors.length > 0) {
@@ -202,12 +213,12 @@ export default function AddProductForm() {
         return;
       }
 
-      // Log ra các danh mục đã chọn để debug
-      if (categoryIds.length > 0) {
-        const selectedCategories = categories.filter((cat) =>
-          categoryIds.includes(cat.value)
+      // Hiển thị chi tiết về danh mục đã chọn
+      if (data.categoryIds) {
+        const selectedCategory = categories.find(
+          (cat) => cat.value === data.categoryIds
         );
-        console.log("Các danh mục đã chọn:", selectedCategories);
+        console.log("Danh mục đã chọn:", selectedCategory);
       }
 
       // Kiểm tra và log thông tin hình ảnh
@@ -256,7 +267,7 @@ export default function AddProductForm() {
         volume: data.volume,
         isHidden: data.isHidden,
         productImages: data.productImages || [], // Đảm bảo luôn là mảng
-        categoryIds: categoryIds, // Đảm bảo là array với 1 phần tử
+        categoryIds: categoryIdArray, // Mảng với một phần tử
       };
 
       console.log("Dữ liệu sản phẩm cuối cùng trước khi gửi API:", productData);
@@ -342,57 +353,57 @@ export default function AddProductForm() {
   };
 
   // Xử lý tạo danh mục mới
-  const handleCreateCategory = async (
-    name: string,
-    description: string = ""
-  ) => {
-    // Kiểm tra token admin
-    const token = localStorage.getItem("token");
-    if (!token) {
-      console.error("Không có token admin");
-      return null;
-    }
+  // const handleCreateCategory = async (
+  //   name: string,
+  //   description: string = ""
+  // ) => {
+  //   // Kiểm tra token admin
+  //   const token = localStorage.getItem("token");
+  //   if (!token) {
+  //     console.error("Không có token admin");
+  //     return null;
+  //   }
 
-    try {
-      console.log("Đang tạo danh mục mới:", { name, description });
+  //   try {
+  //     console.log("Đang tạo danh mục mới:", { name, description });
 
-      if (!CategoryService || !CategoryService.createCategory) {
-        console.error(
-          "CategoryService hoặc CategoryService.createCategory không tồn tại"
-        );
-        return null;
-      }
+  //     if (!CategoryService || !CategoryService.createCategory) {
+  //       console.error(
+  //         "CategoryService hoặc CategoryService.createCategory không tồn tại"
+  //       );
+  //       return null;
+  //     }
 
-      const response = await CategoryService.createCategory({
-        name,
-        description,
-      });
+  //     const response = await CategoryService.createCategory({
+  //       name,
+  //       description,
+  //     });
 
-      console.log("Kết quả tạo danh mục:", response);
+  //     console.log("Kết quả tạo danh mục:", response);
 
-      if (response && response.data) {
-        const newCategory = response.data as CategoryResponse;
-        console.log("Danh mục mới đã được tạo:", newCategory);
+  //     if (response && response.data) {
+  //       const newCategory = response.data as CategoryResponse;
+  //       console.log("Danh mục mới đã được tạo:", newCategory);
 
-        // Thêm danh mục mới vào danh sách
-        const newCategoryOption = {
-          value: newCategory.id,
-          label: newCategory.name,
-        };
+  //       // Thêm danh mục mới vào danh sách
+  //       const newCategoryOption = {
+  //         value: newCategory.id,
+  //         label: newCategory.name,
+  //       };
 
-        setCategories((prev) => [...prev, newCategoryOption]);
-        toast.success(`Đã thêm danh mục "${newCategory.name}" thành công`);
+  //       setCategories((prev) => [...prev, newCategoryOption]);
+  //       toast.success(`Đã thêm danh mục "${newCategory.name}" thành công`);
 
-        return newCategoryOption;
-      } else {
-        console.error("Không nhận được dữ liệu từ API tạo danh mục");
-        return null;
-      }
-    } catch (error) {
-      console.error("Chi tiết lỗi khi thêm danh mục:", error);
-      return null;
-    }
-  };
+  //       return newCategoryOption;
+  //     } else {
+  //       console.error("Không nhận được dữ liệu từ API tạo danh mục");
+  //       return null;
+  //     }
+  //   } catch (error) {
+  //     console.error("Chi tiết lỗi khi thêm danh mục:", error);
+  //     return null;
+  //   }
+  // };
 
   return (
     <div>
@@ -425,8 +436,7 @@ export default function AddProductForm() {
               label="Danh mục"
               placeholder="Chọn một danh mục"
               options={categories}
-              isCreatable
-              onCreateOption={handleCreateCategory}
+              isMulti
             />
 
             <Textarea

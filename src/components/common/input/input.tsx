@@ -36,10 +36,7 @@ export default function Input({
           {...register(name)}
           id={name}
           placeholder={placeholder}
-          className={cn(
-            "px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500",
-            className
-          )}
+          className={cn("px-4 py-2 border rounded-md", className)}
         />
       ) : (
         <input
@@ -48,10 +45,7 @@ export default function Input({
           type={type}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          className={cn(
-            "px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500",
-            className
-          )}
+          className={cn("px-4 py-2 border rounded-md ", className)}
         />
       )}
 

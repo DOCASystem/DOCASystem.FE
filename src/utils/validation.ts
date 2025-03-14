@@ -86,7 +86,7 @@ export const productSchema = yup.object().shape({
     .positive("Giá phải là số dương")
     .required("Giá không được để trống"),
   description: yup.string().required("Mô tả không được để trống"),
-  categoryIds: yup.array().min(1, "Phải chọn ít nhất 1 danh mục"),
+  categoryIds: yup.string().required("Phải chọn một danh mục"),
   quantity: yup
     .number()
     .transform((value) => (isNaN(value) ? undefined : value))
