@@ -29,30 +29,64 @@ export default function RecommendProducts({
     try {
       console.log("Đang tải sản phẩm gợi ý...");
 
-      // Thử gọi API trực tiếp để lấy danh sách sản phẩm
+      // Phương pháp 1: Sử dụng API proxy trong Next.js
+      try {
+        // Đây là API route trong Next.js, không phải API external
+        const proxyUrl = `/api/proxy/products-simple`;
+        console.log(`Gọi API proxy để lấy sản phẩm tương tự: ${proxyUrl}`);
+
+        const proxyResponse = await axios.get(proxyUrl, {
+          timeout: 8000, // 8 giây timeout
+        });
+
+        if (proxyResponse.data && proxyResponse.data.items) {
+          console.log("API proxy trả về danh sách sản phẩm thành công");
+
+          // Lọc sản phẩm hiện tại ra khỏi danh sách gợi ý
+          const filteredProducts = proxyResponse.data.items.filter(
+            (product: GetProductDetailResponse) =>
+              product.id !== currentProductId
+          );
+
+          // Lấy tối đa 4 sản phẩm
+          setProducts(filteredProducts.slice(0, 4));
+          return; // Thoát sớm nếu thành công
+        }
+      } catch (proxyError) {
+        console.error(
+          "Lỗi khi gọi API proxy cho sản phẩm tương tự:",
+          proxyError
+        );
+      }
+
+      // Phương pháp 2: Thử gọi API trực tiếp
       try {
         const directApiUrl = `${REAL_API_BASE_URL}/api/v1/products?page=1&size=8`;
         console.log(`Gọi API trực tiếp: ${directApiUrl}`);
 
         const response = await axios.get(directApiUrl, {
-          timeout: 10000, // 10 giây timeout
+          timeout: 8000, // 8 giây timeout
         });
 
         if (response.data && response.data.items) {
+          console.log("API trực tiếp trả về danh sách sản phẩm thành công");
+
           // Lọc sản phẩm hiện tại ra khỏi danh sách gợi ý
           const filteredProducts = response.data.items.filter(
-            (product: any) => product.id !== currentProductId
+            (product: GetProductDetailResponse) =>
+              product.id !== currentProductId
           );
 
           // Lấy tối đa 4 sản phẩm
           setProducts(filteredProducts.slice(0, 4));
-        } else {
-          throw new Error("Không nhận được dữ liệu sản phẩm từ API");
+          return; // Thoát sớm nếu thành công
         }
       } catch (directApiError) {
         console.error("Lỗi khi gọi API trực tiếp:", directApiError);
+      }
 
-        // Fallback: thử dùng ProductService
+      // Phương pháp 3: Fallback dùng ProductService
+      try {
         console.log("Thử dùng ProductService...");
         const response = await ProductService.getProducts({
           page: 1,
@@ -60,15 +94,21 @@ export default function RecommendProducts({
         });
 
         if (response.data.items) {
+          console.log("ProductService trả về danh sách sản phẩm thành công");
           const filteredProducts = response.data.items.filter(
             (product) => product.id !== currentProductId
           );
           setProducts(filteredProducts.slice(0, 4));
-        } else {
-          throw new Error("Không nhận được dữ liệu từ ProductService");
+          return; // Thoát sớm nếu thành công
         }
+      } catch (serviceError) {
+        console.error("Lỗi khi dùng ProductService:", serviceError);
+        throw serviceError; // Ném lỗi để xử lý bên ngoài
       }
-    } catch (error: any) {
+
+      // Nếu tất cả phương pháp đều thất bại
+      throw new Error("Không thể tải sản phẩm gợi ý");
+    } catch (error: unknown) {
       console.error("Lỗi khi tải sản phẩm gợi ý:", error);
       setError("Không thể tải sản phẩm gợi ý");
       // Vẫn hiển thị UI mà không có sản phẩm

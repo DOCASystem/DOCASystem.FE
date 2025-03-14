@@ -32,42 +32,73 @@ export default function ProductDetailPage({
         // Log ID sản phẩm để debug
         console.log(`Đang tải thông tin sản phẩm với ID: ${params.id}`);
 
-        // Thử gọi API trực tiếp bằng axios trước
-        const token = getToken();
-        const directApiUrl = `${REAL_API_BASE_URL}/api/v1/products/${params.id}`;
-
-        console.log(`Gọi API trực tiếp: ${directApiUrl}`);
-
+        // Phương pháp 1: Sử dụng API proxy trong Next.js
         try {
+          // Đây là API route trong Next.js, không phải API external
+          const proxyUrl = `/api/proxy/products/${params.id}`;
+          console.log(`Gọi API proxy: ${proxyUrl}`);
+
+          const token = getToken();
+          const headers: Record<string, string> = {};
+          if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+
+          const proxyResponse = await axios.get(proxyUrl, {
+            headers,
+            timeout: 10000, // 10 giây timeout
+          });
+
+          if (proxyResponse.data) {
+            console.log("API proxy trả về dữ liệu thành công");
+            setProduct(proxyResponse.data);
+            return; // Thoát sớm nếu thành công
+          }
+        } catch (proxyError) {
+          console.error("Lỗi khi gọi API proxy:", proxyError);
+        }
+
+        // Phương pháp 2: Thử gọi API trực tiếp
+        try {
+          const token = getToken();
+          const directApiUrl = `${REAL_API_BASE_URL}/api/v1/products/${params.id}`;
+          console.log(`Gọi API trực tiếp: ${directApiUrl}`);
+
           const response = await axios.get(directApiUrl, {
             headers: {
               Authorization: token ? `Bearer ${token}` : undefined,
             },
-            timeout: 10000, // 10 giây timeout
+            timeout: 8000,
           });
 
-          console.log("API response:", response);
-
           if (response.data) {
+            console.log("API trực tiếp trả về dữ liệu thành công");
             setProduct(response.data);
-          } else {
-            throw new Error("Không nhận được dữ liệu từ API");
+            return; // Thoát sớm nếu thành công
           }
         } catch (directApiError) {
           console.error("Lỗi khi gọi API trực tiếp:", directApiError);
+        }
 
-          // Nếu gọi trực tiếp thất bại, thử dùng ProductService
+        // Phương pháp 3: Thử dùng ProductService
+        try {
           console.log("Thử dùng ProductService...");
           const serviceResponse = await ProductService.getProductById(
             params.id
           );
 
           if (serviceResponse && serviceResponse.data) {
+            console.log("ProductService trả về dữ liệu thành công");
             setProduct(serviceResponse.data);
-          } else {
-            throw new Error("Không nhận được dữ liệu từ ProductService");
+            return; // Thoát sớm nếu thành công
           }
+        } catch (serviceError) {
+          console.error("Lỗi khi dùng ProductService:", serviceError);
+          throw serviceError; // Ném lỗi để xử lý bên ngoài
         }
+
+        // Nếu tất cả các phương pháp đều thất bại
+        throw new Error("Tất cả các phương pháp lấy dữ liệu đều thất bại");
       } catch (err: any) {
         console.error("Chi tiết lỗi khi tải sản phẩm:", {
           message: err.message,
