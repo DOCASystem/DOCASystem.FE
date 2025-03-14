@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { REAL_API_BASE_URL } from "@/utils/api-config";
 
 /**
- * API Proxy đơn giản để lấy danh sách sản phẩm
- * Nhằm giảm thiểu các vấn đề có thể xảy ra với CORS và authentication
+ * API Proxy cho việc lấy danh sách sản phẩm để tránh vấn đề CORS trong môi trường production
  *
  * @param request yêu cầu từ client
  */
@@ -12,40 +10,27 @@ export async function GET(request: NextRequest) {
   const token = request.headers.get("Authorization") || "";
 
   try {
-    // Lấy query params từ URL
-    const { searchParams } = new URL(request.url);
+    // Lấy các tham số truy vấn từ URL
+    const searchParams = request.nextUrl.searchParams;
     const page = searchParams.get("page") || "1";
-    const size = searchParams.get("size") || "8";
-    const categoryIds = searchParams.getAll("categoryIds");
+    const size = searchParams.get("size") || "10";
+    const categoryIds = searchParams.get("categoryIds");
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
+    const search = searchParams.get("search");
 
-    // Log request đang được gửi
-    console.log(
-      `API Proxy Simple: Đang lấy danh sách sản phẩm (page=${page}, size=${size})`
-    );
-
-    // Xây dựng URL cho API
-    let apiUrl = `${REAL_API_BASE_URL}/api/v1/products?page=${page}&size=${size}`;
+    // Tạo URL cho API
+    let apiUrl = `https://production.doca.love/api/v1/products?page=${page}&size=${size}`;
 
     // Thêm các tham số tìm kiếm nếu có
-    if (categoryIds && categoryIds.length > 0) {
-      categoryIds.forEach((id) => {
-        apiUrl += `&categoryIds=${id}`;
-      });
-    }
+    if (categoryIds) apiUrl += `&categoryIds=${categoryIds}`;
+    if (minPrice) apiUrl += `&minPrice=${minPrice}`;
+    if (maxPrice) apiUrl += `&maxPrice=${maxPrice}`;
+    if (search) apiUrl += `&search=${encodeURIComponent(search)}`;
 
-    if (minPrice) {
-      apiUrl += `&minPrice=${minPrice}`;
-    }
+    console.log(`API Proxy: Gọi đến: ${apiUrl}`);
 
-    if (maxPrice) {
-      apiUrl += `&maxPrice=${maxPrice}`;
-    }
-
-    console.log(`API Proxy Simple: Gọi đến: ${apiUrl}`);
-
-    // Gọi API để lấy danh sách sản phẩm
+    // Thực hiện request
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
@@ -58,10 +43,7 @@ export async function GET(request: NextRequest) {
     // Kiểm tra response status
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
-        `API Proxy Simple: Lỗi từ server: ${response.status}`,
-        errorText
-      );
+      console.error(`API Proxy: Lỗi từ server: ${response.status}`, errorText);
 
       return NextResponse.json(
         {
@@ -75,9 +57,9 @@ export async function GET(request: NextRequest) {
     // Lấy response data
     const responseData = await response.json();
     console.log(
-      `API Proxy Simple: Lấy danh sách sản phẩm thành công, ${
-        responseData.items?.length || 0
-      } sản phẩm`
+      `API Proxy: Lấy danh sách sản phẩm thành công, số lượng: ${
+        responseData.content?.length || 0
+      }`
     );
 
     // Trả về kết quả cho client với headers CORS
@@ -85,12 +67,12 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   } catch (error) {
-    console.error("API Proxy Simple: Lỗi khi gửi yêu cầu:", error);
+    console.error("API Proxy: Lỗi khi gửi yêu cầu:", error);
     return NextResponse.json(
       { message: "Lỗi khi xử lý yêu cầu", error: String(error) },
       { status: 500 }
@@ -99,64 +81,72 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * API Proxy đơn giản cho việc tạo sản phẩm không có hình ảnh
- * Nhằm giảm thiểu các vấn đề có thể xảy ra với formData và CORS
+ * API Proxy cho việc tạo sản phẩm không có hình ảnh
  *
  * @param request yêu cầu từ client
  */
 export async function POST(request: NextRequest) {
-  const token = request.headers.get("Authorization");
+  // Lấy token từ header
+  const token = request.headers.get("Authorization") || "";
 
   // Kiểm tra token
   if (!token) {
     return NextResponse.json(
-      { message: "Không tìm thấy token xác thực" },
+      { message: "Không có quyền truy cập" },
       { status: 401 }
     );
   }
 
   try {
-    // Log request đang được gửi
-    console.log(
-      "API Proxy Simple: Đang gửi yêu cầu tạo sản phẩm đơn giản đến server"
-    );
+    console.log("API Proxy: Đang xử lý yêu cầu tạo sản phẩm");
 
     // Lấy dữ liệu JSON từ request
-    const data = await request.json();
-    console.log("API Proxy Simple: Nhận được dữ liệu:", data);
+    const jsonData = await request.json();
+    console.log("API Proxy: Dữ liệu sản phẩm:", jsonData);
 
-    // Tạo request đến API backend thực tế
-    const response = await fetch(`${REAL_API_BASE_URL}/api/v1/products`, {
+    // URL API để tạo sản phẩm
+    const apiUrl = `https://production.doca.love/api/v1/products`;
+    console.log(`API Proxy: Gọi POST đến: ${apiUrl}`);
+
+    // Thực hiện request đến backend
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
-        Authorization: token,
         "Content-Type": "application/json",
+        Authorization: token,
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(jsonData),
     });
 
-    let responseData;
-    try {
-      responseData = await response.json();
-    } catch (error) {
-      console.error("API Proxy Simple: Lỗi khi parse JSON response:", error);
-      responseData = { message: "Không thể đọc dữ liệu phản hồi từ server" };
+    // Kiểm tra response status
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Proxy: Lỗi từ server: ${response.status}`, errorText);
+
+      return NextResponse.json(
+        {
+          message: `Không thể tạo sản phẩm: ${response.statusText}`,
+          error: errorText,
+        },
+        { status: response.status }
+      );
     }
 
-    // Log kết quả
-    console.log(`API Proxy Simple: Kết quả từ server: ${response.status}`);
+    // Lấy response data
+    const responseData = await response.json();
+    console.log(`API Proxy: Tạo sản phẩm thành công`, responseData);
 
-    // Trả về kết quả cho client
+    // Trả về kết quả cho client với headers CORS
     return NextResponse.json(responseData, {
-      status: response.status,
+      status: 201,
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   } catch (error) {
-    console.error("API Proxy Simple: Lỗi khi gửi yêu cầu:", error);
+    console.error("API Proxy: Lỗi khi gửi yêu cầu:", error);
     return NextResponse.json(
       { message: "Lỗi khi xử lý yêu cầu", error: String(error) },
       { status: 500 }
@@ -172,7 +162,7 @@ export async function OPTIONS() {
     status: 200,
     headers: {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   });

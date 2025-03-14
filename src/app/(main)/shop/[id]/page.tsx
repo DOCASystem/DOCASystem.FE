@@ -3,21 +3,49 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { GetProductDetailResponse } from "@/api/generated";
 import { ProductService } from "@/service/product-service";
 import RecommendProducts from "@/components/sections/shop/recommend-products/recommend-products";
 import { useCartStore } from "@/store/cart-store";
 import { toast } from "react-toastify";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { getToken } from "@/auth/auth-service";
 import { REAL_API_BASE_URL } from "@/utils/api-config";
+
+// Định nghĩa interface ProductDetail để phù hợp với dữ liệu API trả về
+interface ProductImage {
+  id: string;
+  imageUrl: string;
+  isMain: boolean;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+interface ProductDetail {
+  id: string;
+  name: string;
+  description: string;
+  quantity: number;
+  volume: number;
+  price: number;
+  createdAt: string;
+  modifiedAt: string;
+  isHidden: boolean;
+  productImages: ProductImage[];
+  categories: Category[];
+}
 
 export default function ProductDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const [product, setProduct] = useState<GetProductDetailResponse | null>(null);
+  const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -50,9 +78,21 @@ export default function ProductDetailPage({
           });
 
           if (proxyResponse.data) {
-            console.log("API proxy trả về dữ liệu thành công");
-            setProduct(proxyResponse.data);
-            return; // Thoát sớm nếu thành công
+            console.log(
+              "API proxy trả về dữ liệu thành công:",
+              proxyResponse.data
+            );
+
+            // Kiểm tra và xử lý dữ liệu
+            const productData = proxyResponse.data as ProductDetail;
+
+            // Kiểm tra xem có dữ liệu cần thiết không
+            if (productData && productData.id) {
+              setProduct(productData);
+              return; // Thoát sớm nếu thành công
+            } else {
+              throw new Error("Dữ liệu sản phẩm không hợp lệ");
+            }
           }
         } catch (proxyError) {
           console.error("Lỗi khi gọi API proxy:", proxyError);
@@ -72,9 +112,20 @@ export default function ProductDetailPage({
           });
 
           if (response.data) {
-            console.log("API trực tiếp trả về dữ liệu thành công");
-            setProduct(response.data);
-            return; // Thoát sớm nếu thành công
+            console.log(
+              "API trực tiếp trả về dữ liệu thành công:",
+              response.data
+            );
+
+            // Kiểm tra và xử lý dữ liệu
+            const productData = response.data as ProductDetail;
+
+            if (productData && productData.id) {
+              setProduct(productData);
+              return; // Thoát sớm nếu thành công
+            } else {
+              throw new Error("Dữ liệu sản phẩm không hợp lệ");
+            }
           }
         } catch (directApiError) {
           console.error("Lỗi khi gọi API trực tiếp:", directApiError);
@@ -88,9 +139,20 @@ export default function ProductDetailPage({
           );
 
           if (serviceResponse && serviceResponse.data) {
-            console.log("ProductService trả về dữ liệu thành công");
-            setProduct(serviceResponse.data);
-            return; // Thoát sớm nếu thành công
+            console.log(
+              "ProductService trả về dữ liệu thành công:",
+              serviceResponse.data
+            );
+
+            // Kiểm tra và xử lý dữ liệu
+            const productData = serviceResponse.data as ProductDetail;
+
+            if (productData && productData.id) {
+              setProduct(productData);
+              return; // Thoát sớm nếu thành công
+            } else {
+              throw new Error("Dữ liệu sản phẩm không hợp lệ");
+            }
           }
         } catch (serviceError) {
           console.error("Lỗi khi dùng ProductService:", serviceError);
@@ -99,16 +161,16 @@ export default function ProductDetailPage({
 
         // Nếu tất cả các phương pháp đều thất bại
         throw new Error("Tất cả các phương pháp lấy dữ liệu đều thất bại");
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Chi tiết lỗi khi tải sản phẩm:", {
-          message: err.message,
-          stack: err.stack,
-          response: err.response,
+          message: err instanceof Error ? err.message : "Unknown error",
+          stack: err instanceof Error ? err.stack : undefined,
+          response: (err as AxiosError)?.response,
         });
 
         const errorMessage =
-          err.response?.data?.message ||
-          err.message ||
+          (err as AxiosError<{ message: string }>)?.response?.data?.message ||
+          (err instanceof Error ? err.message : "Unknown error") ||
           "Không thể tải thông tin sản phẩm";
         setError(errorMessage);
       } finally {
@@ -125,21 +187,23 @@ export default function ProductDetailPage({
         // Lấy URL ảnh chính của sản phẩm
         const imageUrl =
           product.productImages && product.productImages.length > 0
-            ? product.productImages[0].imageUrl || "/images/food-test.png"
+            ? product.productImages.find((img) => img.isMain)?.imageUrl ||
+              product.productImages[0].imageUrl ||
+              "/images/food-test.png"
             : "/images/food-test.png";
 
         // Thêm sản phẩm vào giỏ hàng
         addItem({
-          id: product.id || "",
-          name: product.name || "",
-          price: product.price || 0,
+          id: product.id,
+          name: product.name,
+          price: product.price,
           quantity: quantity,
           imageUrl: imageUrl,
         });
 
         // Hiển thị thông báo thành công
         toast.success("Đã thêm sản phẩm vào giỏ hàng");
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Lỗi khi thêm vào giỏ hàng:", err);
         toast.error("Không thể thêm sản phẩm vào giỏ hàng");
       }
@@ -211,10 +275,16 @@ export default function ProductDetailPage({
   // Lấy URL ảnh chính và các ảnh phụ
   const mainImage =
     product.productImages && product.productImages.length > 0
-      ? product.productImages[0].imageUrl || "/images/food-test.png"
+      ? product.productImages.find((img) => img.isMain)?.imageUrl ||
+        product.productImages[0].imageUrl ||
+        "/images/food-test.png"
       : "/images/food-test.png";
 
-  const otherImages = product.productImages?.slice(1) || [];
+  const otherImages = product.productImages
+    ? product.productImages
+        .filter((img) => !img.isMain)
+        .map((img) => img.imageUrl)
+    : [];
 
   // Bọc phần render chính trong try-catch để tránh lỗi không hiển thị trong sản phẩm
   try {
@@ -257,13 +327,13 @@ export default function ProductDetailPage({
 
             {otherImages.length > 0 && (
               <div className="mt-4 grid grid-cols-4 gap-2">
-                {otherImages.map((img, index) => (
+                {otherImages.map((imgUrl, index) => (
                   <div
                     key={index}
                     className="relative aspect-square w-full rounded-lg overflow-hidden"
                   >
                     <Image
-                      src={img.imageUrl || "/images/food-test.png"}
+                      src={imgUrl || "/images/food-test.png"}
                       alt={`${product.name} - Ảnh ${index + 2}`}
                       fill
                       sizes="(max-width: 768px) 25vw, 12vw"
@@ -293,6 +363,25 @@ export default function ProductDetailPage({
                 <p className="text-red-500 mt-1">Hết hàng</p>
               )}
             </div>
+
+            {/* Hiển thị danh mục sản phẩm */}
+            {product.categories && product.categories.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-sm font-medium mb-2 text-gray-500">
+                  Danh mục:
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {product.categories.map((category) => (
+                    <span
+                      key={category.id}
+                      className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded"
+                    >
+                      {category.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="mb-6">
               <h3 className="text-lg font-medium mb-2">Mô tả sản phẩm</h3>
@@ -355,7 +444,7 @@ export default function ProductDetailPage({
         </div>
       </div>
     );
-  } catch (renderError: any) {
+  } catch (renderError: unknown) {
     console.error("Lỗi khi render trang chi tiết sản phẩm:", renderError);
     return (
       <div className="container mx-auto py-10 px-4 text-center">

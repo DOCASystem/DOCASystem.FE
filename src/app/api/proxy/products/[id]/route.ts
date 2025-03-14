@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { REAL_API_BASE_URL } from "@/utils/api-config";
+// import { REAL_API_BASE_URL } from "@/utils/api-config";
 
 /**
  * API Proxy cho việc lấy chi tiết sản phẩm theo ID để tránh vấn đề CORS trong môi trường production
@@ -18,10 +18,11 @@ export async function GET(
     // Log ID sản phẩm đang được yêu cầu
     console.log(`API Proxy: Đang lấy thông tin sản phẩm với ID: ${params.id}`);
 
-    // Tạo fetch request đến API backend thực tế
-    const apiUrl = `${REAL_API_BASE_URL}/api/v1/products/${params.id}`;
+    // URL API chính xác để lấy chi tiết sản phẩm
+    const apiUrl = `https://production.doca.love/api/v1/products/${params.id}`;
     console.log(`API Proxy: Gọi đến: ${apiUrl}`);
 
+    // Thực hiện request
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
@@ -47,7 +48,7 @@ export async function GET(
 
     // Lấy response data
     const responseData = await response.json();
-    console.log(`API Proxy: Lấy thông tin sản phẩm thành công`);
+    console.log(`API Proxy: Lấy thông tin sản phẩm thành công`, responseData);
 
     // Trả về kết quả cho client với headers CORS
     return NextResponse.json(responseData, {

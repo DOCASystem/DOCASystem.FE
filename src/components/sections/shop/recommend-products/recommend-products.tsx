@@ -1,11 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { GetProductDetailResponse } from "@/api/generated";
-import CardProduct from "@/components/common/card/card-product/card-food";
+import Image from "next/image";
+import Link from "next/link";
 import { ProductService } from "@/service/product-service";
 import axios from "axios";
+import { getToken } from "@/auth/auth-service";
 import { REAL_API_BASE_URL } from "@/utils/api-config";
+
+// Định nghĩa interface cho sản phẩm gợi ý
+interface ProductImage {
+  id: string;
+  imageUrl: string;
+  isMain: boolean;
+}
+
+interface RecommendProduct {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  productImages: ProductImage[];
+}
 
 interface RecommendProductsProps {
   currentProductId: string;
@@ -14,153 +30,211 @@ interface RecommendProductsProps {
 export default function RecommendProducts({
   currentProductId,
 }: RecommendProductsProps) {
-  const [products, setProducts] = useState<GetProductDetailResponse[]>([]);
+  const [products, setProducts] = useState<RecommendProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchRecommendedProducts();
+    const fetchRecommendProducts = async () => {
+      setLoading(true);
+      try {
+        console.log("Đang tải sản phẩm đề xuất...");
+
+        // Phương pháp 1: Sử dụng API proxy trong Next.js
+        try {
+          // Đây là API route trong Next.js
+          const proxyUrl = `/api/proxy/products-simple?page=1&size=8`;
+          console.log(`Gọi API proxy: ${proxyUrl}`);
+
+          const token = getToken();
+          const headers: Record<string, string> = {};
+          if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+          }
+
+          const proxyResponse = await axios.get(proxyUrl, {
+            headers,
+            timeout: 8000, // 8 giây timeout
+          });
+
+          if (proxyResponse.data && proxyResponse.data.content) {
+            console.log(
+              "API proxy trả về dữ liệu thành công:",
+              proxyResponse.data.content.length,
+              "sản phẩm"
+            );
+
+            // Lọc ra sản phẩm hiện tại
+            const filteredProducts = proxyResponse.data.content.filter(
+              (product: RecommendProduct) => product.id !== currentProductId
+            );
+
+            if (filteredProducts.length > 0) {
+              setProducts(filteredProducts.slice(0, 4));
+              setLoading(false);
+              return; // Thoát sớm nếu thành công
+            }
+          }
+        } catch (proxyError) {
+          console.error("Lỗi khi gọi API proxy:", proxyError);
+        }
+
+        // Phương pháp 2: Thử gọi API trực tiếp
+        try {
+          const token = getToken();
+          const directApiUrl = `${REAL_API_BASE_URL}/api/v1/products?page=1&size=8`;
+          console.log(`Gọi API trực tiếp: ${directApiUrl}`);
+
+          const response = await axios.get(directApiUrl, {
+            headers: {
+              Authorization: token ? `Bearer ${token}` : undefined,
+            },
+            timeout: 8000,
+          });
+
+          if (response.data && response.data.content) {
+            console.log(
+              "API trực tiếp trả về dữ liệu thành công:",
+              response.data.content.length,
+              "sản phẩm"
+            );
+
+            // Lọc ra sản phẩm hiện tại
+            const filteredProducts = response.data.content.filter(
+              (product: RecommendProduct) => product.id !== currentProductId
+            );
+
+            if (filteredProducts.length > 0) {
+              setProducts(filteredProducts.slice(0, 4));
+              setLoading(false);
+              return; // Thoát sớm nếu thành công
+            }
+          }
+        } catch (directApiError) {
+          console.error("Lỗi khi gọi API trực tiếp:", directApiError);
+        }
+
+        // Phương pháp 3: Thử dùng ProductService
+        try {
+          console.log("Thử dùng ProductService...");
+          const serviceResponse = await ProductService.getProducts({
+            page: 1,
+            size: 8,
+          });
+
+          if (serviceResponse && serviceResponse.data) {
+            console.log(
+              "ProductService trả về dữ liệu thành công:",
+              serviceResponse.data.items?.length || 0,
+              "sản phẩm"
+            );
+
+            // Lọc ra sản phẩm hiện tại
+            const filteredProducts = (serviceResponse.data.items || []).filter(
+              (product) => product.id !== currentProductId
+            );
+
+            if (filteredProducts.length > 0) {
+              // Chuyển đổi sang định dạng RecommendProduct
+              const mappedProducts: RecommendProduct[] = filteredProducts.map(
+                (product) => ({
+                  id: product.id || "",
+                  name: product.name || "",
+                  price: product.price || 0,
+                  quantity: product.quantity || 0,
+                  productImages: (product.productImages || []).map((img) => ({
+                    id: img.id || "",
+                    imageUrl: img.imageUrl || "",
+                    isMain: img.isMain || false,
+                  })),
+                })
+              );
+
+              setProducts(mappedProducts.slice(0, 4));
+              setLoading(false);
+              return; // Thoát sớm nếu thành công
+            }
+          }
+        } catch (serviceError) {
+          console.error("Lỗi khi dùng ProductService:", serviceError);
+          throw serviceError; // Ném lỗi để xử lý bên ngoài
+        }
+
+        // Nếu tất cả các phương pháp đều thất bại
+        throw new Error("Tất cả các phương pháp lấy dữ liệu đều thất bại");
+      } catch (err: unknown) {
+        console.error("Chi tiết lỗi khi tải sản phẩm đề xuất:", err);
+        setError("Không thể tải sản phẩm đề xuất");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecommendProducts();
   }, [currentProductId]);
 
-  const fetchRecommendedProducts = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      console.log("Đang tải sản phẩm gợi ý...");
-
-      // Phương pháp 1: Sử dụng API proxy trong Next.js
-      try {
-        // Đây là API route trong Next.js, không phải API external
-        const proxyUrl = `/api/proxy/products-simple`;
-        console.log(`Gọi API proxy để lấy sản phẩm tương tự: ${proxyUrl}`);
-
-        const proxyResponse = await axios.get(proxyUrl, {
-          timeout: 8000, // 8 giây timeout
-        });
-
-        if (proxyResponse.data && proxyResponse.data.items) {
-          console.log("API proxy trả về danh sách sản phẩm thành công");
-
-          // Lọc sản phẩm hiện tại ra khỏi danh sách gợi ý
-          const filteredProducts = proxyResponse.data.items.filter(
-            (product: GetProductDetailResponse) =>
-              product.id !== currentProductId
-          );
-
-          // Lấy tối đa 4 sản phẩm
-          setProducts(filteredProducts.slice(0, 4));
-          return; // Thoát sớm nếu thành công
-        }
-      } catch (proxyError) {
-        console.error(
-          "Lỗi khi gọi API proxy cho sản phẩm tương tự:",
-          proxyError
-        );
-      }
-
-      // Phương pháp 2: Thử gọi API trực tiếp
-      try {
-        const directApiUrl = `${REAL_API_BASE_URL}/api/v1/products?page=1&size=8`;
-        console.log(`Gọi API trực tiếp: ${directApiUrl}`);
-
-        const response = await axios.get(directApiUrl, {
-          timeout: 8000, // 8 giây timeout
-        });
-
-        if (response.data && response.data.items) {
-          console.log("API trực tiếp trả về danh sách sản phẩm thành công");
-
-          // Lọc sản phẩm hiện tại ra khỏi danh sách gợi ý
-          const filteredProducts = response.data.items.filter(
-            (product: GetProductDetailResponse) =>
-              product.id !== currentProductId
-          );
-
-          // Lấy tối đa 4 sản phẩm
-          setProducts(filteredProducts.slice(0, 4));
-          return; // Thoát sớm nếu thành công
-        }
-      } catch (directApiError) {
-        console.error("Lỗi khi gọi API trực tiếp:", directApiError);
-      }
-
-      // Phương pháp 3: Fallback dùng ProductService
-      try {
-        console.log("Thử dùng ProductService...");
-        const response = await ProductService.getProducts({
-          page: 1,
-          size: 8,
-        });
-
-        if (response.data.items) {
-          console.log("ProductService trả về danh sách sản phẩm thành công");
-          const filteredProducts = response.data.items.filter(
-            (product) => product.id !== currentProductId
-          );
-          setProducts(filteredProducts.slice(0, 4));
-          return; // Thoát sớm nếu thành công
-        }
-      } catch (serviceError) {
-        console.error("Lỗi khi dùng ProductService:", serviceError);
-        throw serviceError; // Ném lỗi để xử lý bên ngoài
-      }
-
-      // Nếu tất cả phương pháp đều thất bại
-      throw new Error("Không thể tải sản phẩm gợi ý");
-    } catch (error: unknown) {
-      console.error("Lỗi khi tải sản phẩm gợi ý:", error);
-      setError("Không thể tải sản phẩm gợi ý");
-      // Vẫn hiển thị UI mà không có sản phẩm
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
+  // Format giá tiền
+  const formatPrice = (price?: number) => {
+    if (!price) return "0 VND";
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(price);
   };
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="flex justify-center items-center py-10">
-          <div className="animate-pulse flex flex-col items-center">
-            <div className="h-8 w-8 rounded-full border-2 border-t-transparent border-pink-doca animate-spin mb-4"></div>
-            <p className="text-gray-500">Đang tải sản phẩm đề xuất...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && products.length === 0) {
-    return (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <p className="text-center text-gray-500 py-6">{error}</p>
-      </div>
-    );
-  }
-
-  if (products.length === 0) {
-    return (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <p className="text-center text-gray-500 py-6">
-          Hiện chưa có sản phẩm gợi ý
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white rounded-lg p-4 shadow-sm">
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-        {products.map((product) => (
-          <div
-            key={product.id}
-            className="transform transition-transform hover:scale-[1.02]"
-          >
-            <CardProduct product={product} />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-pulse">
+        {[...Array(4)].map((_, index) => (
+          <div key={index} className="bg-white p-3 rounded-lg shadow-sm">
+            <div className="bg-gray-200 aspect-square w-full rounded-md mb-3"></div>
+            <div className="h-5 bg-gray-200 rounded w-4/5 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
           </div>
         ))}
       </div>
+    );
+  }
+
+  if (error || products.length === 0) {
+    return null; // Không hiển thị gì nếu có lỗi hoặc không có sản phẩm
+  }
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {products.map((product) => {
+        // Lấy URL ảnh chính
+        const imageUrl =
+          product.productImages && product.productImages.length > 0
+            ? product.productImages.find((img) => img.isMain)?.imageUrl ||
+              product.productImages[0].imageUrl ||
+              "/images/food-test.png"
+            : "/images/food-test.png";
+
+        return (
+          <Link
+            href={`/shop/${product.id}`}
+            key={product.id}
+            className="bg-white p-3 rounded-lg shadow-sm transition-transform hover:shadow-md hover:-translate-y-1"
+          >
+            <div className="relative aspect-square w-full rounded-md overflow-hidden mb-3">
+              <Image
+                src={imageUrl}
+                alt={product.name || "Sản phẩm gợi ý"}
+                fill
+                sizes="(max-width: 768px) 50vw, 25vw"
+                className="object-cover"
+              />
+            </div>
+            <h3 className="font-medium text-gray-800 line-clamp-2 mb-1 min-h-[2.5rem]">
+              {product.name}
+            </h3>
+            <p className="text-pink-doca font-bold">
+              {formatPrice(product.price)}
+            </p>
+          </Link>
+        );
+      })}
     </div>
   );
 }
