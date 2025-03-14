@@ -27,9 +27,9 @@ export default function Form() {
     <FormProvider {...methods}>
       <form
         onSubmit={methods.handleSubmit(onSubmit)}
-        className=" bg-gray-100 p-6 rounded-xl shadow-md min-w-[550px]"
+        className="w-full lg:flex-1 bg-gray-100 p-4 md:p-6 rounded-xl shadow-md"
       >
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input name="firstName" label="Họ" placeholder="Nhập họ" />
           <Input name="lastName" label="Tên" placeholder="Nhập tên" />
         </div>
@@ -50,7 +50,9 @@ export default function Form() {
           />
         </div>
         <div className="mt-6">
-          <Button className="w-32 h-12">Gửi</Button>
+          <Button className="w-full sm:w-32 h-12 bg-pink-doca text-white hover:bg-pink-500 transition-colors">
+            Gửi
+          </Button>
         </div>
       </form>
     </FormProvider>

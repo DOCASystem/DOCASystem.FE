@@ -1,27 +1,30 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
 import { GetProductDetailResponse } from "@/api/generated";
+import { useCartStore } from "@/store/cart-store";
+import { toast } from "react-toastify";
 
 interface CardProductProps {
-  product?: GetProductDetailResponse;
+  product: GetProductDetailResponse;
 }
 
 export default function CardProduct({ product }: CardProductProps) {
-  // Sử dụng dữ liệu từ props hoặc dữ liệu mặc định nếu không có
+  // Lấy trực tiếp hàm addItem từ store, không cần định nghĩa type phức tạp
+  const addItem = useCartStore((state) => state.addItem);
+
   const defaultProduct = {
-    id: "1",
-    img: "/images/food-test.png",
-    name: "Thức ăn cho mèo - Whiskas 1.2kg",
-    prices: 120000,
+    id: "0",
+    name: "Sản phẩm không xác định",
+    prices: 0,
   };
 
   // Lấy URL ảnh chính của sản phẩm (nếu có)
   const mainImage =
     product?.productImages && product.productImages.length > 0
       ? product.productImages[0].imageUrl || "/images/food-test.png"
-      : "/images/food-test.png"; // Ảnh mặc định
+      : "/images/food-test.png";
 
   // Format giá tiền
   const formatPrice = (price?: number) => {
@@ -30,6 +33,23 @@ export default function CardProduct({ product }: CardProductProps) {
       style: "currency",
       currency: "VND",
     }).format(price);
+  };
+
+  // Xử lý thêm vào giỏ hàng
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault(); // Ngăn chặn hành vi mặc định (chuyển trang)
+
+    // Thêm sản phẩm vào giỏ hàng với kiểu dữ liệu CartItem
+    addItem({
+      id: product?.id || defaultProduct.id,
+      name: product?.name || defaultProduct.name,
+      price: product?.price || defaultProduct.prices,
+      quantity: 1,
+      imageUrl: mainImage,
+    });
+
+    // Hiển thị thông báo thành công
+    toast.success("Đã thêm sản phẩm vào giỏ hàng");
   };
 
   return (
@@ -52,7 +72,10 @@ export default function CardProduct({ product }: CardProductProps) {
             <p className="text-pink-doca font-bold">
               {formatPrice(product?.price || defaultProduct.prices)}
             </p>
-            <button className="bg-pink-doca text-white p-2 rounded-full hover:bg-pink-600 transition-colors">
+            <button
+              className="bg-pink-doca text-white p-2 rounded-full hover:bg-pink-600 transition-colors"
+              onClick={handleAddToCart}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="20"

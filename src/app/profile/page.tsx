@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthContext } from "@/contexts/auth-provider";
 import Image from "next/image";
 import AuthGuard from "../components/auth-guard";
+import Link from "next/link";
 
 // Component con để sử dụng useSearchParams
 function ProfileContent() {
@@ -120,6 +121,12 @@ function ProfileContent() {
             >
               Đăng xuất
             </button>
+            <Link
+              href="/"
+              className="w-full block text-center mt-4 px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            >
+              Quay về trang chủ
+            </Link>
           </nav>
         </div>
 

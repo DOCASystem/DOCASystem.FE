@@ -5,7 +5,7 @@ export default function BlogPage() {
   return (
     <div>
       <BlogHeader />
-      <div className="my-10">
+      <div className="container mx-auto px-4 py-6 md:py-10 lg:py-12">
         <BlogList />
       </div>
     </div>

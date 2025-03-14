@@ -116,6 +116,23 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         return;
       }
 
+      // Kiểm tra xem name có hợp lệ không
+      if (typeof name !== "string") {
+        console.error("ImageUpload - Lỗi: name không phải là chuỗi", name);
+        toast.error("Lỗi cấu hình form. Vui lòng tải lại trang.");
+        return;
+      }
+
+      // Xác minh rằng setValue là một hàm
+      if (typeof setValue !== "function") {
+        console.error(
+          "ImageUpload - Lỗi: setValue không phải là hàm",
+          setValue
+        );
+        toast.error("Lỗi xử lý form. Vui lòng tải lại trang.");
+        return;
+      }
+
       // Hiển thị thông báo đang xử lý
       setIsProcessing(true);
       toast.info("Đang xử lý hình ảnh...", {
@@ -195,9 +212,12 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           };
         });
 
+        // Hiển thị chi tiết về hình ảnh đã chọn
         console.log(
           `ImageUpload ${name} - Setting value với ${imageObjects.length} objects`
         );
+
+        // Đã kiểm tra name và setValue ở đầu hàm
         setValue(name, imageObjects, { shouldValidate: true });
       } else {
         // Nếu không phải multiple, chỉ lấy file đầu tiên
@@ -209,14 +229,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           )}...`
         );
 
-        setValue(
-          name,
-          {
-            imageUrl: objectUrl,
-            isMain: true,
-          },
-          { shouldValidate: true }
-        );
+        // Đã kiểm tra name và setValue ở đầu hàm
+        setValue(name, [{ imageUrl: objectUrl, isMain: true }], {
+          shouldValidate: true,
+        });
       }
 
       // Gọi callback onChange nếu có
@@ -270,16 +286,42 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     e.stopPropagation();
   };
 
+  // Xử lý khi người dùng nhấp vào một hình ảnh để đặt nó làm hình ảnh chính
   const setMainImage = (index: number) => {
     // Chỉ áp dụng cho multiple
-    if (multiple && Array.isArray(currentValue)) {
+    if (!multiple || !Array.isArray(currentValue)) {
+      return;
+    }
+
+    try {
+      // Kiểm tra name và setValue
+      if (typeof name !== "string") {
+        console.error("ImageUpload - Lỗi: name không phải là chuỗi", name);
+        toast.error("Lỗi cấu hình form. Vui lòng tải lại trang.");
+        return;
+      }
+
+      if (typeof setValue !== "function") {
+        console.error(
+          "ImageUpload - Lỗi: setValue không phải là hàm",
+          setValue
+        );
+        toast.error("Lỗi xử lý form. Vui lòng tải lại trang.");
+        return;
+      }
+
+      // Cập nhật giá trị mới - đánh dấu isMain cho hình ảnh được chọn
       const newValue = currentValue.map((item, i) => ({
         ...item,
         isMain: i === index,
       }));
 
+      // Cập nhật giá trị form
       setValue(name, newValue, { shouldValidate: true });
       toast.success("Đã đặt ảnh chính mới");
+    } catch (error) {
+      console.error("Lỗi khi đặt ảnh chính:", error);
+      toast.error("Không thể đặt ảnh chính. Vui lòng thử lại.");
     }
   };
 

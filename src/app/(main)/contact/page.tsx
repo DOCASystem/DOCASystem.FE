@@ -6,9 +6,11 @@ export default function ContactPage() {
   return (
     <div>
       <ContactHeader />
-      <div className="flex flex-row py-[60px] gap-20">
-        <FormContact />
-        <InfoContact />
+      <div className="container mx-auto px-4 py-6 md:py-10 lg:py-12">
+        <div className="flex flex-col lg:flex-row gap-8 md:gap-12 lg:gap-20">
+          <FormContact />
+          <InfoContact />
+        </div>
       </div>
     </div>
   );

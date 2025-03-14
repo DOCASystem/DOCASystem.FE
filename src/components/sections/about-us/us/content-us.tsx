@@ -27,12 +27,14 @@ const saigon = [
 
 export default function ContentUs() {
   return (
-    <>
-      <div className="w-[1200px] my-[60px] flex flex-col gap-10 pt-2 mx-auto">
-        <p className="text-[30px]/[120%] font-semibold">Chúng tôi là</p>
+    <div className="flex flex-col gap-6 md:gap-10">
+      <div>
+        <h2 className="text-2xl md:text-[30px]/[120%] font-semibold mb-4 md:mb-6 text-center md:text-left">
+          Chúng tôi là
+        </h2>
 
-        <div className="flex flex-row gap-[110px]">
-          <p>
+        <div className="flex flex-col md:flex-row gap-6 md:gap-[110px] text-sm md:text-base text-center md:text-left">
+          <p className="md:flex-1">
             Một tổ chức trung gian chuyên kết nối các tổ chức cứu trợ động vật
             với những người yêu thương và sẵn lòng nhận nuôi thú cưng. Với mục
             tiêu giúp đỡ các sinh vật bị bỏ rơi và tạo cơ hội để chúng có một
@@ -41,7 +43,7 @@ export default function ContentUs() {
             phúc lợi động vật.
           </p>
 
-          <p>
+          <p className="md:flex-1">
             Sứ mệnh của chúng tôi là giúp đỡ và hỗ trợ các tổ chức cứu trợ động
             vật, đồng thời tạo điều kiện để những người có lòng yêu thương dễ
             dàng tiếp cận với các vật nuôi cần được chăm sóc. Chúng tôi tin rằng
@@ -49,39 +51,47 @@ export default function ContentUs() {
             được sống trong môi trường an toàn và đầy tình yêu thương.
           </p>
         </div>
+      </div>
 
-        <div className="flex flex-row justify-between">
-          {content.map((item) => (
-            <div key={item.id} className="flex flex-col gap-2">
-              <p className="text-pink-doca font-semibold text-3xl">
-                {item.number}
-              </p>
-              <p>{item.text}</p>
-            </div>
-          ))}
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-6 py-4 md:py-8">
+        {content.map((item) => (
+          <div
+            key={item.id}
+            className="flex flex-col gap-2 items-center md:items-start"
+          >
+            <p className="text-pink-doca font-semibold text-2xl md:text-3xl">
+              {item.number}
+            </p>
+            <p className="text-sm md:text-base">{item.text}</p>
+          </div>
+        ))}
+      </div>
 
-        <div className="flex flex-row items-center justify-between my-[70px] px-7">
+      <div className="flex flex-col lg:flex-row items-center gap-8 md:gap-12 lg:gap-16 py-6 md:py-10">
+        <div className="w-full max-w-sm lg:max-w-none lg:w-auto">
           <Image
             src="/images/doca.png"
             alt="About Us"
             width={400}
             height={568}
-            className="rounded-[40px] shadow-[1px_16px_12px_2px_rgba(0,0,0,0.03)]"
+            className="rounded-[20px] md:rounded-[40px] shadow-[1px_16px_12px_2px_rgba(0,0,0,0.03)] w-full h-auto"
           />
-          <div className="flex flex-col gap-10">
-            <p className="text-[30px]/[120%] font-semibold">Chúng tôi làm gì</p>
-            <div className="w-[636px] flex flex-col gap-4">
-              {saigon.map((item) => (
-                <div key={item.id}>
-                  <p className="font-semibold">{item.title}</p>
-                  <p>{item.text}</p>
-                </div>
-              ))}
-            </div>
+        </div>
+
+        <div className="flex-1">
+          <h2 className="text-2xl md:text-[30px]/[120%] font-semibold mb-4 md:mb-6 text-center lg:text-left">
+            Chúng tôi làm gì
+          </h2>
+          <div className="w-full lg:w-[636px] flex flex-col gap-4 md:gap-6 text-sm md:text-base">
+            {saigon.map((item) => (
+              <div key={item.id} className="text-center lg:text-left">
+                <p className="font-semibold mb-1">{item.title}</p>
+                <p>{item.text}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

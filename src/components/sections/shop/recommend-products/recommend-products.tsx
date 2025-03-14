@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { GetProductDetailResponse } from "@/api/generated";
 import CardProduct from "@/components/common/card/card-product/card-food";
-import { getRecommendedProducts } from "@/mock/products";
+import { ProductService } from "@/service/product-service";
 
 interface RecommendProductsProps {
   currentProductId: string;
@@ -22,11 +22,16 @@ export default function RecommendProducts({
   const fetchRecommendedProducts = async () => {
     setLoading(true);
     try {
-      // Sử dụng dữ liệu giả thay vì gọi API
-      const response = getRecommendedProducts(currentProductId, 4);
+      const response = await ProductService.getProducts({
+        page: 1,
+        size: 4,
+      });
 
       if (response.data.items) {
-        setProducts(response.data.items);
+        const filteredProducts = response.data.items.filter(
+          (product) => product.id !== currentProductId
+        );
+        setProducts(filteredProducts);
       }
     } catch (error) {
       console.error("Error fetching recommended products:", error);

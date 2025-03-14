@@ -105,12 +105,16 @@ export const productSchema = yup.object().shape({
     .positive("Khối lượng phải là số dương")
     .required("Khối lượng không được để trống"),
   isHidden: yup.boolean().default(false),
-  productImages: yup.array().of(
-    yup.object().shape({
-      imageUrl: yup.string().required("URL hình ảnh không được để trống"),
-      isMain: yup.boolean(),
-    })
-  ),
+  productImages: yup
+    .array()
+    .of(
+      yup.object().shape({
+        imageUrl: yup.string().required("URL hình ảnh không được để trống"),
+        isMain: yup.boolean(),
+      })
+    )
+    .min(1, "Bắt buộc phải có ít nhất một hình ảnh cho sản phẩm")
+    .required("Hình ảnh sản phẩm là bắt buộc"),
 });
 
 // Blog validation

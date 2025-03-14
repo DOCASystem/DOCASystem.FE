@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { GetProductDetailResponse } from "@/api/generated";
-import { getProductById } from "@/mock/products";
+import { ProductService } from "@/service/product-service";
 import RecommendProducts from "@/components/sections/shop/recommend-products/recommend-products";
+import { useCartStore } from "@/store/cart-store";
+import { toast } from "react-toastify";
 
 export default function ProductDetailPage({
   params,
@@ -17,12 +19,15 @@ export default function ProductDetailPage({
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
 
+  // Lấy trực tiếp hàm addItem từ store, không cần định nghĩa type phức tạp
+  const addItem = useCartStore((state) => state.addItem);
+
   useEffect(() => {
     const fetchProductDetail = async () => {
       setLoading(true);
       try {
-        // Sử dụng dữ liệu giả thay vì gọi API
-        const response = getProductById(params.id);
+        // Sử dụng API thực thay vì dữ liệu giả
+        const response = await ProductService.getProductById(params.id);
         setProduct(response.data);
       } catch (err) {
         console.error("Error fetching product details:", err);
@@ -36,8 +41,25 @@ export default function ProductDetailPage({
   }, [params.id]);
 
   const handleAddToCart = () => {
-    // Thêm sản phẩm vào giỏ hàng tại đây
-    console.log("Thêm vào giỏ hàng:", product?.id, "Số lượng:", quantity);
+    if (product) {
+      // Lấy URL ảnh chính của sản phẩm
+      const imageUrl =
+        product.productImages && product.productImages.length > 0
+          ? product.productImages[0].imageUrl || "/images/food-test.png"
+          : "/images/food-test.png";
+
+      // Thêm sản phẩm vào giỏ hàng
+      addItem({
+        id: product.id || "",
+        name: product.name || "",
+        price: product.price || 0,
+        quantity: quantity,
+        imageUrl: imageUrl,
+      });
+
+      // Hiển thị thông báo thành công
+      toast.success("Đã thêm sản phẩm vào giỏ hàng");
+    }
   };
 
   const handleQuantityChange = (newQuantity: number) => {
