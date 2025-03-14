@@ -6,11 +6,8 @@ import Link from "next/link";
 import { ProductService } from "@/service/product-service";
 import RecommendProducts from "@/components/sections/shop/recommend-products/recommend-products";
 import { useCartStore } from "@/store/cart-store";
-import { useProductStore, Product } from "@/store/product-store";
+import { useProductStore } from "@/store/product-store";
 import { toast } from "react-toastify";
-import axios, { AxiosError } from "axios";
-import { getToken } from "@/auth/auth-service";
-import { REAL_API_BASE_URL } from "@/utils/api-config";
 
 // Định nghĩa interface ProductDetail để phù hợp với dữ liệu API trả về
 interface ProductImage {
@@ -55,123 +52,66 @@ export default function ProductDetailPage({
   // Lấy hàm addItem từ cart store
   const addItem = useCartStore((state) => state.addItem);
 
-  // Lấy product từ product store & saveProduct, nhưng KHÔNG đưa vào dependency array
+  // Lấy product từ product store
   const getProduct = useProductStore((state) => state.getProduct);
-  const saveProduct = useProductStore((state) => state.saveProduct);
 
-  // Bọc hàm fetchProductDetail trong useCallback để tránh tạo hàm mới mỗi lần render
+  // Sửa để chỉ sử dụng product store
   const fetchProductDetail = useCallback(async () => {
     setLoading(true);
     try {
       // Log ID sản phẩm để debug
       console.log(`Đang tải thông tin sản phẩm với ID: ${params.id}`);
 
-      // Kiểm tra trong cache trước
+      // Lấy sản phẩm từ store
       const cachedProduct = getProduct(params.id);
+
       if (cachedProduct) {
-        console.log("Sử dụng thông tin sản phẩm từ cache:", cachedProduct);
+        console.log("Sử dụng thông tin sản phẩm từ store:", cachedProduct);
         setProduct(cachedProduct as ProductDetail);
         setIsFromCache(true);
         setLoading(false);
-
-        // Vẫn tiếp tục tải API trong background để cập nhật dữ liệu mới nhất
-        fetchFromApi().catch((err) => {
-          console.log("Lỗi khi tải dữ liệu mới trong background:", err);
-        });
         return;
       }
 
-      // Nếu không có trong cache, gọi API
-      await fetchFromApi();
-    } catch (err: unknown) {
-      console.error("Chi tiết lỗi khi tải sản phẩm:", {
-        message: err instanceof Error ? err.message : "Unknown error",
-        stack: err instanceof Error ? err.stack : undefined,
-        response: (err as AxiosError)?.response,
-      });
-
-      const errorMessage =
-        (err as AxiosError<{ message: string }>)?.response?.data?.message ||
-        (err instanceof Error ? err.message : "Unknown error") ||
-        "Không thể tải thông tin sản phẩm";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [params.id]); // Chỉ phụ thuộc vào params.id
-
-  // Tách riêng phần fetch API để tránh vòng lặp vô hạn
-  const fetchFromApi = async () => {
-    try {
-      const token = getToken();
-      const apiUrl = `${REAL_API_BASE_URL}/api/v1/products/${params.id}`;
-      console.log(`Gọi API sản phẩm: ${apiUrl}`);
-
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await axios.get(apiUrl, {
-        headers,
-        timeout: 10000, // 10 giây timeout
-      });
-
-      if (response.data) {
-        console.log("API trả về dữ liệu thành công:", response.data);
-
-        // Kiểm tra và xử lý dữ liệu
-        const productData = response.data as ProductDetail;
-
-        if (productData && productData.id) {
-          // Lưu sản phẩm vào store để dùng sau này
-          saveProduct(productData as Product);
-
-          setProduct(productData);
-          setIsFromCache(false);
-          return true; // Thành công
-        } else {
-          throw new Error("Dữ liệu sản phẩm không hợp lệ");
-        }
-      }
-      return false;
-    } catch (apiError) {
-      console.error("Lỗi khi gọi API sản phẩm:", apiError);
-
-      // Thử dùng ProductService
+      // Nếu không có trong store, thử dùng ProductService
       try {
-        console.log("Thử dùng ProductService...");
-        const serviceResponse = await ProductService.getProductById(params.id);
+        console.log("Thử dùng ProductService để tìm sản phẩm...");
+        const serviceResponse = await ProductService.getProducts({
+          page: 1,
+          size: 50, // Lấy nhiều sản phẩm để có khả năng tìm thấy sản phẩm cần
+        });
 
-        if (serviceResponse && serviceResponse.data) {
-          console.log(
-            "ProductService trả về dữ liệu thành công:",
-            serviceResponse.data
+        if (
+          serviceResponse &&
+          serviceResponse.data &&
+          serviceResponse.data.items
+        ) {
+          // Tìm sản phẩm theo ID
+          const foundProduct = serviceResponse.data.items.find(
+            (item) => item.id === params.id
           );
 
-          // Kiểm tra và xử lý dữ liệu
-          const productData = serviceResponse.data as ProductDetail;
-
-          if (productData && productData.id) {
-            // Lưu sản phẩm vào store
-            saveProduct(productData as Product);
-
-            setProduct(productData);
+          if (foundProduct) {
+            console.log("Đã tìm thấy sản phẩm từ danh sách:", foundProduct);
+            setProduct(foundProduct as ProductDetail);
             setIsFromCache(false);
-            return true; // Thành công
+            setLoading(false);
+            return;
           }
         }
       } catch (serviceError) {
         console.error("Lỗi khi dùng ProductService:", serviceError);
-        throw serviceError; // Ném lỗi để xử lý bên ngoài
       }
 
-      // Nếu cả hai phương pháp đều thất bại
-      throw new Error("Không thể lấy thông tin sản phẩm");
+      // Nếu không tìm thấy sản phẩm
+      throw new Error("Không tìm thấy thông tin sản phẩm");
+    } catch (err: unknown) {
+      console.error("Chi tiết lỗi khi tải sản phẩm:", err);
+      setError("Không thể tải thông tin sản phẩm");
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [params.id, getProduct]);
 
   // Chỉ phụ thuộc vào fetchProductDetail (đã được bọc trong useCallback)
   useEffect(() => {
@@ -287,26 +227,7 @@ export default function ProductDetailPage({
   try {
     return (
       <div className="container mx-auto py-6 md:py-10 px-4 sm:px-6 lg:px-8">
-        {isFromCache && (
-          <div className="mb-4 bg-yellow-50 p-3 rounded-md text-yellow-700 text-sm border border-yellow-200">
-            <p className="flex items-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-2"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Đang hiển thị từ phiên bản đã lưu. Một số thông tin như giá cả, số
-              lượng có thể không chính xác.
-            </p>
-          </div>
-        )}
+        {isFromCache && <div></div>}
 
         <div className="mb-4 md:mb-6">
           <Link
