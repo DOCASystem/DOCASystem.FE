@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { REAL_API_BASE_URL } from "@/utils/api-config";
 
 /**
  * API Proxy cho việc lấy danh sách sản phẩm để tránh vấn đề CORS trong môi trường production
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
 
     // Tạo URL cho API
-    let apiUrl = `https://production.doca.love/api/v1/products?page=${page}&size=${size}`;
+    let apiUrl = `${REAL_API_BASE_URL}/api/v1/products?page=${page}&size=${size}`;
 
     // Thêm các tham số tìm kiếm nếu có
     if (categoryIds) apiUrl += `&categoryIds=${categoryIds}`;
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
     console.log("API Proxy: Dữ liệu sản phẩm:", jsonData);
 
     // URL API để tạo sản phẩm
-    const apiUrl = `https://production.doca.love/api/v1/products`;
+    const apiUrl = `${REAL_API_BASE_URL}/api/v1/products`;
     console.log(`API Proxy: Gọi POST đến: ${apiUrl}`);
 
     // Thực hiện request đến backend

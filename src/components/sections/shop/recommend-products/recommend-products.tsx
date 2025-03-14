@@ -40,61 +40,27 @@ export default function RecommendProducts({
       try {
         console.log("Đang tải sản phẩm đề xuất...");
 
-        // Phương pháp 1: Sử dụng API proxy trong Next.js
+        // Gọi trực tiếp API sản phẩm thay vì qua proxy
         try {
-          // Đây là API route trong Next.js
-          const proxyUrl = `/api/proxy/products-simple?page=1&size=8`;
-          console.log(`Gọi API proxy: ${proxyUrl}`);
-
           const token = getToken();
-          const headers: Record<string, string> = {};
+          const apiUrl = `${REAL_API_BASE_URL}/api/v1/products?page=1&size=8`;
+          console.log(`Gọi API danh sách sản phẩm: ${apiUrl}`);
+
+          const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+          };
           if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
+            headers.Authorization = `Bearer ${token}`;
           }
 
-          const proxyResponse = await axios.get(proxyUrl, {
+          const response = await axios.get(apiUrl, {
             headers,
             timeout: 8000, // 8 giây timeout
           });
 
-          if (proxyResponse.data && proxyResponse.data.content) {
-            console.log(
-              "API proxy trả về dữ liệu thành công:",
-              proxyResponse.data.content.length,
-              "sản phẩm"
-            );
-
-            // Lọc ra sản phẩm hiện tại
-            const filteredProducts = proxyResponse.data.content.filter(
-              (product: RecommendProduct) => product.id !== currentProductId
-            );
-
-            if (filteredProducts.length > 0) {
-              setProducts(filteredProducts.slice(0, 4));
-              setLoading(false);
-              return; // Thoát sớm nếu thành công
-            }
-          }
-        } catch (proxyError) {
-          console.error("Lỗi khi gọi API proxy:", proxyError);
-        }
-
-        // Phương pháp 2: Thử gọi API trực tiếp
-        try {
-          const token = getToken();
-          const directApiUrl = `${REAL_API_BASE_URL}/api/v1/products?page=1&size=8`;
-          console.log(`Gọi API trực tiếp: ${directApiUrl}`);
-
-          const response = await axios.get(directApiUrl, {
-            headers: {
-              Authorization: token ? `Bearer ${token}` : undefined,
-            },
-            timeout: 8000,
-          });
-
           if (response.data && response.data.content) {
             console.log(
-              "API trực tiếp trả về dữ liệu thành công:",
+              "API trả về dữ liệu thành công:",
               response.data.content.length,
               "sản phẩm"
             );
@@ -110,11 +76,11 @@ export default function RecommendProducts({
               return; // Thoát sớm nếu thành công
             }
           }
-        } catch (directApiError) {
-          console.error("Lỗi khi gọi API trực tiếp:", directApiError);
+        } catch (apiError) {
+          console.error("Lỗi khi gọi API danh sách sản phẩm:", apiError);
         }
 
-        // Phương pháp 3: Thử dùng ProductService
+        // Fallback: Thử dùng ProductService
         try {
           console.log("Thử dùng ProductService...");
           const serviceResponse = await ProductService.getProducts({
@@ -161,7 +127,7 @@ export default function RecommendProducts({
         }
 
         // Nếu tất cả các phương pháp đều thất bại
-        throw new Error("Tất cả các phương pháp lấy dữ liệu đều thất bại");
+        throw new Error("Không thể tải sản phẩm đề xuất");
       } catch (err: unknown) {
         console.error("Chi tiết lỗi khi tải sản phẩm đề xuất:", err);
         setError("Không thể tải sản phẩm đề xuất");

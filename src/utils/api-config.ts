@@ -2,9 +2,17 @@
  * Cấu hình API của ứng dụng
  */
 
+// Danh sách các URL dự phòng theo thứ tự ưu tiên
+const API_FALLBACK_URLS = [
+  process.env.NEXT_PUBLIC_API_URL,
+  "https://api.doca.love", // API chính thức
+  "https://production.doca.love", // URL cũ
+  "https://doca-api.vercel.app", // API backup
+];
+
 // URL cơ sở của API (mặc định)
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://production.doca.love";
+  API_FALLBACK_URLS.find((url) => url) || "https://api.doca.love";
 
 // URL đích thực của API (sẽ được cập nhật từ Swagger)
 export let REAL_API_BASE_URL = API_BASE_URL;
@@ -16,6 +24,46 @@ export const updateRealApiBaseUrl = (url: string) => {
     REAL_API_BASE_URL = url;
   }
 };
+
+// Hàm thử kết nối đến các API URL dự phòng
+export const tryFallbackApiUrls = async () => {
+  // Chỉ thực hiện trên server-side
+  if (typeof window !== "undefined") return;
+
+  console.log("Đang thử kết nối đến các API URL dự phòng...");
+
+  for (const url of API_FALLBACK_URLS) {
+    if (!url) continue;
+
+    try {
+      const response = await fetch(`${url}/api/v1/health-check`, {
+        method: "HEAD",
+        cache: "no-store",
+        next: { revalidate: 0 },
+      });
+
+      if (response.ok) {
+        console.log(`Kết nối thành công đến API URL: ${url}`);
+        updateRealApiBaseUrl(url);
+        return;
+      }
+    } catch (error: unknown) {
+      console.warn(
+        `Không thể kết nối đến API URL: ${url}`,
+        error instanceof Error ? error.message : "Unknown error"
+      );
+    }
+  }
+
+  console.log("Sử dụng API URL mặc định:", REAL_API_BASE_URL);
+};
+
+// Gọi hàm kiểm tra kết nối khi khởi động API routes
+if (typeof window === "undefined") {
+  tryFallbackApiUrls().catch((err) => {
+    console.error("Lỗi khi thử kết nối đến các API URL:", err);
+  });
+}
 
 // Log URL API hiện tại khi ứng dụng khởi động
 if (typeof window !== "undefined") {

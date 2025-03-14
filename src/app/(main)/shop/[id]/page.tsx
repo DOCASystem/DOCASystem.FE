@@ -60,62 +60,26 @@ export default function ProductDetailPage({
         // Log ID sản phẩm để debug
         console.log(`Đang tải thông tin sản phẩm với ID: ${params.id}`);
 
-        // Phương pháp 1: Sử dụng API proxy trong Next.js
+        // Sử dụng API chính thức thay vì proxy
         try {
-          // Đây là API route trong Next.js, không phải API external
-          const proxyUrl = `/api/proxy/products/${params.id}`;
-          console.log(`Gọi API proxy: ${proxyUrl}`);
-
           const token = getToken();
-          const headers: Record<string, string> = {};
+          const apiUrl = `${REAL_API_BASE_URL}/api/v1/products/${params.id}`;
+          console.log(`Gọi API sản phẩm: ${apiUrl}`);
+
+          const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+          };
           if (token) {
-            headers["Authorization"] = `Bearer ${token}`;
+            headers.Authorization = `Bearer ${token}`;
           }
 
-          const proxyResponse = await axios.get(proxyUrl, {
+          const response = await axios.get(apiUrl, {
             headers,
             timeout: 10000, // 10 giây timeout
           });
 
-          if (proxyResponse.data) {
-            console.log(
-              "API proxy trả về dữ liệu thành công:",
-              proxyResponse.data
-            );
-
-            // Kiểm tra và xử lý dữ liệu
-            const productData = proxyResponse.data as ProductDetail;
-
-            // Kiểm tra xem có dữ liệu cần thiết không
-            if (productData && productData.id) {
-              setProduct(productData);
-              return; // Thoát sớm nếu thành công
-            } else {
-              throw new Error("Dữ liệu sản phẩm không hợp lệ");
-            }
-          }
-        } catch (proxyError) {
-          console.error("Lỗi khi gọi API proxy:", proxyError);
-        }
-
-        // Phương pháp 2: Thử gọi API trực tiếp
-        try {
-          const token = getToken();
-          const directApiUrl = `${REAL_API_BASE_URL}/api/v1/products/${params.id}`;
-          console.log(`Gọi API trực tiếp: ${directApiUrl}`);
-
-          const response = await axios.get(directApiUrl, {
-            headers: {
-              Authorization: token ? `Bearer ${token}` : undefined,
-            },
-            timeout: 8000,
-          });
-
           if (response.data) {
-            console.log(
-              "API trực tiếp trả về dữ liệu thành công:",
-              response.data
-            );
+            console.log("API trả về dữ liệu thành công:", response.data);
 
             // Kiểm tra và xử lý dữ liệu
             const productData = response.data as ProductDetail;
@@ -127,40 +91,40 @@ export default function ProductDetailPage({
               throw new Error("Dữ liệu sản phẩm không hợp lệ");
             }
           }
-        } catch (directApiError) {
-          console.error("Lỗi khi gọi API trực tiếp:", directApiError);
-        }
+        } catch (apiError) {
+          console.error("Lỗi khi gọi API sản phẩm:", apiError);
 
-        // Phương pháp 3: Thử dùng ProductService
-        try {
-          console.log("Thử dùng ProductService...");
-          const serviceResponse = await ProductService.getProductById(
-            params.id
-          );
-
-          if (serviceResponse && serviceResponse.data) {
-            console.log(
-              "ProductService trả về dữ liệu thành công:",
-              serviceResponse.data
+          // Fallback: Thử dùng ProductService
+          try {
+            console.log("Thử dùng ProductService...");
+            const serviceResponse = await ProductService.getProductById(
+              params.id
             );
 
-            // Kiểm tra và xử lý dữ liệu
-            const productData = serviceResponse.data as ProductDetail;
+            if (serviceResponse && serviceResponse.data) {
+              console.log(
+                "ProductService trả về dữ liệu thành công:",
+                serviceResponse.data
+              );
 
-            if (productData && productData.id) {
-              setProduct(productData);
-              return; // Thoát sớm nếu thành công
-            } else {
-              throw new Error("Dữ liệu sản phẩm không hợp lệ");
+              // Kiểm tra và xử lý dữ liệu
+              const productData = serviceResponse.data as ProductDetail;
+
+              if (productData && productData.id) {
+                setProduct(productData);
+                return; // Thoát sớm nếu thành công
+              } else {
+                throw new Error("Dữ liệu sản phẩm không hợp lệ");
+              }
             }
+          } catch (serviceError) {
+            console.error("Lỗi khi dùng ProductService:", serviceError);
+            throw serviceError; // Ném lỗi để xử lý bên ngoài
           }
-        } catch (serviceError) {
-          console.error("Lỗi khi dùng ProductService:", serviceError);
-          throw serviceError; // Ném lỗi để xử lý bên ngoài
         }
 
         // Nếu tất cả các phương pháp đều thất bại
-        throw new Error("Tất cả các phương pháp lấy dữ liệu đều thất bại");
+        throw new Error("Không thể lấy thông tin sản phẩm");
       } catch (err: unknown) {
         console.error("Chi tiết lỗi khi tải sản phẩm:", {
           message: err instanceof Error ? err.message : "Unknown error",
