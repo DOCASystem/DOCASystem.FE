@@ -249,10 +249,6 @@ export default function EditProductContent({
               isCreatable
               onCreateOption={handleCreateCategory}
             />
-            <div className="text-xs text-gray-500 mt-1">
-              * Chọn một hoặc nhiều danh mục. Mỗi danh mục sẽ hiển thị tên nhưng
-              lưu trữ ID.
-            </div>
 
             <Textarea
               name="description"

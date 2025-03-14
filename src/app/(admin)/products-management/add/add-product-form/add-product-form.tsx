@@ -40,7 +40,7 @@ interface ApiErrorResponse {
 // Định nghĩa kiểu dữ liệu cho form
 type AddProductFormData = {
   name: string;
-  categoryIds: string[];
+  categoryIds: string;
   description: string;
   price: number;
   quantity: number;
@@ -63,7 +63,7 @@ export default function AddProductForm() {
   // Giá trị mặc định
   const defaultValues: AddProductFormData = {
     name: "",
-    categoryIds: [],
+    categoryIds: "",
     description: "",
     price: 0,
     quantity: 0,
@@ -181,18 +181,14 @@ export default function AddProductForm() {
         validationErrors.push("Khối lượng phải lớn hơn 0");
       }
 
-      // Đảm bảo categoryIds là array (kể cả khi rỗng)
-      const categoryIds = Array.isArray(data.categoryIds)
-        ? data.categoryIds
-        : data.categoryIds
-        ? [data.categoryIds]
-        : [];
+      // Chuyển đổi categoryIds thành mảng để API xử lý
+      const categoryIds = data.categoryIds ? [data.categoryIds] : [];
 
-      console.log("Danh mục đã chọn (IDs):", categoryIds);
+      console.log("Danh mục đã chọn (ID):", categoryIds);
 
       // Kiểm tra nếu không có danh mục nào được chọn
       if (categoryIds.length === 0) {
-        validationErrors.push("Vui lòng chọn ít nhất một danh mục");
+        validationErrors.push("Vui lòng chọn một danh mục");
       }
 
       // Nếu có lỗi, hiển thị và dừng
@@ -260,7 +256,7 @@ export default function AddProductForm() {
         volume: data.volume,
         isHidden: data.isHidden,
         productImages: data.productImages || [], // Đảm bảo luôn là mảng
-        categoryIds: categoryIds, // Đảm bảo là array of string
+        categoryIds: categoryIds, // Đảm bảo là array với 1 phần tử
       };
 
       console.log("Dữ liệu sản phẩm cuối cùng trước khi gửi API:", productData);
@@ -427,16 +423,11 @@ export default function AddProductForm() {
             <Select
               name="categoryIds"
               label="Danh mục"
-              placeholder="Chọn danh mục"
+              placeholder="Chọn một danh mục"
               options={categories}
-              isMulti
               isCreatable
               onCreateOption={handleCreateCategory}
             />
-            <div className="text-xs text-gray-500 mt-1">
-              * Chọn một hoặc nhiều danh mục. Mỗi danh mục sẽ hiển thị tên nhưng
-              lưu trữ ID.
-            </div>
 
             <Textarea
               name="description"
