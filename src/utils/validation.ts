@@ -86,7 +86,13 @@ export const productSchema = yup.object().shape({
     .positive("Giá phải là số dương")
     .required("Giá không được để trống"),
   description: yup.string().required("Mô tả không được để trống"),
-  categoryIds: yup.string().required("Phải chọn một danh mục"),
+  categoryIds: yup
+    .mixed()
+    .test("is-valid-category", "Phải chọn một danh mục", (value) => {
+      if (typeof value === "string") return value !== "";
+      if (Array.isArray(value)) return value.length > 0;
+      return false;
+    }),
   quantity: yup
     .number()
     .transform((value) => (isNaN(value) ? undefined : value))

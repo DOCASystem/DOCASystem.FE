@@ -40,7 +40,7 @@ interface ApiErrorResponse {
 // Định nghĩa kiểu dữ liệu cho form
 type AddProductFormData = {
   name: string;
-  categoryIds: string;
+  categoryIds: string | string[]; // Sửa kiểu dữ liệu để hỗ trợ cả chuỗi và mảng
   description: string;
   price: number;
   quantity: number;
@@ -67,6 +67,43 @@ export default function AddProductForm() {
       process.env.NEXT_PUBLIC_API_URL || "https://production.doca.love";
     setApiUrl(url);
     console.log("API URL hiện tại:", url);
+
+    // Kiểm tra kết nối đến API
+    const checkApiConnection = async () => {
+      try {
+        // Sử dụng fetch với timeout để kiểm tra kết nối
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(`${url}/api/health`, {
+          method: "GET",
+          signal: controller.signal,
+        }).catch((error) => {
+          console.error("Không thể kết nối đến API health check:", error);
+          return null;
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response && response.ok) {
+          console.log("Kết nối đến API thành công");
+        } else {
+          console.warn("Kết nối đến API có vấn đề - Status:", response?.status);
+          // Thông báo cho người dùng
+          toast.warning(
+            "Kết nối đến máy chủ không ổn định, một số chức năng có thể bị ảnh hưởng",
+            {
+              toastId: "api-connection-warning",
+              autoClose: 5000,
+            }
+          );
+        }
+      } catch (error) {
+        console.error("Lỗi khi kiểm tra kết nối API:", error);
+      }
+    };
+
+    checkApiConnection();
   }, []);
 
   // Giá trị mặc định
@@ -161,6 +198,18 @@ export default function AddProductForm() {
   const onSubmit = async (data: AddProductFormData) => {
     setIsLoading(true);
     try {
+      // Kiểm tra kết nối mạng
+      if (!navigator.onLine) {
+        toast.error(
+          "Bạn đang offline. Vui lòng kiểm tra kết nối mạng và thử lại",
+          {
+            toastId: "offline-error",
+          }
+        );
+        setIsLoading(false);
+        return;
+      }
+
       console.log("Dữ liệu form trước khi gửi:", JSON.stringify(data, null, 2));
       console.log("API URL khi submit:", apiUrl);
 
@@ -192,14 +241,29 @@ export default function AddProductForm() {
         validationErrors.push("Khối lượng phải lớn hơn 0");
       }
 
-      // Kiểm tra danh mục - đây là trường đơn, không phải mảng
-      if (!data.categoryIds) {
+      // Kiểm tra danh mục - hỗ trợ cả chuỗi và mảng
+      const hasValidCategory =
+        (typeof data.categoryIds === "string" && data.categoryIds) ||
+        (Array.isArray(data.categoryIds) && data.categoryIds.length > 0);
+
+      if (!hasValidCategory) {
         validationErrors.push("Vui lòng chọn một danh mục");
       }
 
-      // Tạo mảng categoryIds từ giá trị chuỗi để gửi đến API
-      const categoryIdArray = data.categoryIds ? [data.categoryIds] : [];
-      console.log("Danh mục đã chọn (ID):", data.categoryIds);
+      // Chuẩn bị dữ liệu categoryIds để gửi đến API
+      let categoryIdArray: string[] = [];
+
+      if (typeof data.categoryIds === "string") {
+        // Nếu là chuỗi và không rỗng, thêm vào mảng
+        if (data.categoryIds) {
+          categoryIdArray = [data.categoryIds];
+        }
+      } else if (Array.isArray(data.categoryIds)) {
+        // Nếu đã là mảng, sử dụng trực tiếp
+        categoryIdArray = data.categoryIds;
+      }
+
+      console.log("Danh mục đã chọn:", data.categoryIds);
       console.log("Mảng danh mục để gửi API:", categoryIdArray);
 
       // Nếu có lỗi, hiển thị và dừng
@@ -274,7 +338,7 @@ export default function AddProductForm() {
 
       // Hiển thị thông báo đang xử lý
       toast.info("Đang xử lý thêm sản phẩm...", {
-        autoClose: 3000,
+        autoClose: 1000,
         toastId: "processing-add-product",
       });
 
@@ -294,6 +358,21 @@ export default function AddProductForm() {
         }, 1000);
       } catch (apiError) {
         handleApiError(apiError);
+
+        // Thêm thông báo gợi ý
+        if (axios.isAxiosError(apiError)) {
+          const axiosError = apiError as AxiosError;
+
+          if (axiosError.response?.status === 500) {
+            toast.info(
+              "Gợi ý: Nếu vấn đề vẫn tiếp tục, hãy thử giảm kích thước hình ảnh hoặc bỏ qua hình ảnh để tạo sản phẩm trước",
+              {
+                toastId: "server-error-suggestion",
+                autoClose: 8000,
+              }
+            );
+          }
+        }
       }
     } catch (error: unknown) {
       console.error("Lỗi khi thêm sản phẩm:", error);
@@ -307,11 +386,13 @@ export default function AddProductForm() {
   const handleApiError = (error: unknown) => {
     // Hiển thị thông báo lỗi chi tiết hơn
     let errorMessage = "Không thể thêm sản phẩm";
+    let errorDetails = "";
 
     // Thử lấy thông báo lỗi từ response
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError;
       console.error("Chi tiết lỗi từ API:", axiosError.response?.data);
+      errorDetails = JSON.stringify(axiosError.response?.data, null, 2);
 
       if (axiosError.response?.status === 400) {
         errorMessage =
@@ -322,14 +403,34 @@ export default function AddProductForm() {
       ) {
         errorMessage =
           "Bạn không có quyền thực hiện thao tác này. Vui lòng đăng nhập lại";
-        // Có thể thêm logic chuyển hướng đến trang đăng nhập tại đây
+
+        // Kiểm tra token và đề xuất đăng nhập lại nếu cần
+        const token = localStorage.getItem("token");
+        if (!token) {
+          errorMessage += ". Token không tồn tại.";
+          // Thêm logic chuyển hướng đến trang đăng nhập nếu cần
+          setTimeout(() => {
+            router.push("/login");
+          }, 2000);
+        }
       } else if (axiosError.response?.status === 500) {
         errorMessage = "Lỗi máy chủ. Vui lòng thử lại sau";
+        // Kiểm tra network và ghi log chi tiết
+        if (navigator.onLine) {
+          console.error("Server error với network hoạt động:", errorDetails);
+        } else {
+          console.error("Server error nhưng người dùng có thể offline");
+        }
       } else if (axiosError.code === "ECONNABORTED") {
         errorMessage = "Thời gian kết nối quá lâu. Vui lòng thử lại sau";
       } else if (axiosError.code === "ERR_NETWORK") {
         errorMessage =
           "Lỗi kết nối mạng. Vui lòng kiểm tra kết nối mạng của bạn";
+
+        // Kiểm tra network
+        if (!navigator.onLine) {
+          errorMessage = "Bạn đang offline. Vui lòng kết nối mạng và thử lại.";
+        }
       }
 
       // Nếu có thông báo lỗi từ API, ưu tiên sử dụng
@@ -341,6 +442,18 @@ export default function AddProductForm() {
         if (responseData.message) {
           errorMessage = responseData.message;
         }
+
+        // Kiểm tra lỗi cụ thể và đưa ra gợi ý
+        if (
+          errorMessage.includes("token") ||
+          errorMessage.includes("Token") ||
+          errorMessage.includes("xác thực") ||
+          errorMessage.includes("unauthorized")
+        ) {
+          toast.info("Bạn có thể cần đăng nhập lại để tiếp tục", {
+            toastId: "auth-suggestion",
+          });
+        }
       }
     } else if (error instanceof Error) {
       errorMessage = error.message;
@@ -349,6 +462,13 @@ export default function AddProductForm() {
     // Hiển thị thông báo lỗi
     toast.error(errorMessage, {
       toastId: "api-error",
+    });
+
+    // Ghi log chi tiết lỗi
+    console.error("Chi tiết lỗi khi thêm sản phẩm:", {
+      message: errorMessage,
+      error: error,
+      details: errorDetails || "Không có chi tiết",
     });
   };
 
@@ -436,7 +556,7 @@ export default function AddProductForm() {
               label="Danh mục"
               placeholder="Chọn một danh mục"
               options={categories}
-              isMulti
+              isSearchable
             />
 
             <Textarea

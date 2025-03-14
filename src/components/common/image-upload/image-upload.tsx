@@ -12,6 +12,72 @@ interface ImageUploadProps {
   onChange?: (files: FileList | null) => void;
 }
 
+// Hàm nén hình ảnh
+const compressImage = async (
+  file: File,
+  maxWidth = 1200,
+  quality = 0.8
+): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new window.Image();
+        img.src = event.target?.result as string;
+
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+
+          // Giảm kích thước nếu cần
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+
+          if (!ctx) {
+            reject(new Error("Không thể tạo context canvas"));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error("Không thể chuyển đổi canvas thành blob"));
+                return;
+              }
+
+              const compressedFile = new File([blob], file.name, {
+                type: file.type,
+                lastModified: Date.now(),
+              });
+
+              console.log(
+                `Đã nén ảnh từ ${file.size} xuống ${compressedFile.size} bytes`
+              );
+              resolve(compressedFile);
+            },
+            file.type,
+            quality
+          );
+        };
+      };
+      reader.onerror = (error) => reject(error);
+    } catch (error) {
+      console.error("Lỗi khi nén ảnh:", error);
+      reject(error);
+    }
+  });
+};
+
 const ImageUpload: React.FC<ImageUploadProps> = ({
   name,
   label,
@@ -20,6 +86,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   onChange,
 }) => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { register, setValue, watch } = useFormContext();
   const currentValue = watch(name);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -41,13 +108,20 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const files = e.target.files;
       if (!files || files.length === 0) {
         console.log(`ImageUpload ${name} - Không có files được chọn`);
         return;
       }
+
+      // Hiển thị thông báo đang xử lý
+      setIsProcessing(true);
+      toast.info("Đang xử lý hình ảnh...", {
+        toastId: "processing-images",
+        autoClose: 2000,
+      });
 
       console.log(
         `ImageUpload ${name} - Files đã chọn:`,
@@ -63,10 +137,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           return false;
         }
 
-        // Kiểm tra kích thước file (max 5MB)
-        const maxSize = 5 * 1024 * 1024;
+        // Kiểm tra kích thước file (max 10MB trước khi nén)
+        const maxSize = 10 * 1024 * 1024;
         if (file.size > maxSize) {
-          toast.error(`"${file.name}" vượt quá kích thước tối đa (5MB)`);
+          toast.error(`"${file.name}" vượt quá kích thước tối đa (10MB)`);
           return false;
         }
 
@@ -75,13 +149,31 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
       if (validFiles.length === 0) {
         console.log(`ImageUpload ${name} - Không có file hợp lệ`);
+        setIsProcessing(false);
         return;
+      }
+
+      // Nén các hình ảnh
+      const compressedFiles: File[] = [];
+      for (const file of validFiles) {
+        try {
+          // Nén nếu ảnh lớn hơn 1MB
+          if (file.size > 1024 * 1024) {
+            const compressed = await compressImage(file);
+            compressedFiles.push(compressed);
+          } else {
+            compressedFiles.push(file);
+          }
+        } catch (error) {
+          console.error(`Lỗi khi nén ảnh ${file.name}:`, error);
+          compressedFiles.push(file); // Sử dụng file gốc nếu không nén được
+        }
       }
 
       // Tạo URL preview cho các file đã chọn
       const newPreviewUrls: string[] = [];
-      for (let i = 0; i < validFiles.length; i++) {
-        newPreviewUrls.push(URL.createObjectURL(validFiles[i]));
+      for (let i = 0; i < compressedFiles.length; i++) {
+        newPreviewUrls.push(URL.createObjectURL(compressedFiles[i]));
       }
 
       console.log(
@@ -92,7 +184,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       // Xử lý dữ liệu cho react-hook-form
       if (multiple) {
         // Nếu là multiple, tạo mảng các đối tượng { imageUrl, isMain }
-        const imageObjects = validFiles.map((file, index) => {
+        const imageObjects = compressedFiles.map((file, index) => {
           const objectUrl = URL.createObjectURL(file);
           console.log(
             `File ${index}: ${file.name}, URL: ${objectUrl.substring(0, 30)}...`
@@ -109,7 +201,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         setValue(name, imageObjects, { shouldValidate: true });
       } else {
         // Nếu không phải multiple, chỉ lấy file đầu tiên
-        const objectUrl = URL.createObjectURL(validFiles[0]);
+        const objectUrl = URL.createObjectURL(compressedFiles[0]);
         console.log(
           `ImageUpload ${name} - Setting single value với URL: ${objectUrl.substring(
             0,
@@ -129,14 +221,20 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
       // Gọi callback onChange nếu có
       if (onChange) {
-        onChange(files);
+        const dataTransfer = new DataTransfer();
+        compressedFiles.forEach((file) => dataTransfer.items.add(file));
+        onChange(dataTransfer.files);
       }
 
       // Thông báo thành công
-      toast.success(`Đã chọn ${validFiles.length} ảnh thành công`);
+      toast.success(`Đã xử lý ${compressedFiles.length} ảnh thành công`, {
+        toastId: "compress-success",
+      });
     } catch (error) {
       console.error(`ImageUpload ${name} - Lỗi khi xử lý files:`, error);
       toast.error("Có lỗi xảy ra khi tải ảnh lên");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -172,6 +270,19 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     e.stopPropagation();
   };
 
+  const setMainImage = (index: number) => {
+    // Chỉ áp dụng cho multiple
+    if (multiple && Array.isArray(currentValue)) {
+      const newValue = currentValue.map((item, i) => ({
+        ...item,
+        isMain: i === index,
+      }));
+
+      setValue(name, newValue, { shouldValidate: true });
+      toast.success("Đã đặt ảnh chính mới");
+    }
+  };
+
   return (
     <div className="mb-4">
       {label && (
@@ -181,7 +292,9 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       )}
 
       <div
-        className="border-2 border-dashed border-gray-300 p-6 rounded-lg text-center"
+        className={`border-2 border-dashed border-gray-300 p-6 rounded-lg text-center ${
+          isProcessing ? "opacity-70 pointer-events-none" : ""
+        }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
@@ -195,17 +308,28 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           onChange={handleChange}
           required={required}
           ref={fileInputRef}
+          disabled={isProcessing}
         />
-        <label htmlFor={name} className="cursor-pointer">
+        <label
+          htmlFor={name}
+          className={`cursor-pointer ${
+            isProcessing ? "pointer-events-none" : ""
+          }`}
+        >
           <div className="text-gray-500 mb-2">
-            Kéo và thả ảnh hoặc nhấp để chọn
+            {isProcessing
+              ? "Đang xử lý..."
+              : "Kéo và thả ảnh hoặc nhấp để chọn"}
           </div>
           <button
             type="button"
-            className="bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600"
+            className={`${
+              isProcessing ? "bg-gray-400" : "bg-pink-500 hover:bg-pink-600"
+            } text-white px-4 py-2 rounded-md transition-colors`}
             onClick={handleButtonClick}
+            disabled={isProcessing}
           >
-            Chọn ảnh
+            {isProcessing ? "Đang xử lý..." : "Chọn ảnh"}
           </button>
         </label>
 
@@ -214,7 +338,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             {previewUrls.map((url, index) => (
               <div
                 key={index}
-                className="relative h-24 rounded-md overflow-hidden border border-gray-300"
+                className="relative h-24 rounded-md overflow-hidden border border-gray-300 group"
+                onClick={() => multiple && setMainImage(index)}
               >
                 <Image
                   src={url}
@@ -222,9 +347,18 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                   fill
                   style={{ objectFit: "cover" }}
                 />
-                {index === 0 && (
-                  <div className="absolute top-0 right-0 bg-pink-500 text-white text-xs px-1 py-0.5">
-                    Chính
+                {currentValue &&
+                  Array.isArray(currentValue) &&
+                  currentValue[index]?.isMain && (
+                    <div className="absolute top-0 right-0 bg-pink-500 text-white text-xs px-1 py-0.5">
+                      Chính
+                    </div>
+                  )}
+                {multiple && (
+                  <div className="absolute inset-0 bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <span className="text-white text-xs font-medium">
+                      Đặt làm ảnh chính
+                    </span>
                   </div>
                 )}
               </div>
@@ -233,7 +367,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         )}
       </div>
       <div className="text-xs text-gray-500 mt-1">
-        * Ảnh đầu tiên sẽ được đặt làm ảnh chính. Mỗi ảnh tối đa 5MB.
+        * Ảnh đầu tiên sẽ được đặt làm ảnh chính. Mỗi ảnh tối đa 10MB (sẽ được
+        nén nếu cần).
+        {multiple &&
+          previewUrls.length > 0 &&
+          " Nhấp vào ảnh để đặt làm ảnh chính."}
       </div>
     </div>
   );

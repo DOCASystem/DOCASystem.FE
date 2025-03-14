@@ -85,7 +85,7 @@ function AddCategoryDialog({
         </div>
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Mô tả (không bắt buộc)
+            Mô tả (bắt buộc)
           </label>
           <textarea
             value={description}
