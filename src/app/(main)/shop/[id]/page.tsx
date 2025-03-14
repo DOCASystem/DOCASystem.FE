@@ -8,6 +8,9 @@ import { ProductService } from "@/service/product-service";
 import RecommendProducts from "@/components/sections/shop/recommend-products/recommend-products";
 import { useCartStore } from "@/store/cart-store";
 import { toast } from "react-toastify";
+import axios from "axios";
+import { getToken } from "@/auth/auth-service";
+import { REAL_API_BASE_URL } from "@/utils/api-config";
 
 export default function ProductDetailPage({
   params,
@@ -19,29 +22,53 @@ export default function ProductDetailPage({
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
 
-  // Lấy trực tiếp hàm addItem từ store, không cần định nghĩa type phức tạp
+  // Lấy hàm addItem từ store
   const addItem = useCartStore((state) => state.addItem);
 
   useEffect(() => {
     const fetchProductDetail = async () => {
       setLoading(true);
       try {
-        // Thêm log để debug trong production
+        // Log ID sản phẩm để debug
         console.log(`Đang tải thông tin sản phẩm với ID: ${params.id}`);
 
-        // Sử dụng API thực thay vì dữ liệu giả
-        const response = await ProductService.getProductById(params.id);
+        // Thử gọi API trực tiếp bằng axios trước
+        const token = getToken();
+        const directApiUrl = `${REAL_API_BASE_URL}/api/v1/products/${params.id}`;
 
-        // Log kết quả API để debug
-        console.log("Kết quả API:", response);
+        console.log(`Gọi API trực tiếp: ${directApiUrl}`);
 
-        if (!response || !response.data) {
-          throw new Error("Không nhận được dữ liệu từ API");
+        try {
+          const response = await axios.get(directApiUrl, {
+            headers: {
+              Authorization: token ? `Bearer ${token}` : undefined,
+            },
+            timeout: 10000, // 10 giây timeout
+          });
+
+          console.log("API response:", response);
+
+          if (response.data) {
+            setProduct(response.data);
+          } else {
+            throw new Error("Không nhận được dữ liệu từ API");
+          }
+        } catch (directApiError) {
+          console.error("Lỗi khi gọi API trực tiếp:", directApiError);
+
+          // Nếu gọi trực tiếp thất bại, thử dùng ProductService
+          console.log("Thử dùng ProductService...");
+          const serviceResponse = await ProductService.getProductById(
+            params.id
+          );
+
+          if (serviceResponse && serviceResponse.data) {
+            setProduct(serviceResponse.data);
+          } else {
+            throw new Error("Không nhận được dữ liệu từ ProductService");
+          }
         }
-
-        setProduct(response.data);
       } catch (err: any) {
-        // Log chi tiết lỗi để debug trong production
         console.error("Chi tiết lỗi khi tải sản phẩm:", {
           message: err.message,
           stack: err.stack,
@@ -96,10 +123,10 @@ export default function ProductDetailPage({
 
   if (loading) {
     return (
-      <div className="container mx-auto py-20 px-4 sm:px-6 text-center">
+      <div className="container mx-auto py-12 px-4 sm:px-6 text-center">
         <div className="flex flex-col items-center justify-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-doca mb-4"></div>
-          <p>Đang tải thông tin sản phẩm...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-doca mb-4"></div>
+          <p className="text-lg">Đang tải thông tin sản phẩm...</p>
         </div>
       </div>
     );
@@ -107,8 +134,8 @@ export default function ProductDetailPage({
 
   if (error || !product) {
     return (
-      <div className="container mx-auto py-20 px-4 sm:px-6 text-center">
-        <div className="bg-white rounded-lg p-6 shadow-md max-w-lg mx-auto">
+      <div className="container mx-auto py-16 px-4 sm:px-6 text-center">
+        <div className="bg-white rounded-lg p-8 shadow-md max-w-lg mx-auto">
           <svg
             className="w-16 h-16 text-red-500 mx-auto mb-4"
             fill="none"
@@ -126,13 +153,13 @@ export default function ProductDetailPage({
           <h2 className="text-xl font-bold mb-4">
             Không thể hiển thị sản phẩm
           </h2>
-          <div className="text-red-500 mb-4 text-sm">
+          <div className="text-red-500 mb-6 text-sm">
             {error ||
               "Không tìm thấy thông tin sản phẩm hoặc sản phẩm không tồn tại"}
           </div>
           <Link
             href="/shop"
-            className="inline-block bg-pink-doca text-white px-6 py-2 rounded-md hover:bg-pink-600 transition-colors"
+            className="inline-block bg-pink-doca text-white px-6 py-3 rounded-md hover:bg-pink-600 transition-colors"
           >
             Quay lại cửa hàng
           </Link>
@@ -185,7 +212,7 @@ export default function ProductDetailPage({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
           {/* Phần ảnh sản phẩm */}
-          <div className="bg-white rounded-lg p-3 md:p-4">
+          <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm">
             <div className="relative aspect-square w-full rounded-lg overflow-hidden">
               <Image
                 src={mainImage}
@@ -193,6 +220,7 @@ export default function ProductDetailPage({
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover"
+                priority={true}
               />
             </div>
 
@@ -217,7 +245,7 @@ export default function ProductDetailPage({
           </div>
 
           {/* Phần thông tin sản phẩm */}
-          <div className="bg-white rounded-lg p-4 md:p-6">
+          <div className="bg-white rounded-lg p-4 md:p-6 shadow-sm">
             <h1 className="text-2xl md:text-3xl font-bold mb-4">
               {product.name}
             </h1>
@@ -237,9 +265,11 @@ export default function ProductDetailPage({
 
             <div className="mb-6">
               <h3 className="text-lg font-medium mb-2">Mô tả sản phẩm</h3>
-              <p className="text-gray-700 whitespace-pre-line">
-                {product.description || "Chưa có mô tả cho sản phẩm này"}
-              </p>
+              <div className="text-gray-700 bg-gray-50 p-4 rounded-lg">
+                <p className="whitespace-pre-line">
+                  {product.description || "Chưa có mô tả cho sản phẩm này"}
+                </p>
+              </div>
             </div>
 
             {product.quantity && product.quantity > 0 && (
@@ -248,7 +278,7 @@ export default function ProductDetailPage({
                   <h3 className="text-lg font-medium mb-2">Số lượng</h3>
                   <div className="flex items-center">
                     <button
-                      className="px-3 py-1 bg-gray-200 rounded-l-md"
+                      className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-l-md"
                       onClick={() => handleQuantityChange(quantity - 1)}
                       disabled={quantity <= 1}
                     >
@@ -265,7 +295,7 @@ export default function ProductDetailPage({
                       max={product.quantity}
                     />
                     <button
-                      className="px-3 py-1 bg-gray-200 rounded-r-md"
+                      className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-r-md"
                       onClick={() => handleQuantityChange(quantity + 1)}
                       disabled={quantity >= (product.quantity || 0)}
                     >
@@ -276,7 +306,7 @@ export default function ProductDetailPage({
 
                 <button
                   onClick={handleAddToCart}
-                  className="bg-pink-doca text-white py-3 px-6 rounded-md hover:bg-pink-600 transition-colors w-full md:w-auto"
+                  className="bg-pink-doca text-white py-3 px-6 rounded-md hover:bg-pink-600 transition-colors w-full md:w-auto shadow-sm"
                 >
                   Thêm vào giỏ hàng
                 </button>
