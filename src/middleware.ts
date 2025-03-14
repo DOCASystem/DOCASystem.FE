@@ -118,7 +118,7 @@ export function middleware(request: NextRequest) {
 
     // Chuyển hướng đến trang phù hợp dựa trên vai trò
     if (isAdmin) {
-      const redirectUrl = new URL("/products-management", request.url);
+      const redirectUrl = new URL("/admin", request.url);
       console.log("Chuyển hướng admin đến:", redirectUrl.toString());
       return NextResponse.redirect(redirectUrl);
     } else {

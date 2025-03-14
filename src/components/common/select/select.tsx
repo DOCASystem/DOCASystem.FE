@@ -178,9 +178,16 @@ const Select: React.FC<SelectProps> = ({
         }
       } else {
         // Single select - chỉ chọn một giá trị
+        console.log(
+          "Select.handleOptionSelect: Chọn một option với giá trị =",
+          optionValue
+        );
         onChange(optionValue);
+        console.log("Selected option value:", optionValue);
         setIsOpen(false);
       }
+    } else {
+      console.warn("onChange function not provided to Select component");
     }
   };
 
@@ -239,36 +246,36 @@ const Select: React.FC<SelectProps> = ({
           ))}
         </div>
       );
-    } else {
-      // Single select - hiển thị giá trị đã chọn
-      return (
-        <div className="flex items-center justify-between w-full">
-          <span className="truncate">{selectedOptions[0]?.label}</span>
-          {selectedOptions.length > 0 && (
-            <button
-              type="button"
-              className="text-gray-500 hover:text-gray-700 ml-2"
-              onClick={(e) => handleRemoveOption(e, selectedOptions[0].value)}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          )}
-        </div>
-      );
     }
+
+    // Single select - hiển thị giá trị đã chọn
+    return (
+      <div className="flex items-center justify-between w-full">
+        <span className="truncate text-black">{selectedOptions[0]?.label}</span>
+        {selectedOptions.length > 0 && (
+          <button
+            type="button"
+            className="text-gray-500 hover:text-gray-700 ml-2"
+            onClick={(e) => handleRemoveOption(e, selectedOptions[0].value)}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        )}
+      </div>
+    );
   };
 
   // Focus vào input khi mở dropdown

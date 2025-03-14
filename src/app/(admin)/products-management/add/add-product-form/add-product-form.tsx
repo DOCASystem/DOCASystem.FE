@@ -13,6 +13,7 @@ import Textarea from "@/components/common/textarea/textarea";
 import ImageUpload from "@/components/common/image-upload/image-upload";
 import Checkbox from "@/components/common/checkbox/checkbox";
 import axios, { AxiosError } from "axios";
+import { useAuthContext } from "@/contexts/auth-provider";
 
 // Định nghĩa kiểu dữ liệu cho API response
 interface CategoryResponse {
@@ -54,12 +55,26 @@ type AddProductFormData = {
 
 export default function AddProductForm() {
   const router = useRouter();
+  const { userData } = useAuthContext();
   const [categories, setCategories] = useState<
     { value: string; label: string }[]
   >([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingCategories, setIsFetchingCategories] = useState(true);
+  const [, setIsFetchingCategories] = useState(true);
   const [apiUrl, setApiUrl] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // Giá trị mặc định - đặt ở đầu component
+  const defaultValues: AddProductFormData = {
+    name: "",
+    categoryIds: "",
+    description: "",
+    price: 0,
+    quantity: 0,
+    volume: 0,
+    isHidden: false,
+    productImages: [],
+  };
 
   // Lấy và lưu API URL để debug
   useEffect(() => {
@@ -71,52 +86,31 @@ export default function AddProductForm() {
     // Kiểm tra kết nối đến API
     const checkApiConnection = async () => {
       try {
-        // Sử dụng fetch với timeout để kiểm tra kết nối
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        // Thay vì kiểm tra kết nối trực tiếp đến API, sẽ thử lấy danh mục
+        console.log(
+          "Bỏ qua việc kiểm tra kết nối đến API trực tiếp để tránh lỗi CORS"
+        );
 
-        const response = await fetch(`${url}/api/health`, {
-          method: "GET",
-          signal: controller.signal,
-        }).catch((error) => {
-          console.error("Không thể kết nối đến API health check:", error);
-          return null;
+        // Kết nối sẽ được kiểm tra gián tiếp khi lấy danh mục
+        toast.info("Đang kết nối đến máy chủ...", {
+          toastId: "api-connecting",
+          autoClose: 2000,
         });
-
-        clearTimeout(timeoutId);
-
-        if (response && response.ok) {
-          console.log("Kết nối đến API thành công");
-        } else {
-          console.warn("Kết nối đến API có vấn đề - Status:", response?.status);
-          // Thông báo cho người dùng
-          toast.warning(
-            "Kết nối đến máy chủ không ổn định, một số chức năng có thể bị ảnh hưởng",
-            {
-              toastId: "api-connection-warning",
-              autoClose: 5000,
-            }
-          );
-        }
       } catch (error) {
         console.error("Lỗi khi kiểm tra kết nối API:", error);
+        // Thông báo lỗi
+        toast.error(
+          "Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng và thử lại.",
+          {
+            toastId: "api-connection-error",
+            autoClose: false,
+          }
+        );
       }
     };
 
     checkApiConnection();
   }, []);
-
-  // Giá trị mặc định
-  const defaultValues: AddProductFormData = {
-    name: "",
-    categoryIds: "",
-    description: "",
-    price: 0,
-    quantity: 0,
-    volume: 0,
-    isHidden: false,
-    productImages: [],
-  };
 
   // Lấy danh sách danh mục
   useEffect(() => {
@@ -129,13 +123,48 @@ export default function AddProductForm() {
       setIsFetchingCategories(true);
       try {
         console.log("Đang lấy danh sách danh mục...");
-        const response = await CategoryService.getCategories({
-          page: 1,
-          size: 30,
-        });
 
-        if (response && response.data && isMounted) {
-          const data = response.data as CategoryResponseIPaginate;
+        // Thử lấy danh mục với 2 phương pháp khác nhau
+        let categoryResponse = null;
+
+        // Phương pháp 1: Dùng service
+        try {
+          categoryResponse = await CategoryService.getCategories({
+            page: 1,
+            size: 30,
+          });
+
+          console.log("Kết nối API thành công qua CategoryService");
+          toast.dismiss("api-connection-warning");
+          toast.dismiss("api-connection-error");
+        } catch (serviceError) {
+          console.error("Không thể lấy danh mục qua service:", serviceError);
+
+          // Phương pháp 2: Thử dùng fetch với proxy
+          try {
+            const token = localStorage.getItem("token");
+            const proxyResponse = await fetch(
+              "/api/proxy/categories?page=1&size=30",
+              {
+                headers: {
+                  Authorization: token ? `Bearer ${token}` : "",
+                },
+              }
+            );
+
+            if (proxyResponse.ok) {
+              categoryResponse = { data: await proxyResponse.json() };
+              console.log("Kết nối API thành công qua proxy API");
+              toast.dismiss("api-connection-warning");
+              toast.dismiss("api-connection-error");
+            }
+          } catch (proxyError) {
+            console.error("Không thể lấy danh mục qua proxy:", proxyError);
+          }
+        }
+
+        if (categoryResponse && categoryResponse.data && isMounted) {
+          const data = categoryResponse.data as CategoryResponseIPaginate;
           console.log("Dữ liệu danh mục nhận được:", data);
 
           if (data.items && Array.isArray(data.items)) {
@@ -196,8 +225,56 @@ export default function AddProductForm() {
 
   // Xử lý khi submit form
   const onSubmit = async (data: AddProductFormData) => {
-    setIsLoading(true);
+    console.log("=== BẮT ĐẦU QUÁ TRÌNH XỬ LÝ FORM SUBMISSION ===");
+    console.log("Form submitted with data:", data);
+    console.log("Kiểu dữ liệu categoryIds:", typeof data.categoryIds);
+    console.log("Giá trị categoryIds:", data.categoryIds);
+
     try {
+      // Log giá trị đầu vào
+      console.log("isLoading trước khi set:", isLoading);
+      console.log("categoryIds bên ngoài form:", selectedCategory);
+
+      // Kiểm tra quyền admin trước khi thêm sản phẩm
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("LỖI: Không có token xác thực");
+        toast.error("Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn", {
+          toastId: "no-token-error",
+        });
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
+        return;
+      }
+
+      // Kiểm tra quyền admin từ userData (đã lấy từ context ở đầu component)
+      if (userData?.username !== "admin") {
+        console.error("LỖI: Người dùng không có quyền admin");
+        toast.error(
+          "Bạn không có quyền thêm sản phẩm. Chỉ admin mới có quyền này.",
+          {
+            toastId: "no-admin-error",
+          }
+        );
+        return;
+      }
+
+      // Kiểm tra giá trị categoryIds có hợp lệ không
+      if (
+        !data.categoryIds ||
+        (Array.isArray(data.categoryIds) && data.categoryIds.length === 0)
+      ) {
+        console.error("LỖI: Không có danh mục được chọn");
+        toast.error("Vui lòng chọn một danh mục", {
+          toastId: "category-required-error",
+        });
+        return; // Dừng việc submit nếu không có danh mục
+      }
+
+      setIsLoading(true);
+
+      // Tiếp tục với phần còn lại của hàm onSubmit
       // Kiểm tra kết nối mạng
       if (!navigator.onLine) {
         toast.error(
@@ -241,30 +318,14 @@ export default function AddProductForm() {
         validationErrors.push("Khối lượng phải lớn hơn 0");
       }
 
-      // Kiểm tra danh mục - hỗ trợ cả chuỗi và mảng
-      const hasValidCategory =
-        (typeof data.categoryIds === "string" && data.categoryIds) ||
-        (Array.isArray(data.categoryIds) && data.categoryIds.length > 0);
-
-      if (!hasValidCategory) {
+      // Kiểm tra danh mục
+      if (!data.categoryIds) {
         validationErrors.push("Vui lòng chọn một danh mục");
+        console.error("Không có danh mục được chọn");
+      } else {
+        console.log("Kiểu dữ liệu categoryIds:", typeof data.categoryIds);
+        console.log("Giá trị categoryIds:", data.categoryIds);
       }
-
-      // Chuẩn bị dữ liệu categoryIds để gửi đến API
-      let categoryIdArray: string[] = [];
-
-      if (typeof data.categoryIds === "string") {
-        // Nếu là chuỗi và không rỗng, thêm vào mảng
-        if (data.categoryIds) {
-          categoryIdArray = [data.categoryIds];
-        }
-      } else if (Array.isArray(data.categoryIds)) {
-        // Nếu đã là mảng, sử dụng trực tiếp
-        categoryIdArray = data.categoryIds;
-      }
-
-      console.log("Danh mục đã chọn:", data.categoryIds);
-      console.log("Mảng danh mục để gửi API:", categoryIdArray);
 
       // Nếu có lỗi, hiển thị và dừng
       if (validationErrors.length > 0) {
@@ -322,6 +383,42 @@ export default function AddProductForm() {
         console.log("Đã tự động đặt hình đầu tiên làm hình chính");
       }
 
+      // Chuẩn bị dữ liệu categoryIds để gửi đến API
+      let categoryIdArray: string[] = [];
+      if (typeof data.categoryIds === "string") {
+        // Nếu là chuỗi và không rỗng, thêm vào mảng
+        if (data.categoryIds) {
+          categoryIdArray = [data.categoryIds];
+          console.log(
+            "categoryIds là chuỗi, đã chuyển thành mảng:",
+            categoryIdArray
+          );
+        } else {
+          console.error("LỖI: categoryIds là chuỗi rỗng");
+          toast.error("Vui lòng chọn một danh mục");
+          setIsLoading(false);
+          return;
+        }
+      } else if (Array.isArray(data.categoryIds)) {
+        // Nếu đã là mảng, sử dụng trực tiếp
+        if (data.categoryIds.length > 0) {
+          categoryIdArray = data.categoryIds;
+          console.log("categoryIds đã là mảng:", categoryIdArray);
+        } else {
+          console.error("LỖI: categoryIds là mảng rỗng");
+          toast.error("Vui lòng chọn một danh mục");
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        console.error("LỖI: categoryIds không hợp lệ", data.categoryIds);
+        toast.error("Dữ liệu danh mục không hợp lệ");
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("Mảng danh mục để gửi API:", categoryIdArray);
+
       // Chuẩn bị dữ liệu cuối cùng để gửi
       const productData = {
         name: data.name.trim(),
@@ -343,7 +440,8 @@ export default function AddProductForm() {
       });
 
       try {
-        // Gọi API tạo sản phẩm với dữ liệu đã chuẩn bị
+        console.log("Token tồn tại, tiến hành gọi API");
+        console.log("Đang sử dụng token admin để tạo sản phẩm mới");
         const result = await ProductService.createProduct(productData);
         console.log("Kết quả từ API tạo sản phẩm:", result);
 
@@ -357,21 +455,25 @@ export default function AddProductForm() {
           router.push("/products-management");
         }, 1000);
       } catch (apiError) {
-        handleApiError(apiError);
+        console.error("LỖI KHI GỌI API TẠO SẢN PHẨM:", apiError);
 
-        // Thêm thông báo gợi ý
-        if (axios.isAxiosError(apiError)) {
-          const axiosError = apiError as AxiosError;
-
-          if (axiosError.response?.status === 500) {
-            toast.info(
-              "Gợi ý: Nếu vấn đề vẫn tiếp tục, hãy thử giảm kích thước hình ảnh hoặc bỏ qua hình ảnh để tạo sản phẩm trước",
-              {
-                toastId: "server-error-suggestion",
-                autoClose: 8000,
-              }
-            );
-          }
+        // Kiểm tra lỗi quyền
+        if (
+          axios.isAxiosError(apiError) &&
+          (apiError.response?.status === 401 ||
+            apiError.response?.status === 403)
+        ) {
+          toast.error(
+            "Bạn không có quyền thêm sản phẩm. Chỉ admin mới có quyền này.",
+            {
+              toastId: "permission-error",
+            }
+          );
+          setTimeout(() => {
+            router.push("/login");
+          }, 2000);
+        } else {
+          handleApiError(apiError);
         }
       }
     } catch (error: unknown) {
@@ -472,131 +574,150 @@ export default function AddProductForm() {
     });
   };
 
-  // Xử lý tạo danh mục mới
-  // const handleCreateCategory = async (
-  //   name: string,
-  //   description: string = ""
-  // ) => {
-  //   // Kiểm tra token admin
-  //   const token = localStorage.getItem("token");
-  //   if (!token) {
-  //     console.error("Không có token admin");
-  //     return null;
-  //   }
-
-  //   try {
-  //     console.log("Đang tạo danh mục mới:", { name, description });
-
-  //     if (!CategoryService || !CategoryService.createCategory) {
-  //       console.error(
-  //         "CategoryService hoặc CategoryService.createCategory không tồn tại"
-  //       );
-  //       return null;
-  //     }
-
-  //     const response = await CategoryService.createCategory({
-  //       name,
-  //       description,
-  //     });
-
-  //     console.log("Kết quả tạo danh mục:", response);
-
-  //     if (response && response.data) {
-  //       const newCategory = response.data as CategoryResponse;
-  //       console.log("Danh mục mới đã được tạo:", newCategory);
-
-  //       // Thêm danh mục mới vào danh sách
-  //       const newCategoryOption = {
-  //         value: newCategory.id,
-  //         label: newCategory.name,
-  //       };
-
-  //       setCategories((prev) => [...prev, newCategoryOption]);
-  //       toast.success(`Đã thêm danh mục "${newCategory.name}" thành công`);
-
-  //       return newCategoryOption;
-  //     } else {
-  //       console.error("Không nhận được dữ liệu từ API tạo danh mục");
-  //       return null;
-  //     }
-  //   } catch (error) {
-  //     console.error("Chi tiết lỗi khi thêm danh mục:", error);
-  //     return null;
-  //   }
-  // };
-
   return (
-    <div>
+    <div className="w-full max-w-4xl mx-auto p-4 bg-white rounded-lg shadow">
+      <h1 className="text-2xl font-bold text-pink-700 mb-6">
+        Thêm sản phẩm mới
+      </h1>
+
       <AdminForm<AddProductFormData>
-        title="Thêm sản phẩm mới"
         schema={productSchema}
         defaultValues={defaultValues}
-        onSubmit={onSubmit}
-        backLink="/products-management"
-        submitButtonText="Lưu sản phẩm"
-        maxHeight="max-h-[calc(100vh-200px)]"
-        formClassName="h-[calc(100vh-150px)]"
-        contentClassName="pb-4 custom-scrollbar"
+        onSubmit={(data) => {
+          console.log("=== FORM SUBMIT ĐƯỢC KÍCH HOẠT QUA ADMINFORM ===");
+          console.log("Nút submit của AdminForm được nhấn");
+
+          // Log dữ liệu form để kiểm tra
+          console.log("Form data từ AdminForm:", JSON.stringify(data, null, 2));
+          console.log("Selected category state:", selectedCategory);
+
+          // Kiểm tra giá trị categoryIds
+          if (!data.categoryIds && selectedCategory) {
+            console.log(
+              "Gán categoryIds từ selectedCategory:",
+              selectedCategory
+            );
+            data.categoryIds = selectedCategory;
+          }
+
+          // Kiểm tra lỗi
+          const errors: string[] = [];
+          if (!data.name) errors.push("Tên sản phẩm là bắt buộc");
+          if (!data.description) errors.push("Mô tả sản phẩm là bắt buộc");
+          if (!data.categoryIds) errors.push("Danh mục sản phẩm là bắt buộc");
+          if (data.price <= 0) errors.push("Giá sản phẩm phải lớn hơn 0");
+
+          // Hiển thị lỗi nếu có
+          if (errors.length > 0) {
+            errors.forEach((error) => toast.error(error));
+            return;
+          }
+
+          // Đánh dấu xử lý và gọi hàm submit
+          try {
+            console.log("Gọi hàm onSubmit từ AdminForm handler");
+            onSubmit(data);
+          } catch (error) {
+            console.error("Lỗi khi gọi hàm onSubmit:", error);
+            toast.error("Đã xảy ra lỗi khi xử lý form");
+          }
+        }}
         isSubmitting={isLoading}
+        submitButtonText="Lưu sản phẩm"
+        backLink="/products-management"
+        backButtonText="Hủy"
       >
-        {isFetchingCategories ? (
-          <div className="flex items-center justify-center h-full">
-            <p>Đang tải danh mục...</p>
-          </div>
-        ) : (
-          <>
-            <Input
-              name="name"
-              label="Tên sản phẩm"
-              placeholder="Nhập tên sản phẩm"
-            />
+        <Input
+          name="name"
+          label="Tên sản phẩm"
+          placeholder="Nhập tên sản phẩm"
+        />
 
-            <Select
-              name="categoryIds"
-              label="Danh mục"
-              placeholder="Chọn một danh mục"
-              options={categories}
-              isSearchable
-            />
+        <Select
+          name="categoryIds"
+          label="Danh mục"
+          placeholder="Chọn một danh mục"
+          options={categories}
+          isSearchable
+          onChange={(value) => {
+            console.log(
+              "Sự kiện onChange của Select được gọi với value:",
+              value
+            );
+            console.log("Kiểu dữ liệu của value:", typeof value);
 
-            <Textarea
-              name="description"
-              label="Mô tả"
-              placeholder="Nhập mô tả sản phẩm"
-            />
+            // Hiển thị thông tin về danh mục đã chọn
+            if (value) {
+              setSelectedCategory(typeof value === "string" ? value : null);
+              const selectedCat = categories.find((cat) => cat.value === value);
+              if (selectedCat) {
+                console.log(
+                  "Đã tìm thấy danh mục trong danh sách:",
+                  selectedCat
+                );
+                toast.info(`Đã chọn danh mục: ${selectedCat.label}`, {
+                  autoClose: 1500,
+                  toastId: "category-selected",
+                });
+              } else {
+                console.warn("Không tìm thấy danh mục với value:", value);
+              }
+            } else {
+              console.log("Giá trị được chọn là null hoặc undefined");
+              setSelectedCategory(null);
+            }
+          }}
+          className="w-full border-pink-500 focus:ring-2 focus:ring-pink-500"
+          labelClassName="text-pink-700 font-medium"
+        />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                name="price"
-                label="Giá (VNĐ)"
-                type="number"
-                placeholder="Nhập giá sản phẩm"
-              />
-
-              <Input
-                name="quantity"
-                label="Số lượng"
-                type="number"
-                placeholder="Nhập số lượng"
-              />
-
-              <Input
-                name="volume"
-                label="Khối lượng"
-                type="number"
-                placeholder="Nhập khối lượng"
-              />
+        {/* Hiển thị danh mục đã chọn */}
+        {selectedCategory && (
+          <div className="mb-4 p-2 border border-pink-200 bg-pink-50 rounded-md">
+            <p className="text-sm font-medium text-pink-700">
+              Danh mục đã chọn:
+            </p>
+            <div className="mt-1">
+              <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
+                {categories.find((cat) => cat.value === selectedCategory)
+                  ?.label || "Danh mục không xác định"}
+              </div>
             </div>
-
-            <ImageUpload
-              name="productImages"
-              label="Hình ảnh sản phẩm"
-              multiple
-            />
-
-            <Checkbox name="isHidden" label="Ẩn sản phẩm" />
-          </>
+          </div>
         )}
+
+        <Textarea
+          name="description"
+          label="Mô tả"
+          placeholder="Nhập mô tả sản phẩm"
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Input
+            name="price"
+            label="Giá (VNĐ)"
+            type="number"
+            placeholder="Nhập giá sản phẩm"
+          />
+
+          <Input
+            name="quantity"
+            label="Số lượng"
+            type="number"
+            placeholder="Nhập số lượng"
+          />
+
+          <Input
+            name="volume"
+            label="Khối lượng"
+            type="number"
+            placeholder="Nhập khối lượng"
+          />
+        </div>
+
+        <ImageUpload name="productImages" label="Hình ảnh sản phẩm" multiple />
+
+        <Checkbox name="isHidden" label="Ẩn sản phẩm" />
       </AdminForm>
     </div>
   );

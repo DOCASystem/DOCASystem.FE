@@ -238,8 +238,6 @@ export default function AdminPostPage() {
         isOpen={isDeleteDialogOpen}
         title="Xác nhận xóa bài viết"
         message="Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác."
-        confirmButtonText="Xóa"
-        cancelButtonText="Hủy"
         onConfirm={confirmDeletePost}
         onCancel={cancelDeletePost}
         type="danger"
