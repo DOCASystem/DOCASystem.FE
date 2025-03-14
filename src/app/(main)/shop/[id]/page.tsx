@@ -70,7 +70,7 @@ export default function ProductDetailPage({
 
   if (loading) {
     return (
-      <div className="container mx-auto py-20 text-center">
+      <div className="container mx-auto py-20 px-4 sm:px-6 text-center">
         <div className="animate-pulse">Đang tải thông tin sản phẩm...</div>
       </div>
     );
@@ -78,7 +78,7 @@ export default function ProductDetailPage({
 
   if (error || !product) {
     return (
-      <div className="container mx-auto py-20 text-center">
+      <div className="container mx-auto py-20 px-4 sm:px-6 text-center">
         <div className="text-red-500">{error || "Không tìm thấy sản phẩm"}</div>
         <Link
           href="/shop"
@@ -108,8 +108,8 @@ export default function ProductDetailPage({
   const otherImages = product.productImages?.slice(1) || [];
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="mb-4">
+    <div className="container mx-auto py-6 md:py-10 px-4 sm:px-6 lg:px-8">
+      <div className="mb-4 md:mb-6">
         <Link
           href="/shop"
           className="text-gray-600 hover:text-pink-doca flex items-center gap-2"
@@ -130,15 +130,15 @@ export default function ProductDetailPage({
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
         {/* Phần ảnh sản phẩm */}
-        <div>
+        <div className="bg-white rounded-lg p-3 md:p-4">
           <div className="relative aspect-square w-full rounded-lg overflow-hidden">
             <Image
               src={mainImage}
               alt={product.name || "Sản phẩm"}
               fill
-              sizes="100%"
+              sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
             />
           </div>
@@ -154,7 +154,7 @@ export default function ProductDetailPage({
                     src={img.imageUrl || "/images/food-test.png"}
                     alt={`${product.name} - Ảnh ${index + 2}`}
                     fill
-                    sizes="100%"
+                    sizes="(max-width: 768px) 25vw, 12vw"
                     className="object-cover"
                   />
                 </div>
@@ -164,11 +164,13 @@ export default function ProductDetailPage({
         </div>
 
         {/* Phần thông tin sản phẩm */}
-        <div>
-          <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
+        <div className="bg-white rounded-lg p-4 md:p-6">
+          <h1 className="text-2xl md:text-3xl font-bold mb-4">
+            {product.name}
+          </h1>
 
           <div className="mb-6">
-            <p className="text-2xl font-bold text-pink-doca">
+            <p className="text-xl md:text-2xl font-bold text-pink-doca">
               {formatPrice(product.price)}
             </p>
             {product.quantity && product.quantity > 0 ? (
@@ -231,8 +233,10 @@ export default function ProductDetailPage({
       </div>
 
       {/* Phần sản phẩm đề xuất */}
-      <div className="mt-16">
-        <h2 className="text-2xl font-bold mb-6">Sản phẩm tương tự</h2>
+      <div className="mt-12 md:mt-16">
+        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 px-2">
+          Sản phẩm tương tự
+        </h2>
         <RecommendProducts currentProductId={params.id} />
       </div>
     </div>
