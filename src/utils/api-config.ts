@@ -5,14 +5,12 @@
 // Danh sách các URL dự phòng theo thứ tự ưu tiên
 const API_FALLBACK_URLS = [
   process.env.NEXT_PUBLIC_API_URL,
-  "https://api.doca.love", // API chính thức
-  "https://production.doca.love", // URL cũ
-  "https://doca-api.vercel.app", // API backup
+  "https://production.doca.love", // URL chính thức của API
 ];
 
 // URL cơ sở của API (mặc định)
 export const API_BASE_URL =
-  API_FALLBACK_URLS.find((url) => url) || "https://api.doca.love";
+  API_FALLBACK_URLS.find((url) => url) || "https://production.doca.love";
 
 // URL đích thực của API (sẽ được cập nhật từ Swagger)
 export let REAL_API_BASE_URL = API_BASE_URL;
@@ -36,8 +34,10 @@ export const tryFallbackApiUrls = async () => {
     if (!url) continue;
 
     try {
-      const response = await fetch(`${url}/api/v1/health-check`, {
-        method: "HEAD",
+      // Kiểm tra kết nối bằng cách truy cập API sản phẩm
+      // thay vì health-check vì endpoint này có thể không tồn tại
+      const response = await fetch(`${url}/api/v1/products?page=1&size=1`, {
+        method: "GET",
         cache: "no-store",
         next: { revalidate: 0 },
       });
