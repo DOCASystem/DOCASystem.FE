@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ProductService } from "@/service/product-service";
 import axios from "axios";
 import { getToken } from "@/auth/auth-service";
 import { REAL_API_BASE_URL } from "@/utils/api-config";
+import { useProductStore, Product } from "@/store/product-store";
 
 // Định nghĩa interface cho sản phẩm gợi ý
 interface ProductImage {
@@ -34,110 +35,120 @@ export default function RecommendProducts({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchRecommendProducts = async () => {
-      setLoading(true);
+  // Lấy hàm saveProducts từ store
+  const saveProducts = useProductStore((state) => state.saveProducts);
+
+  // Bọc hàm fetchProducts trong useCallback
+  const fetchRecommendProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      console.log("Đang tải sản phẩm đề xuất...");
+
+      // Gọi trực tiếp API sản phẩm thay vì qua proxy
       try {
-        console.log("Đang tải sản phẩm đề xuất...");
+        const token = getToken();
+        const apiUrl = `${REAL_API_BASE_URL}/api/v1/products?page=1&size=8`;
+        console.log(`Gọi API danh sách sản phẩm: ${apiUrl}`);
 
-        // Gọi trực tiếp API sản phẩm thay vì qua proxy
-        try {
-          const token = getToken();
-          const apiUrl = `${REAL_API_BASE_URL}/api/v1/products?page=1&size=8`;
-          console.log(`Gọi API danh sách sản phẩm: ${apiUrl}`);
-
-          const headers: Record<string, string> = {
-            "Content-Type": "application/json",
-          };
-          if (token) {
-            headers.Authorization = `Bearer ${token}`;
-          }
-
-          const response = await axios.get(apiUrl, {
-            headers,
-            timeout: 8000, // 8 giây timeout
-          });
-
-          if (response.data && response.data.content) {
-            console.log(
-              "API trả về dữ liệu thành công:",
-              response.data.content.length,
-              "sản phẩm"
-            );
-
-            // Lọc ra sản phẩm hiện tại
-            const filteredProducts = response.data.content.filter(
-              (product: RecommendProduct) => product.id !== currentProductId
-            );
-
-            if (filteredProducts.length > 0) {
-              setProducts(filteredProducts.slice(0, 4));
-              setLoading(false);
-              return; // Thoát sớm nếu thành công
-            }
-          }
-        } catch (apiError) {
-          console.error("Lỗi khi gọi API danh sách sản phẩm:", apiError);
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
         }
 
-        // Fallback: Thử dùng ProductService
-        try {
-          console.log("Thử dùng ProductService...");
-          const serviceResponse = await ProductService.getProducts({
-            page: 1,
-            size: 8,
-          });
+        const response = await axios.get(apiUrl, {
+          headers,
+          timeout: 8000, // 8 giây timeout
+        });
 
-          if (serviceResponse && serviceResponse.data) {
-            console.log(
-              "ProductService trả về dữ liệu thành công:",
-              serviceResponse.data.items?.length || 0,
-              "sản phẩm"
-            );
+        if (response.data && response.data.content) {
+          console.log(
+            "API trả về dữ liệu thành công:",
+            response.data.content.length,
+            "sản phẩm"
+          );
 
-            // Lọc ra sản phẩm hiện tại
-            const filteredProducts = (serviceResponse.data.items || []).filter(
-              (product) => product.id !== currentProductId
-            );
+          // Lưu danh sách sản phẩm vào store, sử dụng kỹ thuật debounce để tránh render lại quá nhiều
+          setTimeout(() => {
+            saveProducts(response.data.content as Product[]);
+          }, 100);
 
-            if (filteredProducts.length > 0) {
-              // Chuyển đổi sang định dạng RecommendProduct
-              const mappedProducts: RecommendProduct[] = filteredProducts.map(
-                (product) => ({
-                  id: product.id || "",
-                  name: product.name || "",
-                  price: product.price || 0,
-                  quantity: product.quantity || 0,
-                  productImages: (product.productImages || []).map((img) => ({
-                    id: img.id || "",
-                    imageUrl: img.imageUrl || "",
-                    isMain: img.isMain || false,
-                  })),
-                })
-              );
+          // Lọc ra sản phẩm hiện tại
+          const filteredProducts = response.data.content.filter(
+            (product: RecommendProduct) => product.id !== currentProductId
+          );
 
-              setProducts(mappedProducts.slice(0, 4));
-              setLoading(false);
-              return; // Thoát sớm nếu thành công
-            }
+          if (filteredProducts.length > 0) {
+            setProducts(filteredProducts.slice(0, 4));
+            setLoading(false);
+            return; // Thoát sớm nếu thành công
           }
-        } catch (serviceError) {
-          console.error("Lỗi khi dùng ProductService:", serviceError);
-          throw serviceError; // Ném lỗi để xử lý bên ngoài
         }
-
-        // Nếu tất cả các phương pháp đều thất bại
-        throw new Error("Không thể tải sản phẩm đề xuất");
-      } catch (err: unknown) {
-        console.error("Chi tiết lỗi khi tải sản phẩm đề xuất:", err);
-        setError("Không thể tải sản phẩm đề xuất");
-      } finally {
-        setLoading(false);
+      } catch (apiError) {
+        console.error("Lỗi khi gọi API danh sách sản phẩm:", apiError);
       }
-    };
 
+      // Fallback: Thử dùng ProductService
+      try {
+        console.log("Thử dùng ProductService...");
+        const serviceResponse = await ProductService.getProducts({
+          page: 1,
+          size: 8,
+        });
+
+        if (serviceResponse && serviceResponse.data) {
+          console.log(
+            "ProductService trả về dữ liệu thành công:",
+            serviceResponse.data.items?.length || 0,
+            "sản phẩm"
+          );
+
+          // Lọc ra sản phẩm hiện tại
+          const filteredProducts = (serviceResponse.data.items || []).filter(
+            (product) => product.id !== currentProductId
+          );
+
+          if (filteredProducts.length > 0) {
+            // Chuyển đổi sang định dạng RecommendProduct
+            const mappedProducts: RecommendProduct[] = filteredProducts.map(
+              (product) => ({
+                id: product.id || "",
+                name: product.name || "",
+                price: product.price || 0,
+                quantity: product.quantity || 0,
+                productImages: (product.productImages || []).map((img) => ({
+                  id: img.id || "",
+                  imageUrl: img.imageUrl || "",
+                  isMain: img.isMain || false,
+                })),
+              })
+            );
+
+            setProducts(mappedProducts.slice(0, 4));
+            setLoading(false);
+            return; // Thoát sớm nếu thành công
+          }
+        }
+      } catch (serviceError) {
+        console.error("Lỗi khi dùng ProductService:", serviceError);
+        throw serviceError; // Ném lỗi để xử lý bên ngoài
+      }
+
+      // Nếu tất cả các phương pháp đều thất bại
+      throw new Error("Không thể tải sản phẩm đề xuất");
+    } catch (err: unknown) {
+      console.error("Chi tiết lỗi khi tải sản phẩm đề xuất:", err);
+      setError("Không thể tải sản phẩm đề xuất");
+    } finally {
+      setLoading(false);
+    }
+  }, [currentProductId]); // Chỉ phụ thuộc vào currentProductId
+
+  // Tách riêng phần useEffect để tránh vòng lặp vô hạn
+  useEffect(() => {
     fetchRecommendProducts();
-  }, [currentProductId]);
+  }, [fetchRecommendProducts]);
 
   // Format giá tiền
   const formatPrice = (price?: number) => {
