@@ -46,6 +46,13 @@ export const API_ENDPOINTS = {
   // Thêm các endpoint khác khi cần
 };
 
+// Cấu hình CORS cho API
+export const API_CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 // URL API thực tế cho login
 export let REAL_LOGIN_API_URL: string | null = null;
 

@@ -1,27 +1,8 @@
-import { ProductApi, Configuration } from "@/api/generated";
-import { REAL_API_BASE_URL } from "@/utils/api-config";
 import axios from "axios";
-
-// Hàm lấy token an toàn từ localStorage
-const getToken = () => {
-  if (typeof window !== "undefined") {
-    try {
-      const token = localStorage.getItem("token");
-      console.log(
-        "ProductService - Token đọc từ localStorage:",
-        token ? "Có token" : "Không có token"
-      );
-      return token || "";
-    } catch (error) {
-      console.error(
-        "ProductService - Lỗi khi đọc token từ localStorage:",
-        error
-      );
-      return "";
-    }
-  }
-  return "";
-};
+import { ProductApi, Configuration } from "@/api/generated";
+import { getToken } from "@/auth/auth-service";
+import { REAL_API_BASE_URL, API_CORS_HEADERS } from "@/utils/api-config";
+import { compressImage } from "@/utils/image-utils";
 
 // Tạo instance mới của API client
 const getProductApiInstance = () => {
@@ -215,34 +196,7 @@ export const ProductService = {
         }
       }
 
-      // Nếu không có hình ảnh chính, tạo một file trống
-      if (!mainImageFile) {
-        console.warn(
-          "ProductService.createProduct - Không có hình ảnh chính, tạo file trống"
-        );
-        mainImageFile = new File([""], "empty.jpg", { type: "image/jpeg" });
-      }
-
-      console.log(
-        "ProductService.createProduct - MainImage:",
-        mainImageFile
-          ? `${mainImageFile.name} (${mainImageFile.size} bytes)`
-          : "Không"
-      );
-      console.log(
-        "ProductService.createProduct - SecondaryImages:",
-        secondaryImageFiles.length
-      );
-
-      // Sử dụng axios trực tiếp thay vì API client từ Swagger
-      const token = getToken();
-      console.log("Token được sử dụng:", token ? "Có token" : "Không có token");
-
-      if (!token) {
-        throw new Error("Không tìm thấy token, vui lòng đăng nhập lại");
-      }
-
-      // Chuẩn bị FormData
+      // Tạo form data
       const formData = new FormData();
       formData.append("Name", data.name);
       formData.append("Description", data.description);
@@ -251,18 +205,22 @@ export const ProductService = {
       formData.append("Volume", data.volume.toString());
       formData.append("IsHidden", data.isHidden.toString());
 
-      // Đảm bảo MainImage luôn được gửi đi
-      if (mainImageFile) {
-        formData.append("MainImage", mainImageFile);
-      }
-
-      // Thêm categoryIds - đúng định dạng mảng cho API
+      // Thêm danh mục (nếu có)
       if (categoryIds && categoryIds.length > 0) {
         categoryIds.forEach((id, index) => {
-          if (id && id.trim() !== "") {
+          if (id) {
             formData.append(`CategoryIds[${index}]`, id);
           }
         });
+      }
+
+      // Thêm hình ảnh chính nếu có
+      if (mainImageFile && mainImageFile.size > 0) {
+        formData.append("MainImage", mainImageFile);
+      } else {
+        console.warn(
+          "ProductService.createProduct - Không có hình ảnh chính hoặc hình ảnh không hợp lệ"
+        );
       }
 
       // Thêm các hình ảnh phụ
@@ -294,8 +252,14 @@ export const ProductService = {
 
       console.log("ProductService.createProduct - Đang gửi request tới API");
 
+      // Lấy token JWT
+      const token = getToken();
+      if (!token) {
+        throw new Error("Không tìm thấy token, vui lòng đăng nhập lại");
+      }
+
       // Gọi API trực tiếp bằng axios với timeout dài hơn và retry
-      const maxRetries = 2;
+      const maxRetries = 3;
       let retryCount = 0;
       let lastError;
 
@@ -308,8 +272,11 @@ export const ProductService = {
               headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "multipart/form-data",
+                ...API_CORS_HEADERS,
               },
-              timeout: 30000, // 30 giây
+              timeout: 60000, // 60 giây
+              maxContentLength: Infinity,
+              maxBodyLength: Infinity,
             }
           );
 
@@ -324,11 +291,23 @@ export const ProductService = {
             `Lỗi lần thử ${retryCount + 1}/${maxRetries + 1}:`,
             error
           );
+
+          // Kiểm tra lỗi CORS
+          if (
+            axios.isAxiosError(error) &&
+            (error.code === "ERR_NETWORK" ||
+              error.response?.status === 0 ||
+              error.response?.status === 500)
+          ) {
+            console.log("Phát hiện lỗi CORS hoặc lỗi mạng, thử cách khác...");
+            break; // Chuyển sang phương thức fetch
+          }
+
           retryCount++;
 
           if (retryCount <= maxRetries) {
             console.log(`Đang thử lại lần ${retryCount}...`);
-            await new Promise((r) => setTimeout(r, 1000)); // Chờ 1 giây trước khi thử lại
+            await new Promise((r) => setTimeout(r, 2000 * retryCount)); // Tăng thời gian chờ theo số lần thử
           }
         }
       }
@@ -345,7 +324,9 @@ export const ProductService = {
             body: formData,
             headers: {
               Authorization: `Bearer ${token}`,
+              // Fetch API sẽ tự động thiết lập Content-Type cho multipart/form-data
             },
+            // Không cần thiết lập timeout cho fetch, browser có timeout mặc định
           }
         );
 
@@ -360,7 +341,30 @@ export const ProductService = {
           "ProductService.createProduct - Lỗi khi thử lại với fetch:",
           fetchError
         );
-        throw lastError || fetchError;
+
+        // Thử phương pháp cuối cùng - gửi qua API proxy thông qua Next.js API Route
+        console.log(
+          "ProductService.createProduct - Đang thử sử dụng API proxy"
+        );
+        try {
+          const proxyResponse = await axios.post(
+            `/api/proxy/products`, // API route nội bộ của Next.js
+            formData,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "multipart/form-data",
+              },
+              timeout: 60000, // 60 giây
+            }
+          );
+
+          console.log("Kết quả từ API proxy:", proxyResponse.status);
+          return proxyResponse.data;
+        } catch (proxyError) {
+          console.error("Lỗi khi sử dụng API proxy:", proxyError);
+          throw lastError || fetchError || proxyError;
+        }
       }
     } catch (error) {
       console.error("ProductService.createProduct - Lỗi cuối cùng:", error);
@@ -435,6 +439,7 @@ export const ProductService = {
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            ...API_CORS_HEADERS,
           },
           timeout: 30000, // 30 giây
         }
@@ -452,78 +457,4 @@ export const ProductService = {
   },
 
   // Các phương thức khác đã được chuyển sang category-service.ts
-};
-
-// Hàm để nén hình ảnh - được tối ưu để giảm thời gian xử lý
-const compressImage = async (blob: Blob, quality = 0.7): Promise<Blob> => {
-  return new Promise<Blob>((resolve) => {
-    try {
-      // Kiểm tra kích thước, nếu < 1MB thì không cần nén
-      if (blob.size < 1024 * 1024) {
-        return resolve(blob);
-      }
-
-      const image = new Image();
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-
-      if (!ctx) {
-        console.warn("Không thể lấy context 2d, trả về hình ảnh gốc");
-        return resolve(blob);
-      }
-
-      const objectUrl = URL.createObjectURL(blob);
-
-      image.onload = () => {
-        // Giải phóng URL
-        URL.revokeObjectURL(objectUrl);
-
-        // Tính toán kích thước mới (giữ nguyên tỷ lệ)
-        const maxDimension = 1000; // Giảm kích thước xuống 1000px
-        let width = image.width;
-        let height = image.height;
-
-        if (width > height && width > maxDimension) {
-          height = Math.floor((height / width) * maxDimension);
-          width = maxDimension;
-        } else if (height > maxDimension) {
-          width = Math.floor((width / height) * maxDimension);
-          height = maxDimension;
-        }
-
-        // Thiết lập canvas
-        canvas.width = width;
-        canvas.height = height;
-
-        // Vẽ hình ảnh lên canvas
-        ctx.drawImage(image, 0, 0, width, height);
-
-        // Chuyển đổi thành blob với chất lượng thấp hơn
-        canvas.toBlob(
-          (result) => {
-            if (result) {
-              resolve(result);
-            } else {
-              console.warn("Nén thất bại, trả về hình ảnh gốc");
-              resolve(blob);
-            }
-          },
-          "image/jpeg",
-          quality
-        );
-      };
-
-      image.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        console.warn("Lỗi khi tải hình ảnh, trả về hình ảnh gốc");
-        resolve(blob);
-      };
-
-      // Bắt đầu quá trình nạp ảnh
-      image.src = objectUrl;
-    } catch (error) {
-      console.warn("Lỗi khi nén hình ảnh:", error);
-      resolve(blob); // Trả về hình ảnh gốc thay vì gây lỗi
-    }
-  });
 };

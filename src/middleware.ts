@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { API_CORS_HEADERS } from "./utils/api-config";
 
 // Danh sách các đường dẫn cần kiểm tra khi ứng dụng đang chạy thực tế
 const PROTECTED_PATHS = [
@@ -13,6 +14,9 @@ const PROTECTED_PATHS = [
 // Danh sách các đường dẫn dành cho người dùng đã đăng nhập
 const AUTH_PATHS = ["/login", "/signup", "/forgot-password"];
 
+// Danh sách các API paths không cần xác thực
+const API_PATHS = ["/api/", "/swagger/", "/next/data/"];
+
 // Danh sách các IP được phép truy cập admin (tùy chọn)
 // const ALLOWED_IPS = ['127.0.0.1', '::1']; // Chỉ localhost
 
@@ -22,6 +26,36 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   console.log("Middleware xử lý đường dẫn:", pathname);
+
+  // Kiểm tra nếu đây là request API
+  const isApiRequest = API_PATHS.some((path) => pathname.startsWith(path));
+
+  // Nếu là API request, thêm CORS headers và cho phép request tiếp tục
+  if (isApiRequest) {
+    const response = NextResponse.next();
+
+    // Thêm CORS headers
+    Object.keys(API_CORS_HEADERS).forEach((key) => {
+      response.headers.set(
+        key,
+        API_CORS_HEADERS[key as keyof typeof API_CORS_HEADERS]
+      );
+    });
+
+    return response;
+  }
+
+  // Kiểm tra request method OPTIONS (CORS preflight)
+  if (request.method === "OPTIONS") {
+    const response = new NextResponse(null, { status: 200 });
+    Object.keys(API_CORS_HEADERS).forEach((key) => {
+      response.headers.set(
+        key,
+        API_CORS_HEADERS[key as keyof typeof API_CORS_HEADERS]
+      );
+    });
+    return response;
+  }
 
   // Không thực hiện bất kỳ redirect nào trong quá trình build
   // Khi chạy build trên máy local: NODE_ENV=production
@@ -98,19 +132,33 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.next();
   response.headers.set("X-Content-Type-Options", "nosniff");
 
+  // Thêm CORS headers vào tất cả các response
+  Object.keys(API_CORS_HEADERS).forEach((key) => {
+    response.headers.set(
+      key,
+      API_CORS_HEADERS[key as keyof typeof API_CORS_HEADERS]
+    );
+  });
+
   return response;
 }
 
 // Chỉ áp dụng middleware cho các đường dẫn cần thiết
 export const config = {
   matcher: [
+    // Admin routes
     "/admin/:path*",
     "/products-management/:path*",
     "/orders-management/:path*",
     "/blog-management/:path*",
     "/users-management/:path*",
+
+    // Auth routes
     "/login",
     "/signup",
     "/forgot-password",
+
+    // API routes
+    "/api/:path*",
   ],
 };
