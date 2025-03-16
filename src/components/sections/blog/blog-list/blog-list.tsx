@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { GetBlogDetailResponse } from "@/api/generated";
 import Pagination from "@/components/common/pagination/pagination";
-import { getPaginatedBlogs } from "@/mock/blogs";
+import { BlogService } from "@/service/blog-service";
 
 export default function BlogList() {
   const [blogs, setBlogs] = useState<GetBlogDetailResponse[]>([]);
@@ -21,15 +21,18 @@ export default function BlogList() {
   const fetchBlogs = async () => {
     setLoading(true);
     try {
-      // Sử dụng dữ liệu giả thay vì gọi API
-      const response = getPaginatedBlogs(currentPage, pageSize);
+      // Sử dụng BlogService thay vì dữ liệu giả
+      const response = await BlogService.getBlogs({
+        page: currentPage,
+        size: pageSize,
+      });
 
-      if (response.data.items) {
-        setBlogs(response.data.items);
+      if (response && response.data) {
+        setBlogs(response.data.items || []);
         setTotalPages(response.data.totalPages || 1);
       }
     } catch (error) {
-      console.error("Error fetching blogs:", error);
+      console.error("Lỗi khi tải dữ liệu blog:", error);
     } finally {
       setLoading(false);
     }

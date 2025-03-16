@@ -6,7 +6,7 @@ import { Toaster } from "react-hot-toast";
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center">
+    <div className="min-h-screen flex flex-col justify-center items-center p-4">
       <Toaster position="top-right" />
       <LoginForm />
     </div>

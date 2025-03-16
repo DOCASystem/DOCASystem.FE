@@ -4,22 +4,87 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { GetBlogDetailResponse } from "@/api/generated";
+import { BlogService } from "@/service/blog-service";
+import { useRouter } from "next/navigation";
 import { getBlogById } from "@/mock/blogs";
 
 export default function BlogDetailPage({ params }: { params: { id: string } }) {
   const [blog, setBlog] = useState<GetBlogDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchBlogDetail = async () => {
       setLoading(true);
       try {
-        // Sử dụng dữ liệu giả thay vì gọi API
-        const response = getBlogById(params.id);
-        setBlog(response.data);
+        // Kiểm tra token trước khi gọi API
+        const token = localStorage.getItem("token");
+
+        // Nếu không có token và API yêu cầu xác thực, sử dụng dữ liệu mẫu
+        if (!token) {
+          console.warn("Không có token xác thực, sử dụng dữ liệu mẫu");
+          try {
+            // Sử dụng dữ liệu mẫu từ mock
+            const mockResponse = getBlogById(params.id);
+            setBlog(mockResponse.data);
+          } catch (mockError) {
+            console.error("Không thể lấy dữ liệu mẫu:", mockError);
+            setError("Không thể tải thông tin bài viết");
+          }
+        } else {
+          // Có token, thử gọi API
+          try {
+            const response = await BlogService.getBlogById(params.id);
+            if (response && response.data) {
+              setBlog(response.data);
+            } else {
+              setError("Không thể tải thông tin bài viết");
+            }
+          } catch (apiError: unknown) {
+            console.error("Lỗi API:", apiError);
+
+            // Xử lý các mã lỗi HTTP cụ thể
+            const errorResponse = (
+              apiError as { response?: { status: number } }
+            ).response;
+            if (errorResponse) {
+              const statusCode = errorResponse.status;
+
+              if (statusCode === 400) {
+                console.warn(
+                  "Bad Request - Có thể ID không hợp lệ hoặc không tồn tại"
+                );
+                setError("ID bài viết không hợp lệ hoặc không tồn tại");
+              } else if (statusCode === 401 || statusCode === 403) {
+                console.warn("Lỗi xác thực hoặc phân quyền");
+                setError("Bạn không có quyền xem bài viết này");
+
+                // Chuyển hướng đến trang đăng nhập sau 2 giây
+                setTimeout(() => {
+                  router.push("/login");
+                }, 2000);
+              } else {
+                setError(`Lỗi máy chủ: ${statusCode}`);
+              }
+            } else {
+              // Lỗi không xác định
+              setError("Không thể kết nối đến máy chủ");
+            }
+
+            // Dự phòng: thử dùng dữ liệu mẫu nếu không lấy được từ API
+            try {
+              const mockResponse = getBlogById(params.id);
+              setBlog(mockResponse.data);
+              // Nếu lấy được dữ liệu mẫu, xóa thông báo lỗi
+              setError(null);
+            } catch {
+              // Giữ nguyên thông báo lỗi từ API
+            }
+          }
+        }
       } catch (err) {
-        console.error("Error fetching blog details:", err);
+        console.error("Lỗi khi tải chi tiết blog:", err);
         setError("Không thể tải thông tin bài viết");
       } finally {
         setLoading(false);
@@ -27,7 +92,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
     };
 
     fetchBlogDetail();
-  }, [params.id]);
+  }, [params.id, router]);
 
   // Format date to local date string
   const formatDate = (dateString?: string) => {

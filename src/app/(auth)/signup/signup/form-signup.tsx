@@ -183,44 +183,44 @@ export default function SignupForm() {
   };
 
   return (
-    <div className="flex flex-row">
+    <div className="flex flex-col md:flex-row w-full">
       <FormProvider {...methods}>
         <form
           onSubmit={onSubmit}
-          className="bg-gray-100 flex flex-col justify-center items-center max-w-[1536px] p-6 rounded-xl shadow-md min-w-[700px]"
+          className="bg-gray-100 flex flex-col justify-center items-center p-4 sm:p-6 rounded-xl shadow-md w-full md:min-w-[400px] lg:min-w-[500px] xl:min-w-[600px]"
         >
-          <h1 className="text-2xl font-semibold">Tạo tài khoản</h1>
-          <div className="flex flex-col gap-4 mt-6">
+          <h1 className="text-xl sm:text-2xl font-semibold">Tạo tài khoản</h1>
+          <div className="flex flex-col gap-4 mt-6 w-full max-w-[404px]">
             <Input
               name="firstName"
               label="Họ"
               placeholder="Nhập họ"
-              className="w-[404px]"
+              className="w-full"
             />
             <Input
               name="lastName"
               label="Tên"
               placeholder="Nhập tên"
-              className="w-[404px]"
+              className="w-full"
             />
             <Input
               name="email"
               label="Email"
               placeholder="Nhập email"
-              className="w-[404px]"
+              className="w-full"
             />
             <Input
               name="phone"
               label="Số điện thoại"
               placeholder="Nhập số điện thoại"
-              className="w-[404px]"
+              className="w-full"
             />
             <Input
               name="password"
               label="Mật khẩu"
               placeholder="Nhập mật khẩu"
               type="password"
-              className="w-[404px]"
+              className="w-full"
             />
 
             <Input
@@ -228,39 +228,37 @@ export default function SignupForm() {
               label="Xác nhận mật khẩu"
               placeholder="Nhập lại mật khẩu"
               type="password"
-              className="w-[404px]"
+              className="w-full"
             />
 
-            <div className="flex flex-row justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
               <Input
                 name="otp"
                 label="OTP email"
                 placeholder="Nhập OTP"
-                className="w-[250px]"
+                className="w-full sm:w-[250px]"
               />
-              <div className="flex flex-row items-center justify-center mt-8">
-                <Button
-                  type="button"
-                  onClick={handleSendOtp}
-                  disabled={isRequestingOtp || isOtpDisabled}
-                  className="h-11 w-[100px] bg-pink-doca text-white rounded-md text-[16px]"
-                >
-                  {isRequestingOtp
-                    ? "Đang gửi..."
-                    : isOtpDisabled
-                    ? `${countdown}s`
-                    : otpSent
-                    ? "Gửi lại"
-                    : "Gửi OTP"}
-                </Button>
-              </div>
+              <Button
+                type="button"
+                onClick={handleSendOtp}
+                disabled={isRequestingOtp || isOtpDisabled}
+                className="h-11 w-full sm:w-[100px] bg-pink-doca text-white rounded-md text-[16px]"
+              >
+                {isRequestingOtp
+                  ? "Đang gửi..."
+                  : isOtpDisabled
+                  ? `${countdown}s`
+                  : otpSent
+                  ? "Gửi lại"
+                  : "Gửi OTP"}
+              </Button>
             </div>
 
             <div className="mt-6 flex flex-col gap-4">
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="h-12 w-[404px] bg-pink-doca text-white rounded-3xl text-[16px]"
+                className="h-12 w-full bg-pink-doca text-white rounded-3xl text-[16px]"
               >
                 {isSubmitting ? "Đang xử lý..." : "Đăng ký"}
               </Button>
@@ -276,15 +274,17 @@ export default function SignupForm() {
           </div>
         </form>
       </FormProvider>
-      <LinkNav href="/" className="w-[700px] h-[700px] rounded-l-2xl">
-        <Image
-          src="/images/bg-login.png"
-          alt="bg-login"
-          width={600}
-          height={900}
-          className="w-[700px] h-[700px] rounded-l-2xl"
-        />
-      </LinkNav>
+      <div className="hidden md:block">
+        <LinkNav href="/" className="block">
+          <Image
+            src="/images/bg-login.png"
+            alt="bg-login"
+            width={600}
+            height={900}
+            className="w-full h-auto max-h-[700px] md:h-[500px] lg:h-[600px] xl:h-[700px] rounded-l-2xl object-cover"
+          />
+        </LinkNav>
+      </div>
     </div>
   );
 }
