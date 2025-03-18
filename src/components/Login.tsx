@@ -1,22 +1,43 @@
-import React, { useState } from "react";
-import { useAuth } from "../hooks/useAuth";
-import { useRouter } from "next/router";
+"use client";
 
-const Login: React.FC = () => {
-  const [usernameOrPhoneNumber, setUsernameOrPhoneNumber] = useState("");
-  const [password, setPassword] = useState("");
-  const { login, loading, error } = useAuth();
+import { useState } from "react";
+import { useAuthStore } from "@/store/auth-store";
+import { useRouter } from "next/navigation";
+import { z } from "zod";
+import { toast } from "react-hot-toast";
+import { AxiosError } from "axios";
+import {
+  Form,
+  FormInput,
+  FormSubmitButton,
+  FormError,
+} from "@/components/common/form";
+import Link from "next/link";
+
+// Schema validation using Zod
+const loginSchema = z.object({
+  usernameOrPhoneNumber: z
+    .string()
+    .min(1, "Username or phone number is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+
+const Login = () => {
+  const { login, isLoading } = useAuthStore();
   const router = useRouter();
+  const [authError, setAuthError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = async (data: LoginFormValues) => {
     try {
-      await login(usernameOrPhoneNumber, password);
-      router.push("/dashboard"); // Chuyển hướng sau khi đăng nhập thành công
+      setAuthError(null);
+      await login(data.usernameOrPhoneNumber, data.password);
+      toast.success("Login successful");
+      router.push("/dashboard");
     } catch (err) {
-      // Lỗi đã được xử lý trong hook useAuth
-      console.error("Đăng nhập thất bại", err);
+      const axiosError = err as AxiosError<{ message?: string }>;
+      setAuthError(axiosError.response?.data?.message || "Login failed");
     }
   };
 
@@ -29,86 +50,71 @@ const Login: React.FC = () => {
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label
-              htmlFor="usernameOrPhoneNumber"
-              className="block text-sm font-medium leading-6 text-gray-900"
-            >
-              Tên đăng nhập hoặc số điện thoại
-            </label>
-            <div className="mt-2">
-              <input
-                id="usernameOrPhoneNumber"
-                name="usernameOrPhoneNumber"
-                type="text"
-                autoComplete="username"
-                required
-                value={usernameOrPhoneNumber}
-                onChange={(e) => setUsernameOrPhoneNumber(e.target.value)}
-                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-              />
-            </div>
-          </div>
+        <Form
+          schema={loginSchema}
+          onSubmit={handleSubmit}
+          defaultValues={{
+            usernameOrPhoneNumber: "",
+            password: "",
+          }}
+          className="space-y-6"
+        >
+          <FormInput
+            name="usernameOrPhoneNumber"
+            label="Tên đăng nhập hoặc số điện thoại"
+            type="text"
+            autoComplete="username"
+            placeholder="Nhập tên đăng nhập hoặc số điện thoại"
+          />
 
           <div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-2">
               <label
                 htmlFor="password"
-                className="block text-sm font-medium leading-6 text-gray-900"
+                className="block text-sm font-medium text-gray-700"
               >
                 Mật khẩu
               </label>
               <div className="text-sm">
-                <a
-                  href="#"
-                  className="font-semibold text-indigo-600 hover:text-indigo-500"
+                <Link
+                  href="/forgot-password"
+                  className="font-semibold text-pink-doca hover:text-pink-600"
                 >
                   Quên mật khẩu?
-                </a>
+                </Link>
               </div>
             </div>
-            <div className="mt-2">
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-              />
-            </div>
+
+            <FormInput
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Nhập mật khẩu"
+              containerClassName="mt-0"
+              labelClassName="sr-only"
+            />
           </div>
 
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="text-sm text-red-700">{error}</div>
-              </div>
-            </div>
-          )}
+          {authError && <FormError message={authError} />}
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-indigo-300"
-            >
-              {loading ? "Đang xử lý..." : "Đăng nhập"}
-            </button>
-          </div>
-        </form>
+          <FormSubmitButton
+            loading={isLoading}
+            loadingText="Đang xử lý..."
+            fullWidth
+            size="md"
+          >
+            Đăng nhập
+          </FormSubmitButton>
+        </Form>
 
         <p className="mt-10 text-center text-sm text-gray-500">
           Chưa có tài khoản?{" "}
-          <a
-            href="#"
-            className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500"
+          <Link
+            href="/register"
+            className="font-semibold leading-6 text-pink-doca hover:text-pink-600"
           >
             Đăng ký ngay
-          </a>
+          </Link>
         </p>
       </div>
     </div>

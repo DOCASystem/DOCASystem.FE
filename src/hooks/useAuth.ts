@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { LoginResponse } from "../api/generated";
 import AuthService from "../service/auth.service";
 import { AxiosError } from "axios";
@@ -13,61 +13,85 @@ export interface UseAuthResult {
   userData: Partial<LoginResponse> | null;
   loading: boolean;
   error: string | null;
+  clearError: () => void;
 }
 
+/**
+ * React hook for handling authentication
+ * @returns Authentication methods and state
+ */
 export function useAuth(): UseAuthResult {
-  // Khai báo state theo quy tắc hooks - phải gọi ở đầu và không có điều kiện
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [userData, setUserData] = useState<Partial<LoginResponse> | null>(null);
 
-  // Dùng useEffect để khởi tạo giá trị sau khi component mount
+  // Initialize auth state on component mount
   useEffect(() => {
-    // Chỉ thực hiện khi ở client-side và không phải lúc build
-    if (
-      typeof window !== "undefined" &&
-      process.env.NEXT_PUBLIC_SKIP_ADMIN_PAGES !== "true"
-    ) {
-      setIsAuthenticated(AuthService.isAuthenticated());
-      setUserData(AuthService.getUserData());
-    }
-  }, []);
-
-  // Hàm login an toàn
-  const login = async (
-    usernameOrPhoneNumber: string,
-    password: string
-  ): Promise<LoginResponse> => {
-    // Kiểm tra môi trường
+    // Only run in client-side and not during build
     if (
       typeof window === "undefined" ||
       process.env.NEXT_PUBLIC_SKIP_ADMIN_PAGES === "true"
     ) {
-      return {} as LoginResponse;
+      return;
     }
 
-    setLoading(true);
+    setIsAuthenticated(AuthService.isAuthenticated());
+    setUserData(AuthService.getUserData());
+  }, []);
+
+  /**
+   * Clear any authentication errors
+   */
+  const clearError = useCallback(() => {
     setError(null);
+  }, []);
 
-    try {
-      const response = await AuthService.login(usernameOrPhoneNumber, password);
-      setIsAuthenticated(true);
-      setUserData(AuthService.getUserData());
-      return response;
-    } catch (err: unknown) {
-      const axiosError = err as AxiosError<{ message?: string }>;
-      const errorMessage =
-        axiosError.response?.data?.message || "Đăng nhập thất bại";
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+  /**
+   * Login with username/phone number and password
+   */
+  const login = useCallback(
+    async (
+      usernameOrPhoneNumber: string,
+      password: string
+    ): Promise<LoginResponse> => {
+      // Check environment
+      if (
+        typeof window === "undefined" ||
+        process.env.NEXT_PUBLIC_SKIP_ADMIN_PAGES === "true"
+      ) {
+        return {} as LoginResponse;
+      }
 
-  // Hàm logout an toàn
-  const logout = () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await AuthService.login(
+          usernameOrPhoneNumber,
+          password
+        );
+        setIsAuthenticated(true);
+        setUserData(AuthService.getUserData());
+        return response;
+      } catch (err) {
+        const axiosError = err as AxiosError<{ message?: string }>;
+        const errorMessage =
+          axiosError.response?.data?.message ||
+          (err instanceof Error ? err.message : "Login failed");
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /**
+   * Logout user
+   */
+  const logout = useCallback(() => {
     if (
       typeof window === "undefined" ||
       process.env.NEXT_PUBLIC_SKIP_ADMIN_PAGES === "true"
@@ -78,7 +102,7 @@ export function useAuth(): UseAuthResult {
     AuthService.logout();
     setIsAuthenticated(false);
     setUserData(null);
-  };
+  }, []);
 
   return {
     login,
@@ -87,6 +111,7 @@ export function useAuth(): UseAuthResult {
     userData,
     loading,
     error,
+    clearError,
   };
 }
 

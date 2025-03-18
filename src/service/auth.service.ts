@@ -1,88 +1,121 @@
 import { LoginRequest, LoginResponse } from "../api/generated";
 import { authApi } from "../api/services";
+import { AxiosError } from "axios";
 
-// Helper kiểm tra nếu đang ở môi trường browser
-const isBrowser = () => typeof window !== "undefined";
-
-// Lưu token vào localStorage
-const saveToken = (token: string) => {
-  if (isBrowser()) {
-    localStorage.setItem("token", token);
-  }
+// Type definitions
+export type AuthError = {
+  message: string;
+  code?: string;
 };
 
-// Lưu refreshToken vào localStorage
-const saveRefreshToken = (refreshToken: string) => {
-  if (isBrowser()) {
-    localStorage.setItem("refreshToken", refreshToken);
-  }
+/**
+ * Check if code is running in browser environment
+ */
+const isBrowser = (): boolean => typeof window !== "undefined";
+
+/**
+ * Save authentication token to localStorage
+ */
+const saveToken = (token: string): void => {
+  if (!isBrowser()) return;
+  localStorage.setItem("token", token);
 };
 
-// Lưu thông tin người dùng vào localStorage
-const saveUserData = (userData: Partial<LoginResponse>) => {
-  if (isBrowser()) {
-    localStorage.setItem("userData", JSON.stringify(userData));
-  }
+/**
+ * Save refresh token to localStorage
+ */
+const saveRefreshToken = (refreshToken: string): void => {
+  if (!isBrowser()) return;
+  localStorage.setItem("refreshToken", refreshToken);
 };
 
-// Kiểm tra xem người dùng đã đăng nhập chưa
+/**
+ * Save user data to localStorage
+ */
+const saveUserData = (userData: Partial<LoginResponse>): void => {
+  if (!isBrowser()) return;
+  localStorage.setItem("userData", JSON.stringify(userData));
+};
+
+/**
+ * Check if user is authenticated
+ */
 const isAuthenticated = (): boolean => {
   if (!isBrowser()) return false;
   const token = localStorage.getItem("token");
   return !!token;
 };
 
-// Lấy token từ localStorage
+/**
+ * Get authentication token from localStorage
+ */
 const getToken = (): string => {
   if (!isBrowser()) return "";
   return localStorage.getItem("token") || "";
 };
 
-// Lấy refreshToken từ localStorage
+/**
+ * Get refresh token from localStorage
+ */
 const getRefreshToken = (): string => {
   if (!isBrowser()) return "";
   return localStorage.getItem("refreshToken") || "";
 };
 
-// Lấy thông tin người dùng từ localStorage
+/**
+ * Get user data from localStorage
+ */
 const getUserData = (): Partial<LoginResponse> | null => {
   if (!isBrowser()) return null;
-  const userData = localStorage.getItem("userData");
-  if (userData) {
+
+  try {
+    const userData = localStorage.getItem("userData");
+    if (!userData) return null;
     return JSON.parse(userData);
-  }
-  return null;
-};
-
-// Hàm xóa cookie
-const deleteCookie = (name: string) => {
-  if (isBrowser()) {
-    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  } catch (error) {
+    console.error("Error parsing user data from localStorage:", error);
+    return null;
   }
 };
 
-// Đăng xuất
-const logout = () => {
-  if (isBrowser()) {
-    // Xóa dữ liệu từ localStorage
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("userData");
-
-    // Xóa cookie
-    deleteCookie("token");
-    deleteCookie("userData");
-
-    // Chuyển hướng về trang đăng nhập
-    window.location.href = "/login";
-  }
+/**
+ * Delete browser cookie
+ */
+const deleteCookie = (name: string): void => {
+  if (!isBrowser()) return;
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 };
 
-// Đăng nhập
+/**
+ * Logout user and clear all authentication data
+ */
+const logout = (): void => {
+  if (!isBrowser()) return;
+
+  // Clear localStorage
+  localStorage.removeItem("token");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("userData");
+
+  // Clear cookies
+  deleteCookie("token");
+  deleteCookie("userData");
+
+  // Redirect to login page
+  window.location.href = "/login";
+};
+
+/**
+ * Login user with username/phone number and password
+ */
 const login = async (
   usernameOrPhoneNumber: string,
   password: string
 ): Promise<LoginResponse> => {
+  if (!isBrowser() || process.env.NEXT_PUBLIC_SKIP_ADMIN_PAGES === "true") {
+    return {} as LoginResponse;
+  }
+
   try {
     const loginRequest: LoginRequest = {
       usernameOrPhoneNumber,
@@ -91,6 +124,10 @@ const login = async (
 
     const response = await authApi.apiV1LoginPost(loginRequest);
     const data = response.data;
+
+    if (!data) {
+      throw new Error("Invalid server response");
+    }
 
     if (data.token) {
       saveToken(data.token);
@@ -111,35 +148,37 @@ const login = async (
 
     return data;
   } catch (error) {
-    throw error;
+    const axiosError = error as AxiosError<{ message?: string }>;
+    const errorMessage = axiosError.response?.data?.message || "Login failed";
+    throw new Error(errorMessage);
   }
 };
 
-// Làm mới token khi token hiện tại hết hạn
+/**
+ * Refresh authentication token using refresh token
+ */
 const refreshToken = async (): Promise<boolean> => {
+  if (!isBrowser()) return false;
+
+  const currentRefreshToken = getRefreshToken();
+  if (!currentRefreshToken) return false;
+
   try {
-    const currentRefreshToken = getRefreshToken();
-
-    if (!currentRefreshToken) {
-      return false;
-    }
-
-    // Gọi API làm mới token (cần thêm khi có API sẵn)
+    // Implementation would need to be updated when refresh token API is available
     // const response = await authApi.apiV1RefreshTokenPost({ refreshToken: currentRefreshToken });
-
-    // Nếu có API refresh token, thay thế đoạn code dưới đây
-    // Giả sử response.data chứa token mới và refreshToken mới
     // saveToken(response.data.token);
     // saveRefreshToken(response.data.refreshToken);
 
     return true;
   } catch {
-    // Nếu không làm mới được token, đăng xuất người dùng
     logout();
     return false;
   }
 };
 
+/**
+ * Auth service implementation
+ */
 const AuthService = {
   login,
   logout,
@@ -149,12 +188,13 @@ const AuthService = {
   refreshToken,
   getRefreshToken,
 
-  // Phương thức kiểm tra phiên đăng nhập và xử lý tự động chuyển hướng
-  checkSession: () => {
+  /**
+   * Check user session and redirect if not authenticated
+   */
+  checkSession: (): boolean => {
     if (!isBrowser()) return false;
 
     if (!isAuthenticated()) {
-      // Nếu không có token, chuyển hướng đến trang đăng nhập
       window.location.href = "/login";
       return false;
     }
