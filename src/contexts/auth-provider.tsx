@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  ReactNode,
+  useMemo,
+} from "react";
 import { LoginResponse } from "@/api/generated";
 import { useRouter } from "next/navigation";
 import useAuthStore, { initializeAuthStore } from "@/store/auth-store";
@@ -62,7 +68,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     logout: storeLogout,
   } = useAuthStore();
 
-  // Initialize auth state on client-side
+  // Initialize auth state on client-side once on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       initializeAuthStore();
@@ -71,6 +77,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   /**
    * Refresh authentication state
+   * This will only refresh if more than 5 minutes have passed since last check
    */
   const refreshAuth = () => {
     if (typeof window === "undefined") return;
@@ -100,18 +107,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     router.push("/login");
   };
 
-  // Check for token expiration or changes
+  // Check for token expiration or changes (optimized to reduce frequency)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Refresh auth state when focused
-    const handleFocus = () => refreshAuth();
+    // Refresh auth state when focused, but not on every focus event
+    let lastFocusTime = Date.now();
+    const FOCUS_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+
+    const handleFocus = () => {
+      const now = Date.now();
+      if (now - lastFocusTime > FOCUS_THRESHOLD) {
+        refreshAuth();
+        lastFocusTime = now;
+      }
+    };
+
     window.addEventListener("focus", handleFocus);
 
-    // Check auth state periodically (every 15 minutes)
-    const intervalId = setInterval(refreshAuth, 15 * 60 * 1000);
+    // Check auth state periodically (every 30 minutes instead of 15)
+    const intervalId = setInterval(refreshAuth, 30 * 60 * 1000);
 
-    // Listen for storage changes
+    // Listen for storage changes (this can't be optimized as we need to respond to all storage changes)
     const handleStorageChange = (e: StorageEvent) => {
       if (
         e.key === "token" ||
@@ -131,16 +148,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
   }, []);
 
-  // Context value
-  const contextValue: AuthContextType = {
-    isAuthenticated,
-    userData,
-    isLoading,
-    error,
-    login,
-    logout,
-    refreshAuth,
-  };
+  // Memoize the context value to prevent unnecessary rerenders
+  const contextValue = useMemo(
+    () => ({
+      isAuthenticated,
+      userData,
+      isLoading,
+      error,
+      login,
+      logout,
+      refreshAuth,
+    }),
+    [isAuthenticated, userData, isLoading, error]
+  );
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -3,6 +3,7 @@ import "../styles/globals.css";
 import { AuthProvider } from "@/contexts/auth-provider";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { QueryProvider } from "@/providers/query-provider";
 
 export const metadata = {
   title: "DOCA",
@@ -29,14 +30,16 @@ export default function RootLayout({
     <html lang="vi" className={poppins.className}>
       <body className="bg-white mx-auto">
         <AuthProvider>
-          {children}
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            limit={1}
-            newestOnTop={true}
-            pauseOnFocusLoss={false}
-          />
+          <QueryProvider>
+            {children}
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              limit={1}
+              newestOnTop={true}
+              pauseOnFocusLoss={false}
+            />
+          </QueryProvider>
         </AuthProvider>
       </body>
     </html>

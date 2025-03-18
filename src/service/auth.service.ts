@@ -8,33 +8,65 @@ export type AuthError = {
   code?: string;
 };
 
+// Cache for auth data to reduce localStorage calls
+const authCache = {
+  token: null as string | null,
+  refreshToken: null as string | null,
+  userData: null as Partial<LoginResponse> | null,
+  isAuthCacheInitialized: false,
+};
+
+/**
+ * Initialize auth cache from localStorage
+ */
+const initializeAuthCache = (): void => {
+  if (typeof window === "undefined" || authCache.isAuthCacheInitialized) return;
+
+  authCache.token = localStorage.getItem("token");
+  authCache.refreshToken = localStorage.getItem("refreshToken");
+
+  try {
+    const userDataJson = localStorage.getItem("userData");
+    authCache.userData = userDataJson ? JSON.parse(userDataJson) : null;
+  } catch (error) {
+    console.error("Error parsing user data from localStorage:", error);
+    authCache.userData = null;
+  }
+
+  authCache.isAuthCacheInitialized = true;
+};
+
 /**
  * Check if code is running in browser environment
  */
 const isBrowser = (): boolean => typeof window !== "undefined";
 
 /**
- * Save authentication token to localStorage
+ * Save authentication token to localStorage and cache
  */
 const saveToken = (token: string): void => {
   if (!isBrowser()) return;
   localStorage.setItem("token", token);
+  authCache.token = token;
 };
 
 /**
- * Save refresh token to localStorage
+ * Save refresh token to localStorage and cache
  */
 const saveRefreshToken = (refreshToken: string): void => {
   if (!isBrowser()) return;
   localStorage.setItem("refreshToken", refreshToken);
+  authCache.refreshToken = refreshToken;
 };
 
 /**
- * Save user data to localStorage
+ * Save user data to localStorage and cache
  */
 const saveUserData = (userData: Partial<LoginResponse>): void => {
   if (!isBrowser()) return;
-  localStorage.setItem("userData", JSON.stringify(userData));
+  const userDataJson = JSON.stringify(userData);
+  localStorage.setItem("userData", userDataJson);
+  authCache.userData = userData;
 };
 
 /**
@@ -42,40 +74,51 @@ const saveUserData = (userData: Partial<LoginResponse>): void => {
  */
 const isAuthenticated = (): boolean => {
   if (!isBrowser()) return false;
-  const token = localStorage.getItem("token");
-  return !!token;
+
+  if (!authCache.isAuthCacheInitialized) {
+    initializeAuthCache();
+  }
+
+  return !!authCache.token;
 };
 
 /**
- * Get authentication token from localStorage
+ * Get authentication token from cache/localStorage
  */
 const getToken = (): string => {
   if (!isBrowser()) return "";
-  return localStorage.getItem("token") || "";
+
+  if (!authCache.isAuthCacheInitialized) {
+    initializeAuthCache();
+  }
+
+  return authCache.token || "";
 };
 
 /**
- * Get refresh token from localStorage
+ * Get refresh token from cache/localStorage
  */
 const getRefreshToken = (): string => {
   if (!isBrowser()) return "";
-  return localStorage.getItem("refreshToken") || "";
+
+  if (!authCache.isAuthCacheInitialized) {
+    initializeAuthCache();
+  }
+
+  return authCache.refreshToken || "";
 };
 
 /**
- * Get user data from localStorage
+ * Get user data from cache/localStorage
  */
 const getUserData = (): Partial<LoginResponse> | null => {
   if (!isBrowser()) return null;
 
-  try {
-    const userData = localStorage.getItem("userData");
-    if (!userData) return null;
-    return JSON.parse(userData);
-  } catch (error) {
-    console.error("Error parsing user data from localStorage:", error);
-    return null;
+  if (!authCache.isAuthCacheInitialized) {
+    initializeAuthCache();
   }
+
+  return authCache.userData;
 };
 
 /**
@@ -96,6 +139,11 @@ const logout = (): void => {
   localStorage.removeItem("token");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("userData");
+
+  // Clear cache
+  authCache.token = null;
+  authCache.refreshToken = null;
+  authCache.userData = null;
 
   // Clear cookies
   deleteCookie("token");
@@ -190,6 +238,7 @@ const AuthService = {
 
   /**
    * Check user session and redirect if not authenticated
+   * This is an optimized version that uses the cache
    */
   checkSession: (): boolean => {
     if (!isBrowser()) return false;
@@ -201,5 +250,10 @@ const AuthService = {
     return true;
   },
 };
+
+// Initialize cache on import
+if (isBrowser()) {
+  initializeAuthCache();
+}
 
 export default AuthService;

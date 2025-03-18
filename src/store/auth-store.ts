@@ -16,6 +16,7 @@ interface AuthState {
   // Loading and error states
   isLoading: boolean;
   error: string | null;
+  lastChecked: number | null;
 
   // Auth actions
   login: (
@@ -24,7 +25,11 @@ interface AuthState {
   ) => Promise<LoginResponse>;
   logout: () => void;
   clearError: () => void;
+  updateLastChecked: () => void;
 }
+
+// Time threshold for auth checks (5 minutes)
+const AUTH_CHECK_THRESHOLD = 5 * 60 * 1000;
 
 /**
  * Zustand store for authentication state
@@ -38,6 +43,7 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isLoading: false,
       error: null,
+      lastChecked: null,
 
       /**
        * Login user with username/phone number and password
@@ -60,6 +66,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             userData: AuthService.getUserData(),
             token: AuthService.getToken(),
+            lastChecked: Date.now(),
           });
 
           return response;
@@ -90,6 +97,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           userData: null,
           token: null,
+          lastChecked: Date.now(),
         });
       },
 
@@ -99,6 +107,13 @@ export const useAuthStore = create<AuthState>()(
       clearError: () => {
         set({ error: null });
       },
+
+      /**
+       * Update the last checked timestamp
+       */
+      updateLastChecked: () => {
+        set({ lastChecked: Date.now() });
+      },
     }),
     {
       name: "doca-auth-storage",
@@ -106,6 +121,7 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         userData: state.userData,
         token: state.token,
+        lastChecked: state.lastChecked,
       }),
     }
   )
@@ -113,22 +129,46 @@ export const useAuthStore = create<AuthState>()(
 
 /**
  * Initialize auth store with data from AuthService
- * Should be called on app init
+ * Should be called on app init with throttling
  */
 export const initializeAuthStore = () => {
   if (typeof window === "undefined") {
     return;
   }
 
-  const isAuthenticated = AuthService.isAuthenticated();
-  const userData = AuthService.getUserData();
-  const token = AuthService.getToken();
+  const state = useAuthStore.getState();
+  const now = Date.now();
 
-  useAuthStore.setState({
-    isAuthenticated,
-    userData,
-    token,
-  });
+  // Skip revalidation if checked recently (within 5 minutes)
+  if (state.lastChecked && now - state.lastChecked < AUTH_CHECK_THRESHOLD) {
+    return;
+  }
+
+  // If token exists in localStorage but not in state, update state
+  const isAuthenticated = AuthService.isAuthenticated();
+
+  if (isAuthenticated) {
+    const userData = AuthService.getUserData();
+    const token = AuthService.getToken();
+
+    useAuthStore.setState({
+      isAuthenticated,
+      userData,
+      token,
+      lastChecked: now,
+    });
+  } else if (state.isAuthenticated) {
+    // If state says authenticated but localStorage doesn't, update state
+    useAuthStore.setState({
+      isAuthenticated: false,
+      userData: null,
+      token: null,
+      lastChecked: now,
+    });
+  } else {
+    // Just update the lastChecked timestamp
+    useAuthStore.getState().updateLastChecked();
+  }
 };
 
 export default useAuthStore;

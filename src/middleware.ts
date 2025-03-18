@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { API_CORS_HEADERS } from "./utils/api-config";
 
-// Danh sách các đường dẫn cần kiểm tra khi ứng dụng đang chạy thực tế
+// Protected paths that require authentication
 const PROTECTED_PATHS = [
   "/admin",
   "/products-management",
@@ -11,139 +11,137 @@ const PROTECTED_PATHS = [
   "/users-management",
 ];
 
-// Danh sách các đường dẫn dành cho người dùng đã đăng nhập
+// Authentication paths for unauthenticated users
 const AUTH_PATHS = ["/login", "/signup", "/forgot-password"];
 
-// Danh sách các API paths không cần xác thực
+// API paths that don't require authentication
 const API_PATHS = ["/api/", "/swagger/", "/next/data/"];
 
 // Danh sách các IP được phép truy cập admin (tùy chọn)
 // const ALLOWED_IPS = ['127.0.0.1', '::1']; // Chỉ localhost
 
-// Middleware đơn giản chỉ chạy trong môi trường production thực tế
+// Middleware function
 export function middleware(request: NextRequest) {
-  // Lấy đường dẫn hiện tại
+  // Get current path
   const { pathname } = request.nextUrl;
 
-  console.log("Middleware xử lý đường dẫn:", pathname);
-
-  // Kiểm tra nếu đây là request API
+  // Check if this is an API request
   const isApiRequest = API_PATHS.some((path) => pathname.startsWith(path));
 
-  // Nếu là API request, thêm CORS headers và cho phép request tiếp tục
+  // If it's an API request, add CORS headers and continue
   if (isApiRequest) {
-    const response = NextResponse.next();
-
-    // Thêm CORS headers
-    Object.keys(API_CORS_HEADERS).forEach((key) => {
-      response.headers.set(
-        key,
-        API_CORS_HEADERS[key as keyof typeof API_CORS_HEADERS]
-      );
-    });
-
-    return response;
+    return handleApiRequest();
   }
 
-  // Kiểm tra request method OPTIONS (CORS preflight)
+  // Handle OPTIONS request (CORS preflight)
   if (request.method === "OPTIONS") {
-    const response = new NextResponse(null, { status: 200 });
-    Object.keys(API_CORS_HEADERS).forEach((key) => {
-      response.headers.set(
-        key,
-        API_CORS_HEADERS[key as keyof typeof API_CORS_HEADERS]
-      );
-    });
-    return response;
+    return handleOptionsRequest();
   }
 
-  // Không thực hiện bất kỳ redirect nào trong quá trình build
-  // Khi chạy build trên máy local: NODE_ENV=production
-  // Khi chạy build trên Vercel: NODE_ENV=production và có VERCEL=1
-  if (
-    process.env.NODE_ENV === "production" &&
-    process.env.NEXT_PHASE === "phase-production-build"
-  ) {
+  // Skip during build process
+  if (isInBuildProcess()) {
     return NextResponse.next();
   }
 
-  // Lấy token từ cookie
+  // Get authentication state
   const token = request.cookies.get("token")?.value;
   const isAuthenticated = !!token;
 
-  console.log(
-    "Auth state:",
-    isAuthenticated ? "Đã đăng nhập" : "Chưa đăng nhập"
-  );
-
-  // Kiểm tra xem đường dẫn có nằm trong danh sách bảo vệ không
+  // Check if the path is protected
   const isProtectedPath = PROTECTED_PATHS.some((path) =>
     pathname.startsWith(path)
   );
 
-  // Kiểm tra xem đường dẫn có nằm trong danh sách dành cho người dùng chưa đăng nhập không
+  // Check if the path is for authentication
   const isAuthPath = AUTH_PATHS.some((path) => pathname.startsWith(path));
 
-  // Nếu đường dẫn được bảo vệ và người dùng chưa đăng nhập
+  // If protected path and not authenticated, redirect to login
   if (isProtectedPath && !isAuthenticated) {
-    // Chuyển hướng về trang đăng nhập
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.search = "";
-    console.log("Chuyển hướng đến trang đăng nhập:", loginUrl.toString());
-    return NextResponse.redirect(loginUrl);
+    return redirectToLogin(request);
   }
 
-  // Nếu người dùng đã đăng nhập và đang truy cập trang đăng nhập/đăng ký
+  // If authenticated and accessing auth paths, redirect to appropriate page
   if (isAuthPath && isAuthenticated) {
-    // Lấy thông tin người dùng từ cookie
-    let isAdmin = false;
-    let userRole = "USER";
-    try {
-      const userDataCookie = request.cookies.get("userData")?.value;
-      if (userDataCookie) {
-        const userData = JSON.parse(decodeURIComponent(userDataCookie));
-        userRole = userData.role || "USER";
-        isAdmin = userRole === "ADMIN" || userData.username === "admin";
-        console.log("Thông tin người dùng:", {
-          username: userData.username,
-          role: userRole,
-          isAdmin,
-        });
-      } else {
-        console.log("Không tìm thấy cookie userData mặc dù đã xác thực");
-      }
-    } catch (error) {
-      console.error("Lỗi khi phân tích userData:", error);
-    }
-
-    // Chuyển hướng đến trang phù hợp dựa trên vai trò
-    if (isAdmin) {
-      const redirectUrl = new URL("/admin", request.url);
-      console.log("Chuyển hướng admin đến:", redirectUrl.toString());
-      return NextResponse.redirect(redirectUrl);
-    } else {
-      const redirectUrl = new URL("/", request.url);
-      console.log("Chuyển hướng người dùng đến:", redirectUrl.toString());
-      return NextResponse.redirect(redirectUrl);
-    }
+    return redirectAuthenticated(request);
   }
 
-  // Thêm header bảo mật cơ bản
-  const response = NextResponse.next();
-  response.headers.set("X-Content-Type-Options", "nosniff");
+  // Add security headers to all responses
+  return addSecurityHeaders();
+}
 
-  // Thêm CORS headers vào tất cả các response
+// Handle API requests
+function handleApiRequest() {
+  const response = NextResponse.next();
+  addCorsHeaders(response);
+  return response;
+}
+
+// Handle OPTIONS requests
+function handleOptionsRequest() {
+  const response = new NextResponse(null, { status: 200 });
+  addCorsHeaders(response);
+  return response;
+}
+
+// Add CORS headers to response
+function addCorsHeaders(response: NextResponse) {
   Object.keys(API_CORS_HEADERS).forEach((key) => {
     response.headers.set(
       key,
       API_CORS_HEADERS[key as keyof typeof API_CORS_HEADERS]
     );
   });
-
   return response;
 }
 
-// Chỉ áp dụng middleware cho các đường dẫn cần thiết
+// Check if running in build process
+function isInBuildProcess() {
+  return (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PHASE === "phase-production-build"
+  );
+}
+
+// Redirect to login page
+function redirectToLogin(request: NextRequest) {
+  const loginUrl = new URL("/login", request.url);
+  loginUrl.search = "";
+  return NextResponse.redirect(loginUrl);
+}
+
+// Redirect authenticated user based on role
+function redirectAuthenticated(request: NextRequest) {
+  // Extract user data
+  let isAdmin = false;
+  try {
+    const userDataCookie = request.cookies.get("userData")?.value;
+    if (userDataCookie) {
+      const userData = JSON.parse(decodeURIComponent(userDataCookie));
+      const userRole = userData.role || "USER";
+      isAdmin = userRole === "ADMIN" || userData.username === "admin";
+    }
+  } catch {
+    // If error parsing user data, assume regular user
+    isAdmin = false;
+  }
+
+  // Redirect based on role
+  if (isAdmin) {
+    return NextResponse.redirect(new URL("/admin", request.url));
+  } else {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+}
+
+// Add security headers
+function addSecurityHeaders() {
+  const response = NextResponse.next();
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  addCorsHeaders(response);
+  return response;
+}
+
+// Matcher for paths that need middleware
 export const config = {
   matcher: [
     // Admin routes

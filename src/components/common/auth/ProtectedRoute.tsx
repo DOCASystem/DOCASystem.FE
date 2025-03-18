@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, ReactNode } from "react";
+import { useEffect, ReactNode, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthService from "@/service/auth.service";
+import { useAuthContext } from "@/contexts/auth-provider";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -10,24 +11,34 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter();
+  const { isAuthenticated } = useAuthContext();
+  const [isChecking, setIsChecking] = useState(!isAuthenticated);
 
   useEffect(() => {
-    // Kiểm tra nếu người dùng chưa đăng nhập
-    if (!AuthService.isAuthenticated()) {
-      // Chuyển hướng về trang đăng nhập
-      router.push("/login");
+    // If already authenticated via context, skip check
+    if (isAuthenticated) {
+      setIsChecking(false);
+      return;
     }
-  }, [router]);
 
-  // Nếu người dùng đã đăng nhập, hiển thị nội dung
-  if (AuthService.isAuthenticated()) {
-    return <>{children}</>;
+    // Quick initial check from cache first
+    if (!AuthService.isAuthenticated()) {
+      router.push("/login");
+      return;
+    }
+
+    setIsChecking(false);
+  }, [isAuthenticated, router]);
+
+  // If still checking and not authenticated via context, show loading spinner
+  if (isChecking) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pink-doca"></div>
+      </div>
+    );
   }
 
-  // Có thể thêm loading spinner nếu đang kiểm tra
-  return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pink-doca"></div>
-    </div>
-  );
+  // Otherwise show content
+  return <>{children}</>;
 }
