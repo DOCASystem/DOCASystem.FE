@@ -14,9 +14,22 @@ const nextConfig = {
         protocol: "https",
         hostname: "s3-hcm5-r1.longvan.net",
       },
+      {
+        protocol: "https",
+        hostname: "**", // Cho phép tất cả domain https
+      },
+      {
+        protocol: "http",
+        hostname: "**", // Cho phép tất cả domain http
+      },
     ],
-    domains: ["localhost", "127.0.0.1", "s3-hcm5-r1.longvan.net"],
-    unoptimized: false,
+    domains: [
+      "localhost",
+      "127.0.0.1",
+      "s3-hcm5-r1.longvan.net",
+      "production.doca.love",
+    ],
+    unoptimized: true, // Sửa thành true để tránh lỗi tối ưu hóa hình ảnh trên production
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
     formats: ["image/webp"],

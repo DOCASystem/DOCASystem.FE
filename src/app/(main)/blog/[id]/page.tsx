@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { GetBlogDetailResponse } from "@/api/generated";
 import { BlogService } from "@/service/blog-service";
 import { useRouter } from "next/navigation";
@@ -18,10 +17,13 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
     const fetchBlogDetail = async () => {
       setLoading(true);
       try {
-        // Kiểm tra token trước khi gọi API
-        const token = localStorage.getItem("token");
+        // Tránh truy cập localStorage trong quá trình SSR
+        let token = "";
+        if (typeof window !== "undefined") {
+          token = localStorage.getItem("token") || "";
+        }
 
-        // Nếu không có token và API yêu cầu xác thực, sử dụng dữ liệu mẫu
+        // Nếu không có token hoặc chạy trong SSR, thử lấy dữ liệu mẫu
         if (!token) {
           console.warn("Không có token xác thực, sử dụng dữ liệu mẫu");
           try {
@@ -203,14 +205,10 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
         </header>
 
         <div className="relative w-full h-64 md:h-96 mb-8 rounded-lg overflow-hidden">
-          <Image
-            src="/images/blog-placeholder.png"
-            alt={blog.name || "Bài viết"}
-            fill
-            sizes="100%"
-            className="object-cover"
-            priority
-          />
+          {/* Sử dụng một div thông thường thay vì Image nếu gặp lỗi */}
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+            <span className="text-gray-500">Ảnh blog</span>
+          </div>
         </div>
 
         <div className="prose prose-lg max-w-none">

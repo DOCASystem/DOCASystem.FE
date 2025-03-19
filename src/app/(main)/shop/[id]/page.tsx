@@ -62,6 +62,11 @@ export default function ProductDetailPage({
       // Log ID sản phẩm để debug
       console.log(`Đang tải thông tin sản phẩm với ID: ${params.id}`);
 
+      // Kiểm tra môi trường client-side
+      if (typeof window === "undefined") {
+        throw new Error("Đang chạy trong SSR, sẽ tải lại ở client-side");
+      }
+
       // Lấy sản phẩm từ store
       const cachedProduct = getProduct(params.id);
 

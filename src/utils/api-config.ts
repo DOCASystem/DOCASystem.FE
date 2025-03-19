@@ -6,6 +6,8 @@
 const API_FALLBACK_URLS = [
   process.env.NEXT_PUBLIC_API_URL,
   "https://production.doca.love", // URL chính thức của API
+  "https://api.doca.love", // URL dự phòng
+  "https://doca-api.vercel.app", // URL dự phòng thứ 2
 ];
 
 // URL cơ sở của API (mặc định)
@@ -36,16 +38,27 @@ export const tryFallbackApiUrls = async () => {
     try {
       // Kiểm tra kết nối bằng cách truy cập API sản phẩm
       // thay vì health-check vì endpoint này có thể không tồn tại
-      const response = await fetch(`${url}/api/v1/products?page=1&size=1`, {
+      const apiUrl = `${url}/api/v1/products?page=1&size=1`;
+      console.log(`Thử kết nối tới: ${apiUrl}`);
+
+      const response = await fetch(apiUrl, {
         method: "GET",
         cache: "no-store",
         next: { revalidate: 0 },
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
       });
 
       if (response.ok) {
         console.log(`Kết nối thành công đến API URL: ${url}`);
         updateRealApiBaseUrl(url);
         return;
+      } else {
+        console.warn(
+          `Kết nối đến ${url} không thành công: ${response.status} ${response.statusText}`
+        );
       }
     } catch (error: unknown) {
       console.warn(
@@ -91,7 +104,16 @@ export const API_ENDPOINTS = {
     GET_ALL: "/api/v1/categories",
     GET_BY_ID: (id: string) => `/api/v1/categories/${id}`,
   },
-  // Thêm các endpoint khác khi cần
+  PRODUCTS: {
+    BASE: "/api/v1/products",
+    GET_ALL: "/api/v1/products",
+    GET_BY_ID: (id: string) => `/api/v1/products/${id}`,
+  },
+  BLOGS: {
+    BASE: "/api/v1/blogs",
+    GET_ALL: "/api/v1/blogs",
+    GET_BY_ID: (id: string) => `/api/v1/blogs/${id}`,
+  },
 };
 
 // Cấu hình CORS cho API
