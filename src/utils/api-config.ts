@@ -25,62 +25,84 @@ export const updateRealApiBaseUrl = (url: string) => {
   }
 };
 
+// Kiểm tra môi trường trước khi thực hiện các yêu cầu mạng
+const isClientSide = typeof window !== "undefined";
+const isProductionEnv = process.env.NODE_ENV === "production";
+
+// Hàm thử kết nối đến API URL cụ thể
+const testApiConnection = async (url: string): Promise<boolean> => {
+  if (!url) return false;
+
+  try {
+    console.log(
+      `[API Test] Thử kết nối tới: ${url}/api/v1/products?page=1&size=1`
+    );
+
+    const response = await fetch(`${url}/api/v1/products?page=1&size=1`, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.ok) {
+      console.log(`[API Test] ✅ Kết nối thành công đến: ${url}`);
+      return true;
+    } else {
+      console.warn(
+        `[API Test] ❌ Kết nối đến ${url} không thành công: ${response.status} ${response.statusText}`
+      );
+      return false;
+    }
+  } catch (error: unknown) {
+    console.warn(
+      `[API Test] ❌ Không thể kết nối đến: ${url}`,
+      error instanceof Error ? error.message : "Unknown error"
+    );
+    return false;
+  }
+};
+
 // Hàm thử kết nối đến các API URL dự phòng
 export const tryFallbackApiUrls = async () => {
-  // Chỉ thực hiện trên server-side
-  if (typeof window !== "undefined") return;
+  // Không thực hiện kiểm tra trên client-side để tránh lỗi
+  if (isClientSide) {
+    console.log(
+      "[API Config] Đang chạy trên client-side, bỏ qua kiểm tra API URL"
+    );
+    return;
+  }
 
-  console.log("Đang thử kết nối đến các API URL dự phòng...");
+  console.log("[API Config] Đang thử kết nối đến các API URL dự phòng...");
 
   for (const url of API_FALLBACK_URLS) {
     if (!url) continue;
 
-    try {
-      // Kiểm tra kết nối bằng cách truy cập API sản phẩm
-      // thay vì health-check vì endpoint này có thể không tồn tại
-      const apiUrl = `${url}/api/v1/products?page=1&size=1`;
-      console.log(`Thử kết nối tới: ${apiUrl}`);
-
-      const response = await fetch(apiUrl, {
-        method: "GET",
-        cache: "no-store",
-        next: { revalidate: 0 },
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok) {
-        console.log(`Kết nối thành công đến API URL: ${url}`);
-        updateRealApiBaseUrl(url);
-        return;
-      } else {
-        console.warn(
-          `Kết nối đến ${url} không thành công: ${response.status} ${response.statusText}`
-        );
-      }
-    } catch (error: unknown) {
-      console.warn(
-        `Không thể kết nối đến API URL: ${url}`,
-        error instanceof Error ? error.message : "Unknown error"
-      );
+    const isConnected = await testApiConnection(url);
+    if (isConnected) {
+      updateRealApiBaseUrl(url);
+      return;
     }
   }
 
-  console.log("Sử dụng API URL mặc định:", REAL_API_BASE_URL);
+  console.log(
+    "[API Config] ⚠️ Không thể kết nối đến bất kỳ API URL nào, sử dụng mặc định:",
+    REAL_API_BASE_URL
+  );
 };
 
-// Gọi hàm kiểm tra kết nối khi khởi động API routes
-if (typeof window === "undefined") {
+// Chỉ gọi hàm kiểm tra kết nối khi khởi động API routes trên server
+if (!isClientSide) {
   tryFallbackApiUrls().catch((err) => {
-    console.error("Lỗi khi thử kết nối đến các API URL:", err);
+    console.error("[API Config] Lỗi khi thử kết nối đến các API URL:", err);
   });
 }
 
 // Log URL API hiện tại khi ứng dụng khởi động
-if (typeof window !== "undefined") {
-  console.log("API URL hiện tại:", REAL_API_BASE_URL);
+if (isClientSide) {
+  console.log("[API Config] URL API hiện tại:", REAL_API_BASE_URL);
 }
 
 // URL của swagger spec
@@ -138,11 +160,23 @@ export const updateRealLoginApiUrl = (url: string) => {
   }
 };
 
-// Hàm tạo URL đầy đủ cho endpoint
+// Hàm tạo URL đầy đủ cho endpoint, với xử lý đặc biệt cho môi trường production
 export const getApiUrl = (endpoint: string): string => {
-  // Sử dụng URL login thực tế nếu là endpoint login
+  // Xử lý đặc biệt cho endpoint login
   if (endpoint === API_ENDPOINTS.AUTH.LOGIN && REAL_LOGIN_API_URL) {
     return REAL_LOGIN_API_URL;
+  }
+
+  // Trong môi trường production, cần đảm bảo sử dụng URL chính xác
+  if (isProductionEnv) {
+    const url = `${REAL_API_BASE_URL}${endpoint}`;
+
+    // Log URL để dễ debug khi có vấn đề
+    if (isClientSide) {
+      console.log(`[API Request] ${url}`);
+    }
+
+    return url;
   }
 
   return `${REAL_API_BASE_URL}${endpoint}`;
@@ -151,4 +185,26 @@ export const getApiUrl = (endpoint: string): string => {
 // Hàm kiểm tra xem mã HTTP có phải là thành công hay không
 export const isSuccessStatus = (status: number): boolean => {
   return status >= 200 && status < 300;
+};
+
+// Hàm trích xuất thông báo lỗi từ response
+export const extractErrorMessage = (error: unknown): string => {
+  if (!error) return "Đã xảy ra lỗi không xác định";
+
+  if (typeof error === "string") return error;
+
+  if (error instanceof Error) return error.message;
+
+  if (typeof error === "object" && error !== null) {
+    // @ts-ignore
+    if (error.message) return error.message;
+
+    // @ts-ignore
+    if (error.response?.data?.message) return error.response.data.message;
+
+    // @ts-ignore
+    if (error.response?.statusText) return error.response.statusText;
+  }
+
+  return "Đã xảy ra lỗi không xác định";
 };

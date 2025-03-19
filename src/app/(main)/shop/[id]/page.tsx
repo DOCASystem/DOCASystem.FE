@@ -8,6 +8,7 @@ import RecommendProducts from "@/components/sections/shop/recommend-products/rec
 import { useCartStore } from "@/store/cart-store";
 import { useProductStore } from "@/store/product-store";
 import { toast } from "react-toastify";
+import { extractErrorMessage } from "@/utils/api-config";
 
 // Định nghĩa interface ProductDetail để phù hợp với dữ liệu API trả về
 interface ProductImage {
@@ -55,32 +56,89 @@ export default function ProductDetailPage({
   // Lấy product từ product store
   const getProduct = useProductStore((state) => state.getProduct);
 
-  // Sửa để chỉ sử dụng product store
+  // Hàm trực tiếp gọi API để lấy sản phẩm theo ID
+  const fetchProductById = async (productId: string) => {
+    try {
+      console.log(
+        `[Product Detail] Đang gọi API trực tiếp để lấy sản phẩm ID: ${productId}`
+      );
+
+      // Tạo URL API trực tiếp để lấy sản phẩm
+      const apiUrl = `https://production.doca.love/api/v1/products/${productId}`;
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
+
+      // Kiểm tra xem API có trả về kết quả thành công không
+      if (response.ok) {
+        const data = await response.json();
+        console.log(
+          "[Product Detail] Lấy sản phẩm thành công từ API trực tiếp"
+        );
+        return data;
+      } else {
+        console.error(
+          `[Product Detail] API trả về lỗi: ${response.status} ${response.statusText}`
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error("[Product Detail] Lỗi khi gọi API trực tiếp:", error);
+      return null;
+    }
+  };
+
+  // Sửa để thử nhiều cách để lấy sản phẩm
   const fetchProductDetail = useCallback(async () => {
     setLoading(true);
     try {
       // Log ID sản phẩm để debug
-      console.log(`Đang tải thông tin sản phẩm với ID: ${params.id}`);
+      console.log(
+        `[Product Detail] Đang tải thông tin sản phẩm với ID: ${params.id}`
+      );
 
       // Kiểm tra môi trường client-side
       if (typeof window === "undefined") {
-        throw new Error("Đang chạy trong SSR, sẽ tải lại ở client-side");
+        console.log(
+          "[Product Detail] Đang chạy trong SSR, sẽ tải lại ở client-side"
+        );
+        setLoading(false);
+        return;
       }
 
-      // Lấy sản phẩm từ store
+      // Cách 1: Lấy sản phẩm từ store
       const cachedProduct = getProduct(params.id);
 
       if (cachedProduct) {
-        console.log("Sử dụng thông tin sản phẩm từ store:", cachedProduct);
+        console.log(
+          "[Product Detail] Sử dụng thông tin sản phẩm từ store:",
+          cachedProduct
+        );
         setProduct(cachedProduct as ProductDetail);
         setIsFromCache(true);
         setLoading(false);
         return;
       }
 
-      // Nếu không có trong store, thử dùng ProductService
+      // Cách 2: Thử gọi API trực tiếp để lấy chi tiết sản phẩm
+      const directApiProduct = await fetchProductById(params.id);
+      if (directApiProduct) {
+        console.log("[Product Detail] Đã lấy sản phẩm từ API trực tiếp");
+        setProduct(directApiProduct);
+        setIsFromCache(false);
+        setLoading(false);
+        return;
+      }
+
+      // Cách 3: Nếu không có trong store và không lấy được từ API trực tiếp, thử dùng ProductService
       try {
-        console.log("Thử dùng ProductService để tìm sản phẩm...");
+        console.log(
+          "[Product Detail] Thử dùng ProductService để tìm sản phẩm..."
+        );
         const serviceResponse = await ProductService.getProducts({
           page: 1,
           size: 50, // Lấy nhiều sản phẩm để có khả năng tìm thấy sản phẩm cần
@@ -97,7 +155,10 @@ export default function ProductDetailPage({
           );
 
           if (foundProduct) {
-            console.log("Đã tìm thấy sản phẩm từ danh sách:", foundProduct);
+            console.log(
+              "[Product Detail] Đã tìm thấy sản phẩm từ danh sách:",
+              foundProduct
+            );
             setProduct(foundProduct as ProductDetail);
             setIsFromCache(false);
             setLoading(false);
@@ -105,14 +166,17 @@ export default function ProductDetailPage({
           }
         }
       } catch (serviceError) {
-        console.error("Lỗi khi dùng ProductService:", serviceError);
+        console.error(
+          "[Product Detail] Lỗi khi dùng ProductService:",
+          serviceError
+        );
       }
 
       // Nếu không tìm thấy sản phẩm
       throw new Error("Không tìm thấy thông tin sản phẩm");
     } catch (err: unknown) {
-      console.error("Chi tiết lỗi khi tải sản phẩm:", err);
-      setError("Không thể tải thông tin sản phẩm");
+      console.error("[Product Detail] Chi tiết lỗi khi tải sản phẩm:", err);
+      setError(extractErrorMessage(err) || "Không thể tải thông tin sản phẩm");
     } finally {
       setLoading(false);
     }
@@ -146,7 +210,7 @@ export default function ProductDetailPage({
         // Hiển thị thông báo thành công
         toast.success("Đã thêm sản phẩm vào giỏ hàng");
       } catch (err: unknown) {
-        console.error("Lỗi khi thêm vào giỏ hàng:", err);
+        console.error("[Product Detail] Lỗi khi thêm vào giỏ hàng:", err);
         toast.error("Không thể thêm sản phẩm vào giỏ hàng");
       }
     }
@@ -259,14 +323,24 @@ export default function ProductDetailPage({
           {/* Phần ảnh sản phẩm */}
           <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm">
             <div className="relative aspect-square w-full rounded-lg overflow-hidden">
-              <Image
-                src={mainImage}
-                alt={product.name || "Sản phẩm"}
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
-                priority={true}
-              />
+              {/* Sử dụng div thay thế Image nếu gặp lỗi trong production */}
+              <div
+                className="w-full h-full bg-cover bg-center"
+                style={{ backgroundImage: `url('${mainImage}')` }}
+              >
+                <Image
+                  src={mainImage}
+                  alt={product.name || "Sản phẩm"}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-cover"
+                  priority={true}
+                  onError={(e) => {
+                    // Ẩn Image nếu có lỗi
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              </div>
             </div>
 
             {otherImages.length > 0 && (
@@ -274,7 +348,12 @@ export default function ProductDetailPage({
                 {otherImages.map((imgUrl, index) => (
                   <div
                     key={index}
-                    className="relative aspect-square w-full rounded-lg overflow-hidden"
+                    className="relative aspect-square w-full rounded-lg overflow-hidden bg-cover bg-center"
+                    style={{
+                      backgroundImage: `url('${
+                        imgUrl || "/images/food-test.png"
+                      }')`,
+                    }}
                   >
                     <Image
                       src={imgUrl || "/images/food-test.png"}
@@ -282,6 +361,10 @@ export default function ProductDetailPage({
                       fill
                       sizes="(max-width: 768px) 25vw, 12vw"
                       className="object-cover"
+                      onError={(e) => {
+                        // Ẩn Image nếu có lỗi
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
                     />
                   </div>
                 ))}
@@ -389,7 +472,10 @@ export default function ProductDetailPage({
       </div>
     );
   } catch (renderError: unknown) {
-    console.error("Lỗi khi render trang chi tiết sản phẩm:", renderError);
+    console.error(
+      "[Product Detail] Lỗi khi render trang chi tiết sản phẩm:",
+      renderError
+    );
     return (
       <div className="container mx-auto py-10 px-4 text-center">
         <div className="bg-white rounded-lg p-6 shadow-md max-w-lg mx-auto">
