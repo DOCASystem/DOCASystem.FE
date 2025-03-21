@@ -47,8 +47,19 @@ export default function RecommendProducts({
       // Gọi trực tiếp API sản phẩm thay vì qua proxy
       try {
         const token = getToken();
-        const apiUrl = `${REAL_API_BASE_URL}/api/v1/products?page=1&size=8`;
-        console.log(`Gọi API danh sách sản phẩm: ${apiUrl}`);
+
+        // Xác định baseURL tùy theo môi trường
+        let baseUrl = REAL_API_BASE_URL;
+        if (
+          typeof window !== "undefined" &&
+          window.location.hostname === "doca.love"
+        ) {
+          baseUrl = "https://doca.love";
+        }
+
+        const apiUrl = `${baseUrl}/api/v1/products?page=1&size=8`;
+        console.log(`[Recommend Products] Gọi API từ: ${baseUrl}`);
+        console.log(`[Recommend Products] URL đầy đủ: ${apiUrl}`);
 
         const headers: Record<string, string> = {
           "Content-Type": "application/json",

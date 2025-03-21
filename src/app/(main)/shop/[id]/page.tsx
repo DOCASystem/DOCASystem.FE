@@ -61,12 +61,22 @@ export default function ProductDetailPage({
         );
 
         // Tạo URL API để lấy sản phẩm
-        const apiUrl = `${
-          process.env.NEXT_PUBLIC_API_URL || "https://production.doca.love"
-        }/api/v1/products/${params.id}`;
+        let baseUrl = process.env.NEXT_PUBLIC_API_URL;
+        // Nếu URL hiện tại chứa doca.love (không phải production.doca.love)
+        if (
+          typeof window !== "undefined" &&
+          window.location.hostname === "doca.love"
+        ) {
+          baseUrl = "https://doca.love";
+        } else if (!baseUrl) {
+          baseUrl = "https://production.doca.love";
+        }
+
+        const apiUrl = `${baseUrl}/api/v1/products/${params.id}`;
 
         // Log URL cho debugging
-        console.log(`[Product Detail] Gọi API: ${apiUrl}`);
+        console.log(`[Product Detail] Gọi API từ: ${baseUrl}`);
+        console.log(`[Product Detail] URL đầy đủ: ${apiUrl}`);
 
         const response = await fetch(apiUrl, {
           method: "GET",

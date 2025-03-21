@@ -5,8 +5,22 @@ import axios, {
 } from "axios";
 import AuthService from "../service/auth.service";
 
+// Xác định baseURL dựa trên môi trường
+let baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+// Trong client side, kiểm tra hostname để xác định API URL phù hợp
+if (typeof window !== "undefined") {
+  if (window.location.hostname === "doca.love") {
+    baseUrl = "https://doca.love";
+    console.log(
+      "[Axios Config] Phát hiện môi trường production Vercel, sử dụng baseURL:",
+      baseUrl
+    );
+  }
+}
+
 const axiosInstance = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api`,
+  baseURL: `${baseUrl}/api`,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

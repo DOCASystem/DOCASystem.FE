@@ -11,8 +11,22 @@ export interface ApiError {
   error?: string;
 }
 
+// Xác định baseURL dựa trên môi trường
+let baseApiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+
+// Trong client side, kiểm tra hostname để xác định API URL phù hợp
+if (typeof window !== "undefined") {
+  if (window.location.hostname === "doca.love") {
+    baseApiUrl = "https://doca.love";
+    console.log(
+      "[useApi] Phát hiện môi trường production Vercel, sử dụng baseURL:",
+      baseApiUrl
+    );
+  }
+}
+
 // Default base URL from environment variables
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || ""}/api`;
+const API_BASE_URL = `${baseApiUrl}/api`;
 
 /**
  * Custom hook for making API requests

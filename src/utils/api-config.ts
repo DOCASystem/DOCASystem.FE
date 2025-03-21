@@ -5,14 +5,33 @@
 // Danh sách các URL dự phòng theo thứ tự ưu tiên
 const API_FALLBACK_URLS = [
   process.env.NEXT_PUBLIC_API_URL,
+  "https://doca.love", // URL chính thức trên Vercel
   "https://production.doca.love", // URL chính thức của API
   "https://api.doca.love", // URL dự phòng
   "https://doca-api.vercel.app", // URL dự phòng thứ 2
 ];
 
+// Kiểm tra môi trường trước khi thực hiện các yêu cầu mạng
+const isClientSide = typeof window !== "undefined";
+
+// Kiểm tra nếu đang chạy trên môi trường production của Vercel
+const isVerccelProduction =
+  isClientSide && window.location.hostname === "doca.love";
+
 // URL cơ sở của API (mặc định)
-export const API_BASE_URL =
+let defaultApiUrl =
   API_FALLBACK_URLS.find((url) => url) || "https://production.doca.love";
+
+// Nếu đang ở môi trường Vercel production, ưu tiên sử dụng domain chính
+if (isVerccelProduction) {
+  defaultApiUrl = "https://doca.love";
+  console.log(
+    "[API Config] Phát hiện môi trường Vercel production, sử dụng URL:",
+    defaultApiUrl
+  );
+}
+
+export const API_BASE_URL = defaultApiUrl;
 
 // Chuẩn hóa URL API để tránh trùng lặp /api
 export const normalizeApiBaseUrl = (url: string): string => {
@@ -46,10 +65,6 @@ export const updateRealApiBaseUrl = (url: string) => {
     REAL_API_BASE_URL = normalizedUrl;
   }
 };
-
-// Kiểm tra môi trường trước khi thực hiện các yêu cầu mạng
-const isClientSide = typeof window !== "undefined";
-const isProductionEnv = process.env.NODE_ENV === "production";
 
 // Hàm thử kết nối đến API URL cụ thể
 const testApiConnection = async (url: string): Promise<boolean> => {
@@ -190,7 +205,7 @@ export const getApiUrl = (endpoint: string): string => {
   }
 
   // Trong môi trường production, cần đảm bảo sử dụng URL chính xác
-  if (isProductionEnv) {
+  if (isVerccelProduction) {
     const url = `${REAL_API_BASE_URL}${endpoint}`;
 
     // Log URL để dễ debug khi có vấn đề
