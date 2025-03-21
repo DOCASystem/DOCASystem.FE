@@ -14,14 +14,36 @@ const API_FALLBACK_URLS = [
 export const API_BASE_URL =
   API_FALLBACK_URLS.find((url) => url) || "https://production.doca.love";
 
+// Chuẩn hóa URL API để tránh trùng lặp /api
+export const normalizeApiBaseUrl = (url: string): string => {
+  if (!url) return url;
+
+  // Nếu URL đã kết thúc bằng /api, bỏ /api để tránh trùng lặp
+  if (url.endsWith("/api")) {
+    const normalizedUrl = url.substring(0, url.length - 4); // Bỏ /api
+    console.log(
+      `[API Config] Chuẩn hóa URL API, loại bỏ /api trùng lặp từ: ${url} -> ${normalizedUrl}`
+    );
+    return normalizedUrl;
+  }
+
+  return url;
+};
+
 // URL đích thực của API (sẽ được cập nhật từ Swagger)
-export let REAL_API_BASE_URL = API_BASE_URL;
+export let REAL_API_BASE_URL = normalizeApiBaseUrl(API_BASE_URL);
 
 // Hàm cập nhật URL API base thực tế
 export const updateRealApiBaseUrl = (url: string) => {
-  if (url && url !== REAL_API_BASE_URL) {
-    console.log(`Cập nhật URL API base từ: ${REAL_API_BASE_URL} sang: ${url}`);
-    REAL_API_BASE_URL = url;
+  if (!url) return;
+
+  const normalizedUrl = normalizeApiBaseUrl(url);
+
+  if (normalizedUrl && normalizedUrl !== REAL_API_BASE_URL) {
+    console.log(
+      `Cập nhật URL API base từ: ${REAL_API_BASE_URL} sang: ${normalizedUrl}`
+    );
+    REAL_API_BASE_URL = normalizedUrl;
   }
 };
 

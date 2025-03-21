@@ -45,8 +45,8 @@ export default function RelatedProducts({
 
         // Tạo URL API để lấy sản phẩm theo danh mục
         const apiUrl = `${
-          process.env.NEXT_PUBLIC_API_URL || "https://production.doca.love/api"
-        }/v1/products?page=1&size=5&categoryId=${categoryId}`;
+          process.env.NEXT_PUBLIC_API_URL || "https://production.doca.love"
+        }/api/v1/products?page=1&size=5&categoryId=${categoryId}`;
 
         console.log(`[Related Products] Gọi API: ${apiUrl}`);
 

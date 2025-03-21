@@ -62,9 +62,10 @@ export default function ProductDetailPage({
 
         // Tạo URL API để lấy sản phẩm
         const apiUrl = `${
-          process.env.NEXT_PUBLIC_API_URL || "https://production.doca.love/api"
-        }/v1/products/${params.id}`;
+          process.env.NEXT_PUBLIC_API_URL || "https://production.doca.love"
+        }/api/v1/products/${params.id}`;
 
+        // Log URL cho debugging
         console.log(`[Product Detail] Gọi API: ${apiUrl}`);
 
         const response = await fetch(apiUrl, {

@@ -50,8 +50,8 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
 
         // Tạo URL API để lấy blog
         const apiUrl = `${
-          process.env.NEXT_PUBLIC_API_URL || "https://production.doca.love/api"
-        }/v1/blogs/${params.id}`;
+          process.env.NEXT_PUBLIC_API_URL || "https://production.doca.love"
+        }/api/v1/blogs/${params.id}`;
 
         console.log(`[Blog Detail] Gọi API: ${apiUrl}`);
 

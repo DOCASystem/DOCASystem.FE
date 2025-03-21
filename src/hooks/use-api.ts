@@ -12,7 +12,7 @@ export interface ApiError {
 }
 
 // Default base URL from environment variables
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || ""}/api`;
 
 /**
  * Custom hook for making API requests
