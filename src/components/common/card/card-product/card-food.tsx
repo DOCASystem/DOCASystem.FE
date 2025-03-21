@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
 import { GetProductDetailResponse } from "@/api/generated";
 import { useCartStore } from "@/store/cart-store";
 import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 interface CardProductProps {
   product: GetProductDetailResponse;
@@ -13,6 +13,7 @@ interface CardProductProps {
 export default function CardProduct({ product }: CardProductProps) {
   // Lấy trực tiếp hàm addItem từ store, không cần định nghĩa type phức tạp
   const addItem = useCartStore((state) => state.addItem);
+  const router = useRouter();
 
   const defaultProduct = {
     id: "0",
@@ -52,9 +53,29 @@ export default function CardProduct({ product }: CardProductProps) {
     toast.success("Đã thêm sản phẩm vào giỏ hàng");
   };
 
+  // Xử lý click vào sản phẩm
+  const handleProductClick = (e: React.MouseEvent) => {
+    // Nếu không phải click vào nút thêm vào giỏ hàng
+    if (
+      (e.target as HTMLElement).closest("button[data-cart-button]") === null
+    ) {
+      e.preventDefault(); // Ngăn chặn hành vi mặc định của Link
+
+      // Log thông tin sản phẩm được chọn
+      const productId = product?.id || defaultProduct.id;
+      console.log(`[CardProduct] Đã chọn sản phẩm ID: ${productId}`);
+      console.log(
+        `[CardProduct] Sẽ gọi API: https://production.doca.love/api/v1/products/${productId}`
+      );
+
+      // Chuyển hướng đến trang chi tiết sản phẩm
+      router.push(`/shop/${productId}`);
+    }
+  };
+
   return (
     <div className="w-full border-2 border-slate-100 rounded-[20px]">
-      <Link href={`/shop/${product?.id || defaultProduct.id}`}>
+      <div onClick={handleProductClick} className="cursor-pointer">
         <div className="relative aspect-square">
           <Image
             src={mainImage}
@@ -73,6 +94,7 @@ export default function CardProduct({ product }: CardProductProps) {
               {formatPrice(product?.price || defaultProduct.prices)}
             </p>
             <button
+              data-cart-button="true"
               className="bg-pink-doca text-white p-2 rounded-full hover:bg-pink-600 transition-colors"
               onClick={handleAddToCart}
             >
@@ -96,7 +118,7 @@ export default function CardProduct({ product }: CardProductProps) {
             </button>
           </div>
         </div>
-      </Link>
+      </div>
     </div>
   );
 }

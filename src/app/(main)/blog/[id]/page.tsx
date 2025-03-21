@@ -196,13 +196,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
             <p className="mb-6 text-sm text-gray-600">{error.details}</p>
           )}
           {error?.status === 500 && (
-            <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-              <p className="text-sm text-yellow-700">
-                <strong>Lỗi máy chủ (500)</strong>: Máy chủ đang gặp sự cố. Nếu
-                bạn là nhà phát triển, vui lòng kiểm tra logs của backend để
-                biết thêm chi tiết.
-              </p>
-            </div>
+            <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200"></div>
           )}
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link

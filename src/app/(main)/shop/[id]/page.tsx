@@ -12,6 +12,15 @@ import RelatedProducts from "@/components/sections/shop/product-detail/related-p
 interface ProductImage {
   id: string;
   imageUrl: string;
+  isMain?: boolean;
+}
+
+interface ProductCategory {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  modifiedAt: string;
 }
 
 interface ProductDetail {
@@ -29,6 +38,9 @@ interface ProductDetail {
   modifiedAt: string;
   productImages: ProductImage[];
   salePrice?: number;
+  categories?: ProductCategory[];
+  volume?: number;
+  isHidden?: boolean;
 }
 
 // Interface cho API error response
@@ -62,7 +74,10 @@ export default function ProductDetailPage({
 
         // Sử dụng duy nhất 1 API URL
         const apiUrl = `https://production.doca.love/api/v1/products/${params.id}`;
-        console.log(`[Product Detail] Gọi API: ${apiUrl}`);
+        console.log(`[Product Detail] Gọi API trực tiếp: ${apiUrl}`);
+        console.log(
+          `[Product Detail] API URL không được ẩn đi cho mục đích debug`
+        );
 
         const response = await fetch(apiUrl, {
           method: "GET",
@@ -73,12 +88,24 @@ export default function ProductDetailPage({
           cache: "no-store",
         });
 
+        // Log thông tin response
+        console.log(
+          `[Product Detail] Response status: ${response.status} ${response.statusText}`
+        );
+
         // Lấy dữ liệu response
         const data = await response.json().catch(() => null);
 
         // Kiểm tra nếu response thành công
         if (response.ok && data) {
-          console.log(`[Product Detail] API thành công`);
+          console.log(`[Product Detail] API thành công, dữ liệu:`, {
+            id: data.id,
+            name: data.name,
+            price: data.price,
+            categories: data.categories
+              ?.map((c: { name: string }) => c.name)
+              .join(", "),
+          });
           setProduct(data);
         } else {
           console.error(
