@@ -100,6 +100,8 @@ export default function ProductDetailPage({
             `[Product Detail] Response status: ${response.status} ${response.statusText}`
           );
 
+          const textData = await response.text();
+          console.log(`[Product Detail] Response body:`, textData);
           // Lấy dữ liệu response một cách an toàn
           let data;
           try {
