@@ -73,52 +73,97 @@ export default function ProductDetailPage({
           `[Product Detail] Đang tải thông tin sản phẩm với ID: ${params.id}`
         );
 
-        // Gọi API từ production.doca.love
-        const apiUrl = `https://production.doca.love/api/v1/products/${params.id}`;
+        // Sử dụng API proxy internal thay vì gọi trực tiếp tới production API
+        const apiUrl = `/api/proxy/products/${params.id}`;
         console.log(`[Product Detail] Gọi API: ${apiUrl}`);
 
-        const response = await fetch(apiUrl, {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          cache: "no-store",
-        });
+        // Thêm timeout để tránh các vấn đề kết nối quá lâu
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 giây timeout
 
-        // Log thông tin response
-        console.log(
-          `[Product Detail] Response status: ${response.status} ${response.statusText}`
-        );
-
-        // Lấy dữ liệu response
-        const data = await response.json().catch(() => null);
-
-        // Kiểm tra nếu response thành công
-        if (response.ok && data) {
-          console.log(`[Product Detail] API thành công, dữ liệu:`, {
-            id: data.id,
-            name: data.name,
-            price: data.price,
-            categories: data.categories
-              ?.map((c: { name: string }) => c.name)
-              .join(", "),
+        try {
+          const response = await fetch(apiUrl, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            cache: "no-store",
+            signal: controller.signal,
           });
-          setProduct(data);
-        } else {
-          console.error(
-            `[Product Detail] API không thành công (${response.status}):`,
-            data
+
+          // Xóa timeout nếu request thành công
+          clearTimeout(timeoutId);
+
+          // Log thông tin response
+          console.log(
+            `[Product Detail] Response status: ${response.status} ${response.statusText}`
           );
 
-          // Xử lý các lỗi
-          const errorDetail = {
-            status: response.status,
-            message: data?.message || `Lỗi ${response.status} từ server`,
-            details: data?.details || `API trả về lỗi ${response.status}`,
-          };
+          // Lấy dữ liệu response một cách an toàn
+          let data;
+          try {
+            const textData = await response.text();
+            data = textData ? JSON.parse(textData) : null;
+          } catch (parseError) {
+            console.error("[Product Detail] Lỗi khi parse JSON:", parseError);
+            throw {
+              status: response.status,
+              message: "Lỗi xử lý dữ liệu từ server",
+              details: "Dữ liệu trả về không đúng định dạng JSON",
+            };
+          }
 
-          throw errorDetail;
+          // Kiểm tra nếu response thành công
+          if (response.ok && data) {
+            console.log(`[Product Detail] API thành công, dữ liệu:`, {
+              id: data.id,
+              name: data.name,
+              price: data.price,
+              categories: data.categories
+                ?.map((c: { name: string }) => c.name)
+                .join(", "),
+            });
+
+            // Đảm bảo data có đúng cấu trúc cần thiết
+            if (!data.id || !data.name) {
+              throw {
+                status: 500,
+                message: "Dữ liệu sản phẩm không đầy đủ",
+                details: "Sản phẩm trả về thiếu thông tin quan trọng",
+              };
+            }
+
+            setProduct(data);
+          } else {
+            console.error(
+              `[Product Detail] API không thành công (${response.status}):`,
+              data
+            );
+
+            // Xử lý các lỗi
+            const errorDetail = {
+              status: response.status,
+              message: data?.message || `Lỗi ${response.status} từ server`,
+              details: data?.details || `API trả về lỗi ${response.status}`,
+            };
+
+            throw errorDetail;
+          }
+        } catch (fetchError: unknown) {
+          if (
+            fetchError &&
+            typeof fetchError === "object" &&
+            "name" in fetchError &&
+            fetchError.name === "AbortError"
+          ) {
+            throw {
+              status: 408,
+              message: "Yêu cầu đã hết thời gian chờ",
+              details: "Server không phản hồi trong thời gian cho phép",
+            };
+          }
+          throw fetchError;
         }
       } catch (err: unknown) {
         console.error("[Product Detail] Chi tiết lỗi:", err);
@@ -228,8 +273,14 @@ export default function ProductDetailPage({
           {error?.status === 500 && (
             <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
               <p className="text-sm text-yellow-700">
-                Máy chủ đang gặp lỗi. Vui lòng thử lại sau.
+                Máy chủ đang gặp lỗi. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.
               </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 text-sm text-blue-600 hover:text-blue-800 underline"
+              >
+                Tải lại trang
+              </button>
             </div>
           )}
           <div className="flex justify-center">
