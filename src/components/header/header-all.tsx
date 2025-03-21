@@ -25,11 +25,7 @@ const nav = [
 ];
 
 // Thêm navigation cho admin và dev
-const adminNav = [
-  { id: 1, text: "Admin", path: "/admin" },
-  { id: 2, text: "API Monitor", path: "/api-monitor" },
-  { id: 3, text: "Test API", path: "/test-api" },
-];
+const adminNav = [{ id: 1, text: "Admin", path: "/admin" }];
 
 export default function Header() {
   const pathname = usePathname();

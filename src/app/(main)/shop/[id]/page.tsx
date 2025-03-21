@@ -1,42 +1,42 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { ProductService } from "@/service/product-service";
-import RecommendProducts from "@/components/sections/shop/recommend-products/recommend-products";
-import { useCartStore } from "@/store/cart-store";
-import { useProductStore } from "@/store/product-store";
+import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { extractErrorMessage } from "@/utils/api-config";
+import ImageGallery from "@/components/sections/shop/product-detail/image-gallery";
+import ProductInfo from "@/components/sections/shop/product-detail/product-info";
+import RelatedProducts from "@/components/sections/shop/product-detail/related-products";
 
-// Định nghĩa interface ProductDetail để phù hợp với dữ liệu API trả về
+// Định nghĩa interface cho Product Detail và các thành phần liên quan
 interface ProductImage {
   id: string;
   imageUrl: string;
-  isMain: boolean;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  description: string;
-  createdAt: string;
-  modifiedAt: string;
 }
 
 interface ProductDetail {
   id: string;
   name: string;
   description: string;
-  quantity: number;
-  volume: number;
   price: number;
+  quantity: number;
+  isAvailable: boolean;
+  status: string;
+  categoryId: string;
+  categoryName: string;
+  userId: string;
   createdAt: string;
   modifiedAt: string;
-  isHidden: boolean;
   productImages: ProductImage[];
-  categories: Category[];
+  salePrice?: number;
+}
+
+// Interface cho API error response
+interface ApiErrorDetail {
+  status: number;
+  message: string;
+  details?: string;
+  timestamp?: string;
 }
 
 export default function ProductDetailPage({
@@ -46,185 +46,148 @@ export default function ProductDetailPage({
 }) {
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [isFromCache, setIsFromCache] = useState(false);
+  const [error, setError] = useState<ApiErrorDetail | null>(null);
+  const router = useRouter();
 
-  // Lấy hàm addItem từ cart store
-  const addItem = useCartStore((state) => state.addItem);
+  // Sử dụng một phương thức duy nhất để lấy chi tiết sản phẩm
+  useEffect(() => {
+    const fetchProductDetail = async () => {
+      setLoading(true);
+      setError(null);
 
-  // Lấy product từ product store
-  const getProduct = useProductStore((state) => state.getProduct);
-
-  // Hàm trực tiếp gọi API để lấy sản phẩm theo ID
-  const fetchProductById = async (productId: string) => {
-    try {
-      console.log(
-        `[Product Detail] Đang gọi API trực tiếp để lấy sản phẩm ID: ${productId}`
-      );
-
-      // Tạo URL API trực tiếp để lấy sản phẩm
-      const apiUrl = `https://production.doca.love/api/v1/products/${productId}`;
-      const response = await fetch(apiUrl, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      });
-
-      // Kiểm tra xem API có trả về kết quả thành công không
-      if (response.ok) {
-        const data = await response.json();
-        console.log(
-          "[Product Detail] Lấy sản phẩm thành công từ API trực tiếp"
-        );
-        return data;
-      } else {
-        console.error(
-          `[Product Detail] API trả về lỗi: ${response.status} ${response.statusText}`
-        );
-        return null;
-      }
-    } catch (error) {
-      console.error("[Product Detail] Lỗi khi gọi API trực tiếp:", error);
-      return null;
-    }
-  };
-
-  // Sửa để thử nhiều cách để lấy sản phẩm
-  const fetchProductDetail = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Log ID sản phẩm để debug
-      console.log(
-        `[Product Detail] Đang tải thông tin sản phẩm với ID: ${params.id}`
-      );
-
-      // Kiểm tra môi trường client-side
-      if (typeof window === "undefined") {
-        console.log(
-          "[Product Detail] Đang chạy trong SSR, sẽ tải lại ở client-side"
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Cách 1: Lấy sản phẩm từ store
-      const cachedProduct = getProduct(params.id);
-
-      if (cachedProduct) {
-        console.log(
-          "[Product Detail] Sử dụng thông tin sản phẩm từ store:",
-          cachedProduct
-        );
-        setProduct(cachedProduct as ProductDetail);
-        setIsFromCache(true);
-        setLoading(false);
-        return;
-      }
-
-      // Cách 2: Thử gọi API trực tiếp để lấy chi tiết sản phẩm
-      const directApiProduct = await fetchProductById(params.id);
-      if (directApiProduct) {
-        console.log("[Product Detail] Đã lấy sản phẩm từ API trực tiếp");
-        setProduct(directApiProduct);
-        setIsFromCache(false);
-        setLoading(false);
-        return;
-      }
-
-      // Cách 3: Nếu không có trong store và không lấy được từ API trực tiếp, thử dùng ProductService
       try {
         console.log(
-          "[Product Detail] Thử dùng ProductService để tìm sản phẩm..."
+          `[Product Detail] Đang tải thông tin sản phẩm với ID: ${params.id}`
         );
-        const serviceResponse = await ProductService.getProducts({
-          page: 1,
-          size: 50, // Lấy nhiều sản phẩm để có khả năng tìm thấy sản phẩm cần
+
+        // Tạo URL API để lấy sản phẩm
+        const apiUrl = `${
+          process.env.NEXT_PUBLIC_API_URL || "https://production.doca.love/api"
+        }/v1/products/${params.id}`;
+
+        console.log(`[Product Detail] Gọi API: ${apiUrl}`);
+
+        const response = await fetch(apiUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
         });
 
-        if (
-          serviceResponse &&
-          serviceResponse.data &&
-          serviceResponse.data.items
-        ) {
-          // Tìm sản phẩm theo ID
-          const foundProduct = serviceResponse.data.items.find(
-            (item) => item.id === params.id
+        // Lấy dữ liệu response và kiểm tra status code
+        const responseData = await response.json().catch(() => null);
+
+        // Kiểm tra nếu response không thành công
+        if (!response.ok) {
+          console.error(
+            `[Product Detail] Lỗi API (${response.status}):`,
+            responseData
           );
 
-          if (foundProduct) {
-            console.log(
-              "[Product Detail] Đã tìm thấy sản phẩm từ danh sách:",
-              foundProduct
-            );
-            setProduct(foundProduct as ProductDetail);
-            setIsFromCache(false);
-            setLoading(false);
-            return;
+          // Xử lý các mã lỗi cụ thể
+          if (response.status === 404) {
+            throw {
+              status: 404,
+              message: "Không tìm thấy sản phẩm",
+              details: "Sản phẩm không tồn tại hoặc đã bị xóa.",
+            };
+          } else if (response.status === 500) {
+            throw {
+              status: 500,
+              message: "Lỗi máy chủ",
+              details:
+                "Máy chủ đang gặp sự cố khi xử lý yêu cầu. Vui lòng thử lại sau.",
+            };
+          } else if (response.status === 401 || response.status === 403) {
+            throw {
+              status: response.status,
+              message: "Không có quyền truy cập",
+              details:
+                "Bạn không có quyền xem sản phẩm này. Vui lòng đăng nhập hoặc liên hệ quản trị viên.",
+            };
+          } else {
+            throw {
+              status: response.status,
+              message: "Không thể tải thông tin sản phẩm",
+              details:
+                responseData?.message ||
+                "Đã xảy ra lỗi khi tải thông tin sản phẩm.",
+            };
           }
         }
-      } catch (serviceError) {
-        console.error(
-          "[Product Detail] Lỗi khi dùng ProductService:",
-          serviceError
-        );
-      }
 
-      // Nếu không tìm thấy sản phẩm
-      throw new Error("Không tìm thấy thông tin sản phẩm");
-    } catch (err: unknown) {
-      console.error("[Product Detail] Chi tiết lỗi khi tải sản phẩm:", err);
-      setError(extractErrorMessage(err) || "Không thể tải thông tin sản phẩm");
-    } finally {
-      setLoading(false);
-    }
-  }, [params.id, getProduct]);
-
-  // Chỉ phụ thuộc vào fetchProductDetail (đã được bọc trong useCallback)
-  useEffect(() => {
-    fetchProductDetail();
-  }, [fetchProductDetail]);
-
-  const handleAddToCart = () => {
-    if (product) {
-      try {
-        // Lấy URL ảnh chính của sản phẩm
-        const imageUrl =
-          product.productImages && product.productImages.length > 0
-            ? product.productImages.find((img) => img.isMain)?.imageUrl ||
-              product.productImages[0].imageUrl ||
-              "/images/food-test.png"
-            : "/images/food-test.png";
-
-        // Thêm sản phẩm vào giỏ hàng
-        addItem({
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          quantity: quantity,
-          imageUrl: imageUrl,
-        });
-
-        // Hiển thị thông báo thành công
-        toast.success("Đã thêm sản phẩm vào giỏ hàng");
+        console.log(`[Product Detail] Nhận dữ liệu thành công:`, responseData);
+        setProduct(responseData);
       } catch (err: unknown) {
-        console.error("[Product Detail] Lỗi khi thêm vào giỏ hàng:", err);
-        toast.error("Không thể thêm sản phẩm vào giỏ hàng");
-      }
-    }
-  };
+        console.error("[Product Detail] Chi tiết lỗi:", err);
 
-  const handleQuantityChange = (newQuantity: number) => {
-    if (newQuantity > 0 && product && newQuantity <= (product.quantity || 0)) {
-      setQuantity(newQuantity);
+        // Chuẩn hóa đối tượng error
+        const errorDetail: ApiErrorDetail = {
+          status:
+            err && typeof err === "object" && "status" in err
+              ? (err.status as number)
+              : 0,
+          message:
+            err && typeof err === "object" && "message" in err
+              ? (err.message as string)
+              : "Không thể tải thông tin sản phẩm",
+          details:
+            err && typeof err === "object" && "details" in err
+              ? (err.details as string)
+              : "Đã xảy ra lỗi khi tải thông tin sản phẩm.",
+        };
+
+        setError(errorDetail);
+
+        // Thông báo cho người dùng
+        toast.error(errorDetail.message);
+
+        // Nếu là lỗi xác thực, chuyển hướng đến trang đăng nhập sau 2 giây
+        if (errorDetail.status === 401 || errorDetail.status === 403) {
+          setTimeout(() => {
+            router.push("/login");
+          }, 2000);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProductDetail();
+  }, [params.id, router]);
+
+  // Tính toán các mức giá sản phẩm nếu có khuyến mãi
+  const priceInfo = useMemo(() => {
+    if (!product)
+      return { currentPrice: 0, originalPrice: 0, discountPercentage: 0 };
+
+    const originalPrice = product.price || 0;
+    let currentPrice = originalPrice;
+    let discountPercentage = 0;
+
+    // Nếu có giảm giá và là giá trị số hợp lệ
+    if (
+      product.salePrice !== undefined &&
+      typeof product.salePrice === "number" &&
+      product.salePrice < originalPrice
+    ) {
+      currentPrice = product.salePrice;
+      discountPercentage = Math.round(
+        ((originalPrice - currentPrice) / originalPrice) * 100
+      );
     }
-  };
+
+    return {
+      currentPrice,
+      originalPrice,
+      discountPercentage,
+    };
+  }, [product]);
 
   if (loading) {
     return (
-      <div className="container mx-auto py-12 px-4 sm:px-6 text-center">
+      <div className="container mx-auto py-20 text-center">
         <div className="flex flex-col items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-doca mb-4"></div>
           <p className="text-lg">Đang tải thông tin sản phẩm...</p>
@@ -235,7 +198,7 @@ export default function ProductDetailPage({
 
   if (error || !product) {
     return (
-      <div className="container mx-auto py-16 px-4 sm:px-6 text-center">
+      <div className="container mx-auto py-20 text-center">
         <div className="bg-white rounded-lg p-8 shadow-md max-w-lg mx-auto">
           <svg
             className="w-16 h-16 text-red-500 mx-auto mb-4"
@@ -254,245 +217,83 @@ export default function ProductDetailPage({
           <h2 className="text-xl font-bold mb-4">
             Không thể hiển thị sản phẩm
           </h2>
-          <div className="text-red-500 mb-6 text-sm">
-            {error ||
-              "Không tìm thấy thông tin sản phẩm hoặc sản phẩm không tồn tại"}
-          </div>
-          <Link
-            href="/shop"
-            className="inline-block bg-pink-doca text-white px-6 py-3 rounded-md hover:bg-pink-600 transition-colors"
-          >
-            Quay lại cửa hàng
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // Format giá tiền
-  const formatPrice = (price?: number) => {
-    if (!price) return "0 VND";
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price);
-  };
-
-  // Lấy URL ảnh chính và các ảnh phụ
-  const mainImage =
-    product.productImages && product.productImages.length > 0
-      ? product.productImages.find((img) => img.isMain)?.imageUrl ||
-        product.productImages[0].imageUrl ||
-        "/images/food-test.png"
-      : "/images/food-test.png";
-
-  const otherImages = product.productImages
-    ? product.productImages
-        .filter((img) => !img.isMain)
-        .map((img) => img.imageUrl)
-    : [];
-
-  // Bọc phần render chính trong try-catch để tránh lỗi không hiển thị trong sản phẩm
-  try {
-    return (
-      <div className="container mx-auto py-6 md:py-10 px-4 sm:px-6 lg:px-8">
-        {isFromCache && <div></div>}
-
-        <div className="mb-4 md:mb-6">
-          <Link
-            href="/shop"
-            className="text-gray-600 hover:text-pink-doca flex items-center gap-2"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Quay lại cửa hàng
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-          {/* Phần ảnh sản phẩm */}
-          <div className="bg-white rounded-lg p-3 md:p-4 shadow-sm">
-            <div className="relative aspect-square w-full rounded-lg overflow-hidden">
-              {/* Sử dụng div thay thế Image nếu gặp lỗi trong production */}
-              <div
-                className="w-full h-full bg-cover bg-center"
-                style={{ backgroundImage: `url('${mainImage}')` }}
-              >
-                <Image
-                  src={mainImage}
-                  alt={product.name || "Sản phẩm"}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover"
-                  priority={true}
-                  onError={(e) => {
-                    // Ẩn Image nếu có lỗi
-                    (e.target as HTMLImageElement).style.display = "none";
-                  }}
-                />
-              </div>
-            </div>
-
-            {otherImages.length > 0 && (
-              <div className="mt-4 grid grid-cols-4 gap-2">
-                {otherImages.map((imgUrl, index) => (
-                  <div
-                    key={index}
-                    className="relative aspect-square w-full rounded-lg overflow-hidden bg-cover bg-center"
-                    style={{
-                      backgroundImage: `url('${
-                        imgUrl || "/images/food-test.png"
-                      }')`,
-                    }}
-                  >
-                    <Image
-                      src={imgUrl || "/images/food-test.png"}
-                      alt={`${product.name} - Ảnh ${index + 2}`}
-                      fill
-                      sizes="(max-width: 768px) 25vw, 12vw"
-                      className="object-cover"
-                      onError={(e) => {
-                        // Ẩn Image nếu có lỗi
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Phần thông tin sản phẩm */}
-          <div className="bg-white rounded-lg p-4 md:p-6 shadow-sm">
-            <h1 className="text-2xl md:text-3xl font-bold mb-4">
-              {product.name}
-            </h1>
-
-            <div className="mb-6">
-              <p className="text-xl md:text-2xl font-bold text-pink-doca">
-                {formatPrice(product.price)}
-              </p>
-              {product.quantity && product.quantity > 0 ? (
-                <p className="text-green-600 mt-1">
-                  Còn {product.quantity} sản phẩm trong kho
-                </p>
-              ) : (
-                <p className="text-red-500 mt-1">Hết hàng</p>
-              )}
-            </div>
-
-            {/* Hiển thị danh mục sản phẩm */}
-            {product.categories && product.categories.length > 0 && (
-              <div className="mb-4">
-                <h3 className="text-sm font-medium mb-2 text-gray-500">
-                  Danh mục:
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {product.categories.map((category) => (
-                    <span
-                      key={category.id}
-                      className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded"
-                    >
-                      {category.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="mb-6">
-              <h3 className="text-lg font-medium mb-2">Mô tả sản phẩm</h3>
-              <div className="text-gray-700 bg-gray-50 p-4 rounded-lg">
-                <p className="whitespace-pre-line">
-                  {product.description || "Chưa có mô tả cho sản phẩm này"}
-                </p>
-              </div>
-            </div>
-
-            {product.quantity && product.quantity > 0 && (
-              <>
-                <div className="mb-6">
-                  <h3 className="text-lg font-medium mb-2">Số lượng</h3>
-                  <div className="flex items-center">
-                    <button
-                      className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-l-md"
-                      onClick={() => handleQuantityChange(quantity - 1)}
-                      disabled={quantity <= 1}
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      className="w-16 px-3 py-1 text-center border-gray-200 border-y"
-                      value={quantity}
-                      onChange={(e) =>
-                        handleQuantityChange(parseInt(e.target.value) || 1)
-                      }
-                      min={1}
-                      max={product.quantity}
-                    />
-                    <button
-                      className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-r-md"
-                      onClick={() => handleQuantityChange(quantity + 1)}
-                      disabled={quantity >= (product.quantity || 0)}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleAddToCart}
-                  className="bg-pink-doca text-white py-3 px-6 rounded-md hover:bg-pink-600 transition-colors w-full md:w-auto shadow-sm"
-                >
-                  Thêm vào giỏ hàng
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Phần sản phẩm đề xuất */}
-        <div className="mt-12 md:mt-16">
-          <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 px-2">
-            Sản phẩm tương tự
-          </h2>
-          <RecommendProducts currentProductId={params.id} />
-        </div>
-      </div>
-    );
-  } catch (renderError: unknown) {
-    console.error(
-      "[Product Detail] Lỗi khi render trang chi tiết sản phẩm:",
-      renderError
-    );
-    return (
-      <div className="container mx-auto py-10 px-4 text-center">
-        <div className="bg-white rounded-lg p-6 shadow-md max-w-lg mx-auto">
-          <h2 className="text-xl font-bold mb-4">
-            Đã xảy ra lỗi khi hiển thị sản phẩm
-          </h2>
-          <p className="mb-6">
-            Vui lòng thử lại sau hoặc liên hệ với quản trị viên.
+          <p className="text-red-500 mb-4">
+            {error?.message || "Không thể tải thông tin sản phẩm"}
           </p>
-          <Link
-            href="/shop"
-            className="inline-block bg-pink-doca text-white px-6 py-2 rounded-md hover:bg-pink-600 transition-colors"
-          >
-            Quay lại cửa hàng
-          </Link>
+          {error?.details && (
+            <p className="mb-6 text-sm text-gray-600">{error.details}</p>
+          )}
+          {error?.status === 500 && (
+            <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <p className="text-sm text-yellow-700">
+                <strong>Lỗi máy chủ (500)</strong>: Máy chủ đang gặp sự cố. Nếu
+                bạn là nhà phát triển, vui lòng kiểm tra logs của backend để
+                biết thêm chi tiết.
+              </p>
+            </div>
+          )}
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Link
+              href="/shop"
+              className="inline-block bg-pink-doca text-white px-4 py-2 rounded hover:bg-pink-700"
+            >
+              Quay lại cửa hàng
+            </Link>
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-block bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300"
+            >
+              Thử lại
+            </button>
+          </div>
         </div>
       </div>
     );
   }
+
+  return (
+    <div className="bg-gray-50">
+      <div className="container mx-auto py-8 px-4">
+        {/* Breadcrumb */}
+        <div className="mb-6">
+          <Link href="/shop" className="text-pink-doca hover:underline">
+            &larr; Quay lại cửa hàng
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
+            {/* Hình ảnh sản phẩm */}
+            <ImageGallery
+              images={product.productImages || []}
+              productName={product.name}
+            />
+
+            {/* Thông tin sản phẩm */}
+            <ProductInfo product={product} priceInfo={priceInfo} />
+          </div>
+        </div>
+
+        {/* Mô tả chi tiết sản phẩm */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-10">
+          <h2 className="text-xl font-bold mb-4">Mô tả chi tiết</h2>
+          <div className="prose max-w-none">
+            {product.description ? (
+              <div dangerouslySetInnerHTML={{ __html: product.description }} />
+            ) : (
+              <p className="text-gray-500 italic">
+                Không có mô tả chi tiết cho sản phẩm này.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Sản phẩm liên quan */}
+        <RelatedProducts
+          categoryId={product.categoryId}
+          currentProductId={product.id}
+        />
+      </div>
+    </div>
+  );
 }
