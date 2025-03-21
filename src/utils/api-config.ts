@@ -18,20 +18,20 @@ const isClientSide = typeof window !== "undefined";
 const isVerccelProduction =
   isClientSide && window.location.hostname === "doca.love";
 
-// URL cơ sở của API (mặc định)
-let defaultApiUrl =
-  API_FALLBACK_URLS.find((url) => url) || "https://production.doca.love";
+// URL cơ sở của API (luôn sử dụng URL chính thức)
+export const API_BASE_URL = "https://production.doca.love";
 
-// Nếu đang ở môi trường Vercel production, ưu tiên sử dụng domain chính
-if (isVerccelProduction) {
-  defaultApiUrl = "https://doca.love";
-  console.log(
-    "[API Config] Phát hiện môi trường Vercel production, sử dụng URL:",
-    defaultApiUrl
-  );
-}
+// URL đích thực của API
+export let REAL_API_BASE_URL = API_BASE_URL;
 
-export const API_BASE_URL = defaultApiUrl;
+// Hàm cập nhật URL API base thực tế
+export const updateRealApiBaseUrl = (url: string) => {
+  if (!url) return;
+  if (url && url !== REAL_API_BASE_URL) {
+    console.log(`Cập nhật URL API base từ: ${REAL_API_BASE_URL} sang: ${url}`);
+    REAL_API_BASE_URL = url;
+  }
+};
 
 // Chuẩn hóa URL API để tránh trùng lặp /api
 export const normalizeApiBaseUrl = (url: string): string => {
@@ -47,23 +47,6 @@ export const normalizeApiBaseUrl = (url: string): string => {
   }
 
   return url;
-};
-
-// URL đích thực của API (sẽ được cập nhật từ Swagger)
-export let REAL_API_BASE_URL = normalizeApiBaseUrl(API_BASE_URL);
-
-// Hàm cập nhật URL API base thực tế
-export const updateRealApiBaseUrl = (url: string) => {
-  if (!url) return;
-
-  const normalizedUrl = normalizeApiBaseUrl(url);
-
-  if (normalizedUrl && normalizedUrl !== REAL_API_BASE_URL) {
-    console.log(
-      `Cập nhật URL API base từ: ${REAL_API_BASE_URL} sang: ${normalizedUrl}`
-    );
-    REAL_API_BASE_URL = normalizedUrl;
-  }
 };
 
 // Hàm thử kết nối đến API URL cụ thể
@@ -233,13 +216,13 @@ export const extractErrorMessage = (error: unknown): string => {
   if (error instanceof Error) return error.message;
 
   if (typeof error === "object" && error !== null) {
-    // @ts-ignore
+    // @ts-expect-error - Truy cập vào thuộc tính message của đối tượng không xác định
     if (error.message) return error.message;
 
-    // @ts-ignore
+    // @ts-expect-error - Truy cập vào thuộc tính response.data.message của đối tượng không xác định
     if (error.response?.data?.message) return error.response.data.message;
 
-    // @ts-ignore
+    // @ts-expect-error - Truy cập vào thuộc tính response.statusText của đối tượng không xác định
     if (error.response?.statusText) return error.response.statusText;
   }
 

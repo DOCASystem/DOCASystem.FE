@@ -49,22 +49,10 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
         );
 
         // Tạo URL API để lấy blog
-        let baseUrl = process.env.NEXT_PUBLIC_API_URL;
-        // Nếu URL hiện tại chứa doca.love (không phải production.doca.love)
-        if (
-          typeof window !== "undefined" &&
-          window.location.hostname === "doca.love"
-        ) {
-          baseUrl = "https://doca.love";
-        } else if (!baseUrl) {
-          baseUrl = "https://production.doca.love";
-        }
-
-        const apiUrl = `${baseUrl}/api/v1/blogs/${params.id}`;
+        const apiUrl = `https://production.doca.love/api/v1/blogs/${params.id}`;
 
         // Log URL cho debugging
-        console.log(`[Blog Detail] Gọi API từ: ${baseUrl}`);
-        console.log(`[Blog Detail] URL đầy đủ: ${apiUrl}`);
+        console.log(`[Blog Detail] Gọi API: ${apiUrl}`);
 
         const response = await fetch(apiUrl, {
           method: "GET",

@@ -6,7 +6,6 @@ import Link from "next/link";
 import { ProductService } from "@/service/product-service";
 import axios from "axios";
 import { getToken } from "@/auth/auth-service";
-import { REAL_API_BASE_URL } from "@/utils/api-config";
 import { useProductStore, Product } from "@/store/product-store";
 
 // Định nghĩa interface cho sản phẩm gợi ý
@@ -48,18 +47,8 @@ export default function RecommendProducts({
       try {
         const token = getToken();
 
-        // Xác định baseURL tùy theo môi trường
-        let baseUrl = REAL_API_BASE_URL;
-        if (
-          typeof window !== "undefined" &&
-          window.location.hostname === "doca.love"
-        ) {
-          baseUrl = "https://doca.love";
-        }
-
-        const apiUrl = `${baseUrl}/api/v1/products?page=1&size=8`;
-        console.log(`[Recommend Products] Gọi API từ: ${baseUrl}`);
-        console.log(`[Recommend Products] URL đầy đủ: ${apiUrl}`);
+        const apiUrl = `https://production.doca.love/api/v1/products?page=1&size=8`;
+        console.log(`[Recommend Products] Gọi API: ${apiUrl}`);
 
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
