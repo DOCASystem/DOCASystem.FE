@@ -43,12 +43,9 @@ export default function RelatedProducts({
           `[Related Products] Đang tải sản phẩm liên quan, danh mục: ${categoryId}`
         );
 
-        // URL API trực tiếp không được ẩn đi
+        // Sử dụng API từ production.doca.love
         const apiUrl = `https://production.doca.love/api/v1/products?page=1&size=5&categoryId=${categoryId}`;
-        console.log(`[Related Products] Gọi API trực tiếp: ${apiUrl}`);
-        console.log(
-          `[Related Products] API URL không được ẩn đi cho mục đích debug`
-        );
+        console.log(`[Related Products] Gọi API: ${apiUrl}`);
 
         const response = await fetch(apiUrl, {
           method: "GET",
@@ -59,7 +56,6 @@ export default function RelatedProducts({
           cache: "no-store",
         });
 
-        // Log thông tin response để debug
         console.log(
           `[Related Products] Response status: ${response.status} ${response.statusText}`
         );

@@ -61,22 +61,23 @@ export default function ProductDetailPage({
   const [error, setError] = useState<ApiErrorDetail | null>(null);
   const router = useRouter();
 
-  // Sử dụng một phương thức duy nhất để lấy chi tiết sản phẩm
+  // Sử dụng một phương thức duy nhất để lấy chi tiết sản phẩm khi vào trang
   useEffect(() => {
     const fetchProductDetail = async () => {
       setLoading(true);
       setError(null);
 
       try {
+        // Tải thông tin sản phẩm với ID từ URL
         console.log(
           `[Product Detail] Đang tải thông tin sản phẩm với ID: ${params.id}`
         );
 
-        // Thử gọi API trực tiếp trước
+        // Gọi API từ production.doca.love
         const apiUrl = `https://production.doca.love/api/v1/products/${params.id}`;
-        console.log(`[Product Detail] Gọi API trực tiếp: ${apiUrl}`);
+        console.log(`[Product Detail] Gọi API: ${apiUrl}`);
 
-        let response = await fetch(apiUrl, {
+        const response = await fetch(apiUrl, {
           method: "GET",
           headers: {
             Accept: "application/json",
@@ -89,28 +90,6 @@ export default function ProductDetailPage({
         console.log(
           `[Product Detail] Response status: ${response.status} ${response.statusText}`
         );
-
-        // Nếu API trực tiếp không thành công, thử sử dụng API proxy
-        if (!response.ok) {
-          console.log(
-            "[Product Detail] API trực tiếp thất bại, thử dùng API proxy"
-          );
-          const proxyUrl = `/api/proxy/products/${params.id}`;
-          console.log(`[Product Detail] Gọi API proxy: ${proxyUrl}`);
-
-          response = await fetch(proxyUrl, {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-              "Content-Type": "application/json",
-            },
-            cache: "no-store",
-          });
-
-          console.log(
-            `[Product Detail] Proxy response status: ${response.status} ${response.statusText}`
-          );
-        }
 
         // Lấy dữ liệu response
         const data = await response.json().catch(() => null);
@@ -176,6 +155,7 @@ export default function ProductDetailPage({
       }
     };
 
+    // Gọi hàm tải dữ liệu
     fetchProductDetail();
   }, [params.id, router]);
 
@@ -248,24 +228,17 @@ export default function ProductDetailPage({
           {error?.status === 500 && (
             <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
               <p className="text-sm text-yellow-700">
-                <strong>Lỗi máy chủ (500)</strong>: Máy chủ đang gặp sự cố. Vui
-                lòng thử lại sau hoặc liên hệ hỗ trợ.
+                Máy chủ đang gặp lỗi. Vui lòng thử lại sau.
               </p>
             </div>
           )}
-          <div className="flex justify-center space-x-4">
+          <div className="flex justify-center">
             <Link
               href="/shop"
-              className="inline-block px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+              className="bg-pink-doca text-white px-6 py-2 rounded-md hover:bg-pink-700 transition-colors"
             >
               Quay lại cửa hàng
             </Link>
-            <button
-              onClick={() => window.location.reload()}
-              className="inline-block px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-            >
-              Thử lại
-            </button>
           </div>
         </div>
       </div>
@@ -273,43 +246,42 @@ export default function ProductDetailPage({
   }
 
   return (
-    <div className="bg-gray-50">
-      <div className="container mx-auto py-8 px-4">
-        {/* Breadcrumb */}
-        <div className="mb-6">
-          <Link href="/shop" className="text-pink-doca hover:underline">
-            &larr; Quay lại cửa hàng
-          </Link>
-        </div>
+    <div className="container mx-auto px-4 py-8 md:py-12">
+      {/* Đường dẫn breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-gray-600 mb-6">
+        <Link href="/" className="hover:text-pink-doca">
+          Trang chủ
+        </Link>
+        <span>/</span>
+        <Link href="/shop" className="hover:text-pink-doca">
+          Cửa hàng
+        </Link>
+        <span>/</span>
+        <span className="text-gray-800 font-medium truncate">
+          {product.name}
+        </span>
+      </div>
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
-            {/* Hình ảnh sản phẩm */}
+      {/* Chi tiết sản phẩm */}
+      <div className="bg-white rounded-xl shadow-sm p-4 md:p-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Ảnh sản phẩm */}
+          <div>
             <ImageGallery
               images={product.productImages || []}
               productName={product.name}
             />
+          </div>
 
-            {/* Thông tin sản phẩm */}
+          {/* Thông tin sản phẩm */}
+          <div>
             <ProductInfo product={product} priceInfo={priceInfo} />
           </div>
         </div>
+      </div>
 
-        {/* Mô tả chi tiết sản phẩm */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-10">
-          <h2 className="text-xl font-bold mb-4">Mô tả chi tiết</h2>
-          <div className="prose max-w-none">
-            {product.description ? (
-              <div dangerouslySetInnerHTML={{ __html: product.description }} />
-            ) : (
-              <p className="text-gray-500 italic">
-                Không có mô tả chi tiết cho sản phẩm này.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Sản phẩm liên quan */}
+      {/* Sản phẩm liên quan */}
+      <div className="bg-white rounded-xl shadow-sm p-4 md:p-8">
         <RelatedProducts
           categoryId={product.categoryId}
           currentProductId={product.id}
