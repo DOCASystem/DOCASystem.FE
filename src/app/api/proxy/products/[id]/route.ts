@@ -22,48 +22,115 @@ export async function GET(
     const apiUrl = `${REAL_API_BASE_URL}/api/v1/products/${params.id}`;
     console.log(`API Proxy: Gọi đến: ${apiUrl}`);
 
-    // Thực hiện request
-    const response = await fetch(apiUrl, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: token } : {}),
-      },
-      cache: "no-store", // Không cache kết quả
-    });
+    // Thực hiện request với timeout để tránh treo quá lâu
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 giây timeout
 
-    // Kiểm tra response status
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API Proxy: Lỗi từ server: ${response.status}`, errorText);
-
-      return NextResponse.json(
-        {
-          message: `Không thể lấy thông tin sản phẩm: ${response.statusText}`,
-          error: errorText,
+    try {
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: token } : {}),
         },
-        { status: response.status }
+        signal: controller.signal,
+        cache: "no-store", // Không cache kết quả
+      });
+
+      // Xóa timeout nếu request thành công
+      clearTimeout(timeoutId);
+
+      // Log chi tiết về response
+      console.log(
+        `API Proxy: Response status: ${response.status} ${response.statusText}`
       );
+      // Log một vài header quan trọng thay vì duyệt qua tất cả
+      console.log(
+        `API Proxy: Content-Type: ${response.headers.get("content-type")}`
+      );
+      console.log(
+        `API Proxy: Content-Length: ${response.headers.get("content-length")}`
+      );
+
+      // Kiểm tra response status
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          `API Proxy: Lỗi từ server: ${response.status}`,
+          errorText
+        );
+
+        // Tạo response JSON với thông tin lỗi chi tiết
+        return NextResponse.json(
+          {
+            message: `Không thể lấy thông tin sản phẩm: ${response.statusText}`,
+            error: errorText,
+            status: response.status,
+            timestamp: new Date().toISOString(),
+          },
+          {
+            status: response.status,
+            headers: {
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Methods": "GET, OPTIONS",
+              "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            },
+          }
+        );
+      }
+
+      // Lấy response data
+      const responseData = await response.json();
+      console.log(
+        `API Proxy: Lấy thông tin sản phẩm thành công`,
+        responseData?.id || "ID không xác định"
+      );
+
+      // Trả về kết quả cho client với headers CORS
+      return NextResponse.json(responseData, {
+        status: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      throw fetchError;
+    }
+  } catch (error) {
+    // Xử lý lỗi chi tiết hơn
+    console.error("API Proxy: Lỗi khi gửi yêu cầu:", error);
+
+    // Phân loại lỗi để trả về thông tin hữu ích hơn
+    let errorMessage = "Lỗi khi xử lý yêu cầu";
+    let errorStatus = 500;
+
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        errorMessage = "Yêu cầu quá thời gian. Vui lòng thử lại sau.";
+        errorStatus = 504; // Gateway Timeout
+      } else {
+        errorMessage = `Lỗi: ${error.message}`;
+      }
     }
 
-    // Lấy response data
-    const responseData = await response.json();
-    console.log(`API Proxy: Lấy thông tin sản phẩm thành công`, responseData);
-
-    // Trả về kết quả cho client với headers CORS
-    return NextResponse.json(responseData, {
-      status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-    });
-  } catch (error) {
-    console.error("API Proxy: Lỗi khi gửi yêu cầu:", error);
     return NextResponse.json(
-      { message: "Lỗi khi xử lý yêu cầu", error: String(error) },
-      { status: 500 }
+      {
+        message: errorMessage,
+        error: String(error),
+        timestamp: new Date().toISOString(),
+        productId: params.id,
+      },
+      {
+        status: errorStatus,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      }
     );
   }
 }
