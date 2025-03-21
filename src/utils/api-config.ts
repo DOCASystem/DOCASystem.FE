@@ -12,10 +12,23 @@ export const REAL_API_BASE_URL = "https://production.doca.love";
 // Kiểm tra môi trường trước khi thực hiện các yêu cầu mạng
 const isClientSide = typeof window !== "undefined";
 
-// Log URL API hiện tại khi ứng dụng khởi động
+// Log URL API hiện tại khi ứng dụng khởi động và kiểm tra URL hiện tại
 if (isClientSide) {
   console.log("[API Config] URL API cố định:", REAL_API_BASE_URL);
-  console.log("[API Config] API URL không được ẩn đi vì mục đích debug");
+
+  // Kiểm tra URL hiện tại và đảm bảo sử dụng production.doca.love
+  if (
+    window.location.href.includes("doca.love") &&
+    !window.location.href.includes("production.doca.love")
+  ) {
+    console.log(
+      "[API Config] Phát hiện sai domain, chuyển hướng đến production.doca.love"
+    );
+    window.location.href = window.location.href.replace(
+      "doca.love",
+      "production.doca.love"
+    );
+  }
 }
 
 // URL của swagger spec

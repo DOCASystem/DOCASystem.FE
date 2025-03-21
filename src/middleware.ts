@@ -24,6 +24,17 @@ const API_PATHS = ["/api/", "/swagger/", "/next/data/"];
 export function middleware(request: NextRequest) {
   // Get current path
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host") || "";
+
+  // Redirect từ doca.love đến production.doca.love
+  if (host.includes("doca.love") && !host.includes("production.doca.love")) {
+    console.log(
+      `[Middleware] Redirect từ ${host} đến production.doca.love: ${pathname}`
+    );
+    const url = new URL(request.url);
+    url.host = "production.doca.love";
+    return NextResponse.redirect(url);
+  }
 
   // Check if this is an API request
   const isApiRequest = API_PATHS.some((path) => pathname.startsWith(path));
@@ -144,6 +155,9 @@ function addSecurityHeaders() {
 // Matcher for paths that need middleware
 export const config = {
   matcher: [
+    // Process all pages
+    "/(.*)",
+
     // Admin routes
     "/admin/:path*",
     "/products-management/:path*",

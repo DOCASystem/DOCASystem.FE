@@ -72,11 +72,30 @@ export default function ProductDetailPage({
           `[Product Detail] Đang tải thông tin sản phẩm với ID: ${params.id}`
         );
 
-        // Thử gọi API trực tiếp trước
+        // Đảm bảo sử dụng duy nhất URL API production.doca.love
         const apiUrl = `https://production.doca.love/api/v1/products/${params.id}`;
         console.log(`[Product Detail] Gọi API trực tiếp: ${apiUrl}`);
 
-        let response = await fetch(apiUrl, {
+        // Ghi lại URL trước khi gọi
+        const currentUrl = window.location.href;
+        console.log(`[Product Detail] Current URL: ${currentUrl}`);
+
+        // Kiểm tra nếu URL hiện tại không đúng domain
+        if (
+          currentUrl.includes("doca.love") &&
+          !currentUrl.includes("production.doca.love")
+        ) {
+          console.log(
+            "[Product Detail] Sai domain, chuyển hướng đến production.doca.love"
+          );
+          window.location.href = currentUrl.replace(
+            "doca.love",
+            "production.doca.love"
+          );
+          return;
+        }
+
+        const response = await fetch(apiUrl, {
           method: "GET",
           headers: {
             Accept: "application/json",
@@ -85,32 +104,11 @@ export default function ProductDetailPage({
           cache: "no-store",
         });
 
-        // Log thông tin response
+        // Log thông tin response và URL
         console.log(
           `[Product Detail] Response status: ${response.status} ${response.statusText}`
         );
-
-        // Nếu API trực tiếp không thành công, thử sử dụng API proxy
-        if (!response.ok) {
-          console.log(
-            "[Product Detail] API trực tiếp thất bại, thử dùng API proxy"
-          );
-          const proxyUrl = `/api/proxy/products/${params.id}`;
-          console.log(`[Product Detail] Gọi API proxy: ${proxyUrl}`);
-
-          response = await fetch(proxyUrl, {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-              "Content-Type": "application/json",
-            },
-            cache: "no-store",
-          });
-
-          console.log(
-            `[Product Detail] Proxy response status: ${response.status} ${response.statusText}`
-          );
-        }
+        console.log(`[Product Detail] Response URL: ${response.url}`);
 
         // Lấy dữ liệu response
         const data = await response.json().catch(() => null);
