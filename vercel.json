@@ -23,28 +23,6 @@
       "source": "/login\\?email=:email&password=:password",
       "destination": "/login",
       "permanent": false
-    },
-    {
-      "source": "/shop/:id",
-      "destination": "https://production.doca.love/shop/:id",
-      "has": [
-        {
-          "type": "host",
-          "value": "doca.love"
-        }
-      ],
-      "permanent": true
-    },
-    {
-      "source": "/(.*)",
-      "destination": "https://production.doca.love/$1",
-      "has": [
-        {
-          "type": "host",
-          "value": "doca.love"
-        }
-      ],
-      "permanent": true
     }
   ],
   "cleanUrls": true,

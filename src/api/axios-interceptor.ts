@@ -5,7 +5,8 @@ import axios, {
 } from "axios";
 import AuthService from "../service/auth.service";
 
-// Đảm bảo sử dụng URL API trực tiếp production.doca.love
+// Sử dụng URL API trực tiếp không ẩn đi cho mục đích debug
+// API URL được hiển thị rõ ràng không qua bảo mật
 const API_URL = `https://production.doca.love/api`;
 
 const axiosInstance = axios.create({
@@ -21,74 +22,69 @@ const axiosInstance = axios.create({
 // Hiển thị URL API cho mục đích debug
 console.log("[Axios Interceptor] Sử dụng API URL:", API_URL);
 
-// Kiểm tra URL hiện tại và đảm bảo redirect nếu cần
-if (
-  typeof window !== "undefined" &&
-  window.location.href.includes("doca.love") &&
-  !window.location.href.includes("production.doca.love")
-) {
-  console.log(
-    "[Axios Interceptor] Phát hiện sai domain, chuyển hướng đến production.doca.love"
-  );
-  window.location.href = window.location.href.replace(
-    "doca.love",
-    "production.doca.love"
-  );
-}
-
-// Request interceptor
+// Interceptor cho request - thêm token vào header
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = AuthService.getToken();
-    if (token) {
+    if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Ghi lại URL gọi API
-    console.log(
-      `[Axios] Gọi API: ${config.method?.toUpperCase()} ${config.url}`
-    );
-
+    // Log đầy đủ thông tin request để dễ dàng debug
+    console.log(`Request đến: ${config.baseURL}${config.url}`, {
+      method: config.method,
+      headers: config.headers,
+      data: config.data,
+    });
     return config;
   },
-  (error: AxiosError) => {
-    console.error("[Axios] Lỗi gửi request:", error.message);
+  (error) => {
+    console.error("Lỗi request interceptor:", error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor
+// Interceptor cho response - xử lý refresh token
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
-    // Log response thành công
-    console.log(
-      `[Axios] Response thành công: ${
-        response.status
-      } ${response.config.method?.toUpperCase()} ${response.config.url}`
-    );
+    // Log response cho mục đích debug
+    console.log(`Response từ: ${response.config.url}`, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
     return response;
   },
-  (error: AxiosError) => {
-    // Xử lý lỗi response
-    if (error.response) {
-      console.error(
-        `[Axios] Lỗi response: ${
-          error.response.status
-        } ${error.config?.method?.toUpperCase()} ${error.config?.url}`
-      );
+  async (error: AxiosError) => {
+    console.error("Lỗi response:", error.message, error.response?.status);
 
-      // Xử lý lỗi 401 Unauthorized
-      if (error.response.status === 401) {
-        console.warn("[Axios] Token hết hạn hoặc không hợp lệ, đăng xuất");
-        // Đăng xuất người dùng
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
+
+    // Nếu lỗi 401 (Unauthorized) và chưa thử lại
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // Thử làm mới token
+        const refreshed = await AuthService.refreshToken();
+
+        if (refreshed) {
+          // Cập nhật token mới vào header
+          const token = AuthService.getToken();
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+          }
+
+          // Thử lại request ban đầu với token mới
+          return axiosInstance(originalRequest);
+        }
+      } catch {
+        // Nếu không làm mới được token, đăng xuất và chuyển hướng đến trang đăng nhập
         AuthService.logout();
-        // Chuyển hướng đến trang đăng nhập
         window.location.href = "/login";
       }
-    } else if (error.request) {
-      console.error("[Axios] Không nhận được response:", error.message);
-    } else {
-      console.error("[Axios] Lỗi cấu hình request:", error.message);
     }
 
     return Promise.reject(error);

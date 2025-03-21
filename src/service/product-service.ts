@@ -382,6 +382,7 @@ export const ProductService = {
           try {
             const responseData = await fetchResponse.json();
             return responseData;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (jsonError) {
             console.log(
               "Không thể parse JSON từ response. Đây có thể là do mode no-cors"
