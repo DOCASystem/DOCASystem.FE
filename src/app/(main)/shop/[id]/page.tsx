@@ -60,10 +60,8 @@ export default function ProductDetailPage({
           `[Product Detail] Đang tải thông tin sản phẩm với ID: ${params.id}`
         );
 
-        // Tạo URL API để lấy sản phẩm
+        // Sử dụng duy nhất 1 API URL
         const apiUrl = `https://production.doca.love/api/v1/products/${params.id}`;
-
-        // Log URL cho debugging
         console.log(`[Product Detail] Gọi API: ${apiUrl}`);
 
         const response = await fetch(apiUrl, {
@@ -72,52 +70,31 @@ export default function ProductDetailPage({
             Accept: "application/json",
             "Content-Type": "application/json",
           },
+          cache: "no-store",
         });
 
-        // Lấy dữ liệu response và kiểm tra status code
-        const responseData = await response.json().catch(() => null);
+        // Lấy dữ liệu response
+        const data = await response.json().catch(() => null);
 
-        // Kiểm tra nếu response không thành công
-        if (!response.ok) {
+        // Kiểm tra nếu response thành công
+        if (response.ok && data) {
+          console.log(`[Product Detail] API thành công`);
+          setProduct(data);
+        } else {
           console.error(
-            `[Product Detail] Lỗi API (${response.status}):`,
-            responseData
+            `[Product Detail] API không thành công (${response.status}):`,
+            data
           );
 
-          // Xử lý các mã lỗi cụ thể
-          if (response.status === 404) {
-            throw {
-              status: 404,
-              message: "Không tìm thấy sản phẩm",
-              details: "Sản phẩm không tồn tại hoặc đã bị xóa.",
-            };
-          } else if (response.status === 500) {
-            throw {
-              status: 500,
-              message: "Lỗi máy chủ",
-              details:
-                "Máy chủ đang gặp sự cố khi xử lý yêu cầu. Vui lòng thử lại sau.",
-            };
-          } else if (response.status === 401 || response.status === 403) {
-            throw {
-              status: response.status,
-              message: "Không có quyền truy cập",
-              details:
-                "Bạn không có quyền xem sản phẩm này. Vui lòng đăng nhập hoặc liên hệ quản trị viên.",
-            };
-          } else {
-            throw {
-              status: response.status,
-              message: "Không thể tải thông tin sản phẩm",
-              details:
-                responseData?.message ||
-                "Đã xảy ra lỗi khi tải thông tin sản phẩm.",
-            };
-          }
-        }
+          // Xử lý các lỗi
+          const errorDetail = {
+            status: response.status,
+            message: data?.message || `Lỗi ${response.status} từ server`,
+            details: data?.details || `API trả về lỗi ${response.status}`,
+          };
 
-        console.log(`[Product Detail] Nhận dữ liệu thành công:`, responseData);
-        setProduct(responseData);
+          throw errorDetail;
+        }
       } catch (err: unknown) {
         console.error("[Product Detail] Chi tiết lỗi:", err);
 

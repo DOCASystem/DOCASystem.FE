@@ -5,8 +5,11 @@ import axios, {
 } from "axios";
 import AuthService from "../service/auth.service";
 
+// Sử dụng duy nhất 1 API URL
+const API_URL = `https://production.doca.love/api`;
+
 const axiosInstance = axios.create({
-  baseURL: `https://production.doca.love/api`,
+  baseURL: API_URL,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
@@ -23,7 +26,7 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    console.log("Request headers:", config.headers);
+    console.log(`Request đến: ${config.baseURL}${config.url}`, config.headers);
     return config;
   },
   (error) => {
@@ -32,7 +35,7 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Interceptor cho response - xử lý refresh token nếu token hết hạn
+// Interceptor cho response - xử lý refresh token
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;

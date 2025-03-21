@@ -6,12 +6,14 @@ import Image from "next/image";
 import { GetBlogDetailResponse } from "@/api/generated";
 import Pagination from "@/components/common/pagination/pagination";
 import { BlogService } from "@/service/blog-service";
+import { toast } from "react-toastify";
 
 export default function BlogList() {
   const [blogs, setBlogs] = useState<GetBlogDetailResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [error, setError] = useState<string | null>(null);
   const pageSize = 9;
 
   useEffect(() => {
@@ -20,7 +22,11 @@ export default function BlogList() {
 
   const fetchBlogs = async () => {
     setLoading(true);
+    setError(null);
+
     try {
+      console.log(`[BlogList] Đang tải danh sách blog trang ${currentPage}`);
+
       // Sử dụng BlogService thay vì dữ liệu giả
       const response = await BlogService.getBlogs({
         page: currentPage,
@@ -28,11 +34,22 @@ export default function BlogList() {
       });
 
       if (response && response.data) {
+        console.log(
+          `[BlogList] Tải dữ liệu blog thành công, nhận được ${
+            response.data.items?.length || 0
+          } bài viết`
+        );
         setBlogs(response.data.items || []);
         setTotalPages(response.data.totalPages || 1);
+      } else {
+        console.warn("[BlogList] Phản hồi API không chứa dữ liệu hợp lệ");
+        setError("Không nhận được dữ liệu blog từ server");
+        toast.error("Không thể tải danh sách blog. Vui lòng thử lại sau.");
       }
     } catch (error) {
-      console.error("Lỗi khi tải dữ liệu blog:", error);
+      console.error("[BlogList] Lỗi khi tải dữ liệu blog:", error);
+      setError("Không thể tải danh sách blog");
+      toast.error("Không thể tải danh sách blog. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
     }
@@ -83,6 +100,37 @@ export default function BlogList() {
             ></path>
           </svg>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-10 bg-gray-50 rounded-lg">
+        <svg
+          className="mx-auto h-12 w-12 text-red-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          ></path>
+        </svg>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">
+          Không thể tải danh sách blog
+        </h3>
+        <p className="mt-1 text-sm text-gray-500">{error}</p>
+        <button
+          onClick={() => fetchBlogs()}
+          className="mt-4 px-4 py-2 bg-pink-doca text-white rounded-md hover:bg-pink-700 transition-colors"
+        >
+          Thử lại
+        </button>
       </div>
     );
   }

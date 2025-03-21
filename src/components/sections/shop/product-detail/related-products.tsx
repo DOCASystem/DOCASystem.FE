@@ -43,9 +43,8 @@ export default function RelatedProducts({
           `[Related Products] Đang tải sản phẩm liên quan, danh mục: ${categoryId}`
         );
 
-        // Tạo URL API để lấy sản phẩm theo danh mục
+        // Sử dụng duy nhất 1 API URL
         const apiUrl = `https://production.doca.love/api/v1/products?page=1&size=5&categoryId=${categoryId}`;
-
         console.log(`[Related Products] Gọi API: ${apiUrl}`);
 
         const response = await fetch(apiUrl, {
@@ -54,15 +53,19 @@ export default function RelatedProducts({
             Accept: "application/json",
             "Content-Type": "application/json",
           },
+          cache: "no-store",
         });
 
         if (!response.ok) {
+          console.error(`[Related Products] API lỗi: ${response.status}`);
           throw new Error(`Lỗi API: ${response.status}`);
         }
 
         const data = await response.json();
         console.log(
-          `[Related Products] Nhận được ${data.items?.length || 0} sản phẩm`
+          `[Related Products] API thành công, nhận được ${
+            data.items?.length || 0
+          } sản phẩm`
         );
 
         // Lọc bỏ sản phẩm hiện tại và lấy tối đa 4 sản phẩm liên quan
