@@ -5,7 +5,8 @@ import axios, {
 } from "axios";
 import AuthService from "../service/auth.service";
 
-// Sử dụng duy nhất 1 API URL
+// Sử dụng URL API trực tiếp không ẩn đi cho mục đích debug
+// API URL được hiển thị rõ ràng không qua bảo mật
 const API_URL = `https://production.doca.love/api`;
 
 const axiosInstance = axios.create({
@@ -18,6 +19,9 @@ const axiosInstance = axios.create({
   withCredentials: false, // Tắt credentials để tránh vấn đề CORS
 });
 
+// Hiển thị URL API cho mục đích debug
+console.log("[Axios Interceptor] Sử dụng API URL:", API_URL);
+
 // Interceptor cho request - thêm token vào header
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -26,7 +30,12 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    console.log(`Request đến: ${config.baseURL}${config.url}`, config.headers);
+    // Log đầy đủ thông tin request để dễ dàng debug
+    console.log(`Request đến: ${config.baseURL}${config.url}`, {
+      method: config.method,
+      headers: config.headers,
+      data: config.data,
+    });
     return config;
   },
   (error) => {
@@ -38,6 +47,12 @@ axiosInstance.interceptors.request.use(
 // Interceptor cho response - xử lý refresh token
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
+    // Log response cho mục đích debug
+    console.log(`Response từ: ${response.config.url}`, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
     return response;
   },
   async (error: AxiosError) => {

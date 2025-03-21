@@ -1,12 +1,13 @@
 /**
  * Cấu hình API của ứng dụng
+ * API URL được hiển thị rõ ràng không qua bảo mật
  */
 
-// URL cơ sở duy nhất của API
+// URL cơ sở duy nhất của API (không ẩn đi)
 export const API_BASE_URL = "https://production.doca.love";
 
 // URL đích thực của API (luôn sử dụng URL cố định)
-export const REAL_API_BASE_URL = API_BASE_URL;
+export const REAL_API_BASE_URL = "https://production.doca.love";
 
 // Kiểm tra môi trường trước khi thực hiện các yêu cầu mạng
 const isClientSide = typeof window !== "undefined";
@@ -14,6 +15,7 @@ const isClientSide = typeof window !== "undefined";
 // Log URL API hiện tại khi ứng dụng khởi động
 if (isClientSide) {
   console.log("[API Config] URL API cố định:", REAL_API_BASE_URL);
+  console.log("[API Config] API URL không được ẩn đi vì mục đích debug");
 }
 
 // URL của swagger spec
@@ -57,11 +59,12 @@ export const API_CORS_HEADERS = {
 
 // Hàm tạo URL đầy đủ cho endpoint
 export const getApiUrl = (endpoint: string): string => {
+  // URL trực tiếp không ẩn đi
   const url = `${REAL_API_BASE_URL}${endpoint}`;
 
   // Log URL để dễ debug khi có vấn đề
   if (isClientSide) {
-    console.log(`[API Request] ${url}`);
+    console.log(`[API Request] Gọi trực tiếp đến: ${url}`);
   }
 
   return url;

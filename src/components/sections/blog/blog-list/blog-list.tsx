@@ -3,13 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { GetBlogDetailResponse } from "@/api/generated";
 import Pagination from "@/components/common/pagination/pagination";
-import { BlogService } from "@/service/blog-service";
+import { BlogService, Blog } from "@/service/blog-service";
 import { toast } from "react-toastify";
 
 export default function BlogList() {
-  const [blogs, setBlogs] = useState<GetBlogDetailResponse[]>([]);
+  const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -31,12 +30,18 @@ export default function BlogList() {
       const response = await BlogService.getBlogs({
         page: currentPage,
         size: pageSize,
+        isAsc: true,
       });
 
-      if (response && response.data) {
+      if (
+        response &&
+        response.success &&
+        response.data &&
+        response.data.items
+      ) {
         console.log(
           `[BlogList] Tải dữ liệu blog thành công, nhận được ${
-            response.data.items?.length || 0
+            response.data.items.length || 0
           } bài viết`
         );
         setBlogs(response.data.items || []);
@@ -73,6 +78,11 @@ export default function BlogList() {
       month: "long",
       day: "numeric",
     });
+  };
+
+  // Hàm lấy URL hình ảnh blog
+  const getBlogImageUrl = (blog: Blog): string => {
+    return BlogService.getBlogImageUrl(blog);
   };
 
   if (loading) {
@@ -169,7 +179,7 @@ export default function BlogList() {
                 <Link href={`/blog/${blog.id}`}>
                   <div className="relative h-40 sm:h-44 md:h-48">
                     <Image
-                      src={"/images/blog-placeholder.png"}
+                      src={getBlogImageUrl(blog)}
                       alt={blog.name || "Bài viết"}
                       fill
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"

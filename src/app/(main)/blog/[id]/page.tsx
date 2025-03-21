@@ -4,24 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-
-// Định nghĩa interface cho Blog Detail
-interface BlogImage {
-  id: string;
-  imageUrl: string;
-}
-
-interface BlogDetail {
-  id: string;
-  title: string;
-  content: string;
-  createdAt: string;
-  modifiedAt: string;
-  isHidden: boolean;
-  blogImage: BlogImage;
-  authorName?: string;
-  description?: string;
-}
+import { Blog, BlogService } from "@/service/blog-service";
 
 // Interface cho API error response
 interface ApiErrorDetail {
@@ -32,9 +15,12 @@ interface ApiErrorDetail {
 }
 
 export default function BlogDetailPage({ params }: { params: { id: string } }) {
-  const [blog, setBlog] = useState<BlogDetail | null>(null);
+  const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiErrorDetail | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>(
+    "/images/blog-placeholder.png"
+  );
   const router = useRouter();
 
   // Sử dụng một phương thức duy nhất để lấy chi tiết blog
@@ -48,9 +34,12 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
           `[Blog Detail] Đang tải thông tin blog với ID: ${params.id}`
         );
 
-        // Sử dụng duy nhất 1 API URL
+        // URL API trực tiếp không được ẩn đi
         const apiUrl = `https://production.doca.love/api/v1/blogs/${params.id}`;
-        console.log(`[Blog Detail] Gọi API: ${apiUrl}`);
+        console.log(`[Blog Detail] Gọi API trực tiếp: ${apiUrl}`);
+        console.log(
+          `[Blog Detail] API URL không được ẩn đi cho mục đích debug`
+        );
 
         const response = await fetch(apiUrl, {
           method: "GET",
@@ -61,13 +50,33 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
           cache: "no-store",
         });
 
+        // Log thông tin response để debug
+        console.log(
+          `[Blog Detail] Response status: ${response.status} ${response.statusText}`
+        );
+
         // Lấy dữ liệu response
         const data = await response.json().catch(() => null);
 
         // Kiểm tra nếu response thành công
         if (response.ok && data) {
-          console.log(`[Blog Detail] API thành công`);
+          console.log(`[Blog Detail] API thành công, dữ liệu:`, data.name);
+
+          // Lưu dữ liệu blog vào state
           setBlog(data);
+
+          // Lấy URL hình ảnh từ cấu trúc blog mới
+          try {
+            const blogImageUrl = BlogService.getBlogImageUrl(data);
+            setImageUrl(blogImageUrl);
+            console.log(`[Blog Detail] Đã tìm thấy hình ảnh: ${blogImageUrl}`);
+          } catch (imgError) {
+            console.warn(
+              "[Blog Detail] Không thể lấy hình ảnh blog:",
+              imgError
+            );
+            // Giữ nguyên ảnh mặc định
+          }
         } else {
           console.error(
             `[Blog Detail] API không thành công (${response.status}):`,
@@ -130,6 +139,22 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
       month: "long",
       day: "numeric",
     });
+  };
+
+  // Định dạng trạng thái blog
+  const getStatusText = (status?: number): string => {
+    if (status === undefined || status === null) return "";
+
+    switch (status) {
+      case 0:
+        return "";
+      case 1:
+        return "";
+      case 2:
+        return "";
+      default:
+        return `Trạng thái ${status}`;
+    }
   };
 
   if (loading) {
@@ -209,11 +234,11 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
 
       <article className="bg-white rounded-lg shadow-md overflow-hidden">
         {/* Blog Image */}
-        {blog.blogImage && (
+        {imageUrl && (
           <div className="relative h-[400px] md:h-[500px] w-full">
             <img
-              src={blog.blogImage.imageUrl}
-              alt={blog.title}
+              src={imageUrl}
+              alt={blog.name}
               className="w-full h-full object-cover"
             />
           </div>
@@ -221,24 +246,39 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
 
         {/* Blog Content */}
         <div className="p-6 md:p-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">{blog.title}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">{blog.name}</h1>
 
           <div className="flex items-center text-gray-500 mb-6">
+            {blog.authorName && (
+              <span className="mr-4">Tác giả: {blog.authorName}</span>
+            )}
             <span className="mr-4">
-              {blog.authorName ? `Tác giả: ${blog.authorName}` : ""}
+              Đăng ngày: {formatDate(blog.createdAt)}
             </span>
-            <span>Đăng ngày: {formatDate(blog.createdAt)}</span>
+            {blog.status !== undefined && (
+              <span className="bg-gray-200 px-2 py-1 text-sm rounded">
+                {getStatusText(blog.status)}
+              </span>
+            )}
           </div>
 
-          {blog.description && (
-            <div className="mb-6 italic text-lg text-gray-600">
-              {blog.description}
+          {/* Danh mục blog nếu có */}
+          {blog.blogCategories && blog.blogCategories.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {blog.blogCategories.map((category) => (
+                <span
+                  key={category.id}
+                  className="bg-pink-100 text-pink-800 text-sm px-2 py-1 rounded"
+                >
+                  {category.name}
+                </span>
+              ))}
             </div>
           )}
 
           <div
             className="prose max-w-none"
-            dangerouslySetInnerHTML={{ __html: blog.content || "" }}
+            dangerouslySetInnerHTML={{ __html: blog.description || "" }}
           />
         </div>
       </article>

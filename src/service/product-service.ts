@@ -4,17 +4,23 @@ import { getToken } from "@/auth/auth-service";
 import { REAL_API_BASE_URL, API_CORS_HEADERS } from "@/utils/api-config";
 import { compressImage } from "@/utils/image-utils";
 
+// URL API trực tiếp không được ẩn đi
+const API_URL = "https://production.doca.love";
+
 // Tạo instance mới của API client
 const getProductApiInstance = () => {
   // Tạo cấu hình với Authorization header
   const config = new Configuration({
-    basePath: REAL_API_BASE_URL,
+    basePath: API_URL,
     baseOptions: {
       headers: {
         Authorization: `Bearer ${getToken()}`,
       },
     },
   });
+
+  // Log URL API trực tiếp cho mục đích debug
+  console.log("[ProductService] Sử dụng API URL trực tiếp:", API_URL);
 
   return new ProductApi(config);
 };
@@ -35,7 +41,7 @@ export const ProductService = {
 
       // Log để debug
       console.log(
-        `ProductService.getProducts - Gọi API với page=${page}, size=${params.size}`
+        `ProductService.getProducts - Gọi API với page=${page}, size=${params.size} (URL: ${API_URL}/api/v1/products)`
       );
 
       return await productApi.apiV1ProductsGet(
@@ -56,6 +62,12 @@ export const ProductService = {
   getProductById: async (id: string) => {
     try {
       const productApi = getProductApiInstance();
+
+      // Log URL API trực tiếp
+      console.log(
+        `ProductService.getProductById - Gọi API trực tiếp: ${API_URL}/api/v1/products/${id}`
+      );
+
       return await productApi.apiV1ProductsIdGet(id);
     } catch (error) {
       console.error("Lỗi khi lấy thông tin sản phẩm:", error);

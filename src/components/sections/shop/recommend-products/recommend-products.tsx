@@ -29,12 +29,20 @@ export default function RecommendProducts() {
       setLoading(true);
       console.log("[RecommendProducts] Đang tải sản phẩm gợi ý");
 
-      // Sử dụng duy nhất 1 API URL
+      // URL API trực tiếp không được ẩn đi
       const apiUrl =
         "https://production.doca.love/api/v1/products?page=1&size=8";
-      console.log(`[RecommendProducts] Gọi API: ${apiUrl}`);
+      console.log(`[RecommendProducts] Gọi API trực tiếp: ${apiUrl}`);
+      console.log(
+        `[RecommendProducts] API URL không được ẩn đi cho mục đích debug`
+      );
 
       const response = await axios.get(apiUrl);
+
+      // Log thông tin response để debug
+      console.log(
+        `[RecommendProducts] Response status: ${response.status} ${response.statusText}`
+      );
 
       if (response.status === 200) {
         const data = response.data;
