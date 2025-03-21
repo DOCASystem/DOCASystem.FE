@@ -79,12 +79,44 @@ export async function GET(
         );
       }
 
-      // Lấy response data
-      const responseData = await response.json();
-      console.log(
-        `API Proxy: Lấy thông tin sản phẩm thành công`,
-        responseData?.id || "ID không xác định"
-      );
+      // Lấy response data dưới dạng JSON và xử lý an toàn
+      let responseData;
+      try {
+        const textData = await response.text();
+        console.log(
+          `API Proxy: Response body:`,
+          textData.substring(0, 200) + "..."
+        );
+        responseData = textData ? JSON.parse(textData) : null;
+
+        // Kiểm tra dữ liệu trả về
+        if (!responseData || !responseData.id) {
+          throw new Error("Dữ liệu trả về không hợp lệ hoặc thiếu thông tin");
+        }
+
+        console.log(
+          `API Proxy: Lấy thông tin sản phẩm thành công`,
+          responseData?.id || "ID không xác định"
+        );
+      } catch (parseError) {
+        console.error("API Proxy: Lỗi khi parse JSON:", parseError);
+        return NextResponse.json(
+          {
+            message: "Lỗi xử lý dữ liệu từ server",
+            details: "Dữ liệu trả về không đúng định dạng JSON",
+            status: 500,
+            timestamp: new Date().toISOString(),
+          },
+          {
+            status: 500,
+            headers: {
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Methods": "GET, OPTIONS",
+              "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            },
+          }
+        );
+      }
 
       // Trả về kết quả cho client với headers CORS
       return NextResponse.json(responseData, {

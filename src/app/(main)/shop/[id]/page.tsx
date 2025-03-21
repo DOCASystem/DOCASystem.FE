@@ -100,57 +100,64 @@ export default function ProductDetailPage({
             `[Product Detail] Response status: ${response.status} ${response.statusText}`
           );
 
-          const textData = await response.text();
-          console.log(`[Product Detail] Response body:`, textData);
-          // Lấy dữ liệu response một cách an toàn
+          // Lấy dữ liệu response một cách an toàn - chỉ đọc response.text() một lần
           let data;
           try {
             const textData = await response.text();
+            // Log chỉ phần đầu của response body để tránh quá nhiều dữ liệu trong log
+            console.log(
+              `[Product Detail] Response body:`,
+              textData.length > 200
+                ? textData.substring(0, 200) + "..."
+                : textData
+            );
+
+            // Parse JSON từ textData đã lấy được
             data = textData ? JSON.parse(textData) : null;
+
+            // Kiểm tra nếu response thành công
+            if (response.ok && data) {
+              console.log(`[Product Detail] API thành công, dữ liệu:`, {
+                id: data.id,
+                name: data.name,
+                price: data.price,
+                categories: data.categories
+                  ?.map((c: { name: string }) => c.name)
+                  .join(", "),
+              });
+
+              // Đảm bảo data có đúng cấu trúc cần thiết
+              if (!data.id || !data.name) {
+                throw {
+                  status: 500,
+                  message: "Dữ liệu sản phẩm không đầy đủ",
+                  details: "Sản phẩm trả về thiếu thông tin quan trọng",
+                };
+              }
+
+              setProduct(data);
+            } else {
+              console.error(
+                `[Product Detail] API không thành công (${response.status}):`,
+                data
+              );
+
+              // Xử lý các lỗi
+              const errorDetail = {
+                status: response.status,
+                message: data?.message || `Lỗi ${response.status} từ server`,
+                details: data?.details || `API trả về lỗi ${response.status}`,
+              };
+
+              throw errorDetail;
+            }
           } catch (parseError) {
-            console.error("[Product Detail] Lỗi khi parse JSON:", parseError);
+            console.error("[Product Detail] Chi tiết lỗi:", parseError);
             throw {
               status: response.status,
               message: "Lỗi xử lý dữ liệu từ server",
               details: "Dữ liệu trả về không đúng định dạng JSON",
             };
-          }
-
-          // Kiểm tra nếu response thành công
-          if (response.ok && data) {
-            console.log(`[Product Detail] API thành công, dữ liệu:`, {
-              id: data.id,
-              name: data.name,
-              price: data.price,
-              categories: data.categories
-                ?.map((c: { name: string }) => c.name)
-                .join(", "),
-            });
-
-            // Đảm bảo data có đúng cấu trúc cần thiết
-            if (!data.id || !data.name) {
-              throw {
-                status: 500,
-                message: "Dữ liệu sản phẩm không đầy đủ",
-                details: "Sản phẩm trả về thiếu thông tin quan trọng",
-              };
-            }
-
-            setProduct(data);
-          } else {
-            console.error(
-              `[Product Detail] API không thành công (${response.status}):`,
-              data
-            );
-
-            // Xử lý các lỗi
-            const errorDetail = {
-              status: response.status,
-              message: data?.message || `Lỗi ${response.status} từ server`,
-              details: data?.details || `API trả về lỗi ${response.status}`,
-            };
-
-            throw errorDetail;
           }
         } catch (fetchError: unknown) {
           if (
