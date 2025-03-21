@@ -18,6 +18,7 @@ interface AuthContextType {
   userData: Partial<LoginResponse> | null;
   isLoading: boolean;
   error: string | null;
+  userRoles?: string[];
   login: (
     usernameOrPhoneNumber: string,
     password: string
@@ -32,6 +33,7 @@ const AuthContext = createContext<AuthContextType>({
   userData: null,
   isLoading: false,
   error: null,
+  userRoles: [],
   login: async () => {
     console.warn("AuthContext not properly initialized");
     return {} as LoginResponse;
@@ -155,6 +157,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       userData,
       isLoading,
       error,
+      userRoles: userData?.roles || [],
       login,
       logout,
       refreshAuth,

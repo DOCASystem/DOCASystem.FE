@@ -4,6 +4,7 @@ import axios, {
   AxiosResponse,
 } from "axios";
 import AuthService from "../service/auth.service";
+import apiMonitor from "./api-monitor";
 
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
@@ -22,6 +23,10 @@ axiosInstance.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Ghi log request
+    apiMonitor.onRequest(config);
+
     console.log("Request headers:", config.headers);
     return config;
   },
@@ -33,9 +38,16 @@ axiosInstance.interceptors.request.use(
 
 // Interceptor cho response - xử lý refresh token nếu token hết hạn
 axiosInstance.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    // Ghi log response thành công
+    apiMonitor.onResponse(response);
+    return response;
+  },
   async (error: AxiosError) => {
     console.error("Lỗi response:", error.message, error.response?.status);
+
+    // Ghi log response lỗi
+    apiMonitor.onError(error);
 
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;

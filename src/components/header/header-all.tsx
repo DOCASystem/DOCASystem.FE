@@ -24,15 +24,25 @@ const nav = [
   { id: 5, text: "Liên hệ", path: "/contact" },
 ];
 
+// Thêm navigation cho admin và dev
+const adminNav = [
+  { id: 1, text: "Admin", path: "/admin" },
+  { id: 2, text: "API Monitor", path: "/api-monitor" },
+  { id: 3, text: "Test API", path: "/test-api" },
+];
+
 export default function Header() {
   const pathname = usePathname();
-  const { isAuthenticated } = useAuthContext();
+  const { isAuthenticated, userRoles } = useAuthContext();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Kiểm tra nếu là trang admin thì không hiển thị header
   if (pathname.startsWith("/admin")) {
     return null;
   }
+
+  const isAdmin =
+    userRoles?.includes("Admin") || userRoles?.includes("Developer");
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -128,6 +138,26 @@ export default function Header() {
                 </LinkNav>
               );
             })}
+
+            {/* Admin and API Monitor links */}
+            {isAdmin &&
+              isAuthenticated &&
+              adminNav.map((item) => {
+                const isActive = pathname === item.path;
+                return (
+                  <LinkNav
+                    key={item.id}
+                    href={item.path}
+                    className={`${
+                      isActive
+                        ? "text-pink-doca underline underline-offset-8"
+                        : ""
+                    } hover:underline hover:underline-offset-8 hover:text-pink-doca`}
+                  >
+                    {item.text}
+                  </LinkNav>
+                );
+              })}
           </div>
 
           {/* User and Cart Icons */}
@@ -163,6 +193,27 @@ export default function Header() {
                   </Link>
                 );
               })}
+
+              {/* Admin links for mobile */}
+              {isAdmin &&
+                isAuthenticated &&
+                adminNav.map((item) => {
+                  const isActive = pathname === item.path;
+                  return (
+                    <Link
+                      key={`mobile-${item.id}`}
+                      href={item.path}
+                      className={`${
+                        isActive
+                          ? "text-pink-doca font-semibold"
+                          : "text-gray-800"
+                      } px-4 py-2 rounded-lg hover:bg-gray-50 text-base`}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {item.text}
+                    </Link>
+                  );
+                })}
             </nav>
           </div>
         )}

@@ -330,7 +330,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
             style={{
               backgroundImage:
                 blog && "imageUrl" in blog
-                  ? `url('${(blog as any).imageUrl}')`
+                  ? `url('${blog.imageUrl}')`
                   : "url(/images/blog-placeholder.jpg)",
             }}
           >
