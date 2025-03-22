@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import ImageGallery from "@/components/sections/shop/product-detail/image-gallery";
 import ProductInfo from "@/components/sections/shop/product-detail/product-info";
@@ -51,37 +51,30 @@ interface ApiErrorDetail {
   timestamp?: string;
 }
 
-export default function ProductDetailPage() {
+export default function ProductDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiErrorDetail | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  // Lấy productId từ query parameter
-  const productId = searchParams.get("id");
 
   // Sử dụng một phương thức duy nhất để lấy chi tiết sản phẩm khi vào trang
   useEffect(() => {
-    // Nếu không có productId, chuyển hướng về trang shop
-    if (!productId) {
-      router.push("/shop");
-      toast.error("Không tìm thấy ID sản phẩm");
-      return;
-    }
-
     const fetchProductDetail = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        // Tải thông tin sản phẩm với ID từ query parameter
+        // Tải thông tin sản phẩm với ID từ URL
         console.log(
-          `[Product Detail] Đang tải thông tin sản phẩm với ID: ${productId}`
+          `[Product Detail] Đang tải thông tin sản phẩm với ID: ${params.id}`
         );
 
         // Sử dụng API từ production.doca.love
-        const apiUrl = `https://production.doca.love/api/v1/products/${productId}`;
+        const apiUrl = `https://production.doca.love/api/v1/products/${params.id}`;
         console.log(`[Product Detail] Gọi API: ${apiUrl}`);
 
         // Thêm timeout để tránh các vấn đề kết nối quá lâu
@@ -218,7 +211,7 @@ export default function ProductDetailPage() {
 
     // Gọi hàm tải dữ liệu
     fetchProductDetail();
-  }, [productId, router]);
+  }, [params.id, router]);
 
   // Tính toán các mức giá sản phẩm nếu có khuyến mãi
   const priceInfo = useMemo(() => {

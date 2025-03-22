@@ -68,8 +68,8 @@ export default function CardProduct({ product }: CardProductProps) {
         `[CardProduct] Sẽ gọi API: https://production.doca.love/api/v1/products/${productId}`
       );
 
-      // Chuyển hướng đến trang chi tiết sản phẩm với query parameter
-      router.push(`/shop/product-detail?id=${productId}`);
+      // Chuyển hướng đến trang chi tiết sản phẩm
+      router.push(`/shop/product-detail/${productId}`);
     }
   };
 
