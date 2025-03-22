@@ -44,77 +44,77 @@ const nextConfig = {
   // Tối ưu hóa cho Vercel
   output: "standalone",
   // Tắt header "X-Powered-By"
-  poweredByHeader: false,
-  // Tối ưu hóa build và runtime
-  reactStrictMode: true,
-  swcMinify: true,
-  // Bỏ qua các trang admin trong quá trình build
-  pageExtensions: ["tsx", "ts", "jsx", "js"],
-  eslint: {
-    // Bỏ qua lỗi ESLint trong quá trình build
-    ignoreDuringBuilds: true,
-  },
-  // Bỏ qua lỗi trong quá trình build
-  skipTrailingSlashRedirect: true,
-  // Bỏ qua lỗi middleware
-  skipMiddlewareUrlNormalize: true,
-  // Cấu hình bộ đệm động để tăng hiệu suất
-  onDemandEntries: {
-    // Tăng thời gian lưu trữ trang trong bộ nhớ đệm (ms)
-    maxInactiveAge: 60 * 1000, // 60 giây
-    // Tăng số lượng trang được lưu trong bộ nhớ đệm
-    pagesBufferLength: 5,
-  },
-  // Cấu hình thực nghiệm (cải thiện hiệu suất)
-  experimental: {
-    // Cho phép sử dụng thư mục bên ngoài
-    externalDir: true,
-    // Tắt tối ưu hóa CSS để tránh lỗi với critters
-    optimizeCss: false,
-    // Kích hoạt bộ nhớ đệm tối ưu
-    turbotrace: {
-      logLevel: "error",
-    },
-    // Kích hoạt chế độ nhanh
-    optimizeServerReact: true,
-    // Tăng tốc quá trình build
-    serverMinification: true,
-    // Sử dụng phiên bản mới hơn của React (nếu có)
-    serverComponentsExternalPackages: [],
-  },
-  // Cấu hình nén tệp
-  compress: true,
-  // Tối ưu hóa webpack
-  webpack: (config, { dev, isServer }) => {
-    // Tối ưu cả môi trường phát triển và sản xuất
-    if (!dev) {
-      // Tối ưu hóa cho production
-      config.optimization.minimize = true;
-    } else {
-      // Tối ưu hóa cho development
-      config.optimization.removeAvailableModules = false;
-      config.optimization.removeEmptyChunks = false;
-    }
+  // poweredByHeader: false,
+  // // Tối ưu hóa build và runtime
+  // reactStrictMode: true,
+  // swcMinify: true,
+  // // Bỏ qua các trang admin trong quá trình build
+  // pageExtensions: ["tsx", "ts", "jsx", "js"],
+  // eslint: {
+  //   // Bỏ qua lỗi ESLint trong quá trình build
+  //   ignoreDuringBuilds: true,
+  // },
+  // // Bỏ qua lỗi trong quá trình build
+  // skipTrailingSlashRedirect: true,
+  // // Bỏ qua lỗi middleware
+  // skipMiddlewareUrlNormalize: true,
+  // // Cấu hình bộ đệm động để tăng hiệu suất
+  // onDemandEntries: {
+  //   // Tăng thời gian lưu trữ trang trong bộ nhớ đệm (ms)
+  //   maxInactiveAge: 60 * 1000, // 60 giây
+  //   // Tăng số lượng trang được lưu trong bộ nhớ đệm
+  //   pagesBufferLength: 5,
+  // },
+  // // Cấu hình thực nghiệm (cải thiện hiệu suất)
+  // experimental: {
+  //   // Cho phép sử dụng thư mục bên ngoài
+  //   externalDir: true,
+  //   // Tắt tối ưu hóa CSS để tránh lỗi với critters
+  //   optimizeCss: false,
+  //   // Kích hoạt bộ nhớ đệm tối ưu
+  //   turbotrace: {
+  //     logLevel: "error",
+  //   },
+  //   // Kích hoạt chế độ nhanh
+  //   optimizeServerReact: true,
+  //   // Tăng tốc quá trình build
+  //   serverMinification: true,
+  //   // Sử dụng phiên bản mới hơn của React (nếu có)
+  //   serverComponentsExternalPackages: [],
+  // },
+  // // Cấu hình nén tệp
+  // compress: true,
+  // // Tối ưu hóa webpack
+  // webpack: (config, { dev, isServer }) => {
+  //   // Tối ưu cả môi trường phát triển và sản xuất
+  //   if (!dev) {
+  //     // Tối ưu hóa cho production
+  //     config.optimization.minimize = true;
+  //   } else {
+  //     // Tối ưu hóa cho development
+  //     config.optimization.removeAvailableModules = false;
+  //     config.optimization.removeEmptyChunks = false;
+  //   }
 
-    // Tăng tốc độ khởi động
-    if (isServer) {
-      config.optimization.concatenateModules = true;
-    }
+  //   // Tăng tốc độ khởi động
+  //   if (isServer) {
+  //     config.optimization.concatenateModules = true;
+  //   }
 
-    return config;
-  },
+  //   return config;
+  // },
   // Tăng tốc độ phân tích module
-  modularizeImports: {
-    "@mui/icons-material": {
-      transform: "@mui/icons-material/{{member}}",
-    },
-    "@mui/material": {
-      transform: "@mui/material/{{member}}",
-    },
-    lodash: {
-      transform: "lodash/{{member}}",
-    },
-  },
+  // modularizeImports: {
+  //   "@mui/icons-material": {
+  //     transform: "@mui/icons-material/{{member}}",
+  //   },
+  //   "@mui/material": {
+  //     transform: "@mui/material/{{member}}",
+  //   },
+  //   lodash: {
+  //     transform: "lodash/{{member}}",
+  //   },
+  // },
 };
 
 export default nextConfig;

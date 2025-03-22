@@ -4,7 +4,8 @@ import Image from "next/image";
 import { GetProductDetailResponse } from "@/api/generated";
 import { useCartStore } from "@/store/cart-store";
 import { toast } from "react-toastify";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface CardProductProps {
   product: GetProductDetailResponse;
@@ -13,7 +14,7 @@ interface CardProductProps {
 export default function CardProduct({ product }: CardProductProps) {
   // Lấy trực tiếp hàm addItem từ store, không cần định nghĩa type phức tạp
   const addItem = useCartStore((state) => state.addItem);
-  const router = useRouter();
+  // const router = useRouter();
 
   const defaultProduct = {
     id: "0",
@@ -54,28 +55,31 @@ export default function CardProduct({ product }: CardProductProps) {
   };
 
   // Xử lý click vào sản phẩm
-  const handleProductClick = (e: React.MouseEvent) => {
-    // Nếu không phải click vào nút thêm vào giỏ hàng
-    if (
-      (e.target as HTMLElement).closest("button[data-cart-button]") === null
-    ) {
-      e.preventDefault(); // Ngăn chặn hành vi mặc định của Link
+  // const handleProductClick = (e: React.MouseEvent) => {
+  //   // Nếu không phải click vào nút thêm vào giỏ hàng
+  //   if (
+  //     (e.target as HTMLElement).closest("button[data-cart-button]") === null
+  //   ) {
+  //     e.preventDefault(); // Ngăn chặn hành vi mặc định của Link
 
-      // Log thông tin sản phẩm được chọn
-      const productId = product?.id || defaultProduct.id;
-      console.log(`[CardProduct] Đã chọn sản phẩm ID: ${productId}`);
-      console.log(
-        `[CardProduct] Sẽ gọi API: https://production.doca.love/api/v1/products/${productId}`
-      );
+  //     // Log thông tin sản phẩm được chọn
+  //     const productId = product?.id || defaultProduct.id;
+  //     console.log(`[CardProduct] Đã chọn sản phẩm ID: ${productId}`);
+  //     console.log(
+  //       `[CardProduct] Sẽ gọi API: https://production.doca.love/api/v1/products/${productId}`
+  //     );
 
-      // Chuyển hướng đến trang chi tiết sản phẩm
-      router.push(`/shop/product-detail/${productId}`);
-    }
-  };
+  //     // Chuyển hướng đến trang chi tiết sản phẩm
+  //     router.push(`/shop/product-detail/${productId}`);
+  //   }
+  // };
 
   return (
     <div className="w-full border-2 border-slate-100 rounded-[20px]">
-      <div onClick={handleProductClick} className="cursor-pointer">
+      <Link
+        href={`/shop/product-detail/${product?.id}`}
+        className="cursor-pointer"
+      >
         <div className="relative aspect-square">
           <Image
             src={mainImage}
@@ -118,7 +122,7 @@ export default function CardProduct({ product }: CardProductProps) {
             </button>
           </div>
         </div>
-      </div>
+      </Link>
     </div>
   );
 }
