@@ -25,7 +25,7 @@ export default function CardProduct({ product }: CardProductProps) {
   };
 
   return (
-    <Link href={`/shop/${product.id}`}>
+    <Link href={`/shop/product-detail?id=${product.id}`}>
       <div className="w-full border-2 border-slate-100 rounded-[20px] transition-transform hover:shadow-lg hover:-translate-y-1">
         <div className="relative aspect-square">
           <Image

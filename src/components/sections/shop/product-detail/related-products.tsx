@@ -136,7 +136,7 @@ export default function RelatedProducts({
 
           return (
             <Link
-              href={`/shop/${product.id}`}
+              href={`/shop/product-detail?id=${product.id}`}
               key={product.id}
               className="bg-white p-3 rounded-lg shadow-sm transition-transform hover:shadow-md hover:-translate-y-1"
             >

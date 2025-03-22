@@ -108,7 +108,7 @@ export default function RecommendProducts() {
 
             return (
               <Link
-                href={`/shop/${product.id}`}
+                href={`/shop/product-detail?id=${product.id}`}
                 key={product.id}
                 className="bg-white rounded-lg shadow-sm p-4 flex flex-col transform transition-all hover:shadow-md hover:-translate-y-1"
               >
