@@ -17,6 +17,9 @@ const defaultAuthContext: UseAuthResult = {
   userData: null,
   loading: false,
   error: null,
+  clearError: function (): void {
+    throw new Error("Function not implemented.");
+  },
 };
 
 // Tạo context với giá trị mặc định an toàn
