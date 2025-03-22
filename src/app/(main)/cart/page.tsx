@@ -3,30 +3,21 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { toast } from "react-toastify";
 import { useCartStore, CartItem } from "@/store/cart-store";
+import { PaymentService } from "@/service/payment-service";
 
 export default function CartPage() {
   // Sử dụng một state duy nhất để kiểm soát client-side rendering
   const [mounted, setMounted] = useState(false);
+  const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
 
   // Lấy các phương thức và dữ liệu từ store
-  const { items, updateQuantity, removeItem } = useCartStore();
+  const { items, updateQuantity, removeItem, clearCart } = useCartStore();
 
   // Tính toán subtotal và total khi render thay vì lưu trong state
   const calculateSubtotal = () => {
     return items.reduce((total, item) => total + item.price * item.quantity, 0);
-  };
-
-  // Tính tổng số sản phẩm trong giỏ hàng
-  const calculateTotalItems = () => {
-    return items.reduce((total, item) => total + item.quantity, 0);
-  };
-
-  // Định nghĩa phí giao hàng
-  const calculateShippingFee = () => {
-    const totalItems = calculateTotalItems();
-    // Miễn phí giao hàng nếu mua từ 3 sản phẩm trở lên
-    return totalItems >= 3 ? 0 : 15000;
   };
 
   // Format giá tiền
@@ -57,9 +48,48 @@ export default function CartPage() {
   };
 
   // Xử lý thanh toán
-  const handleCheckout = () => {
-    console.log("Tiến hành thanh toán");
-    // Thêm xử lý thanh toán ở đây
+  const handleCheckout = async () => {
+    if (items.length === 0) {
+      toast.error("Giỏ hàng của bạn đang trống");
+      return;
+    }
+
+    setIsProcessingCheckout(true);
+
+    try {
+      const response = await PaymentService.checkout({
+        address: "Sài Gòn Time", // Địa chỉ mặc định
+      });
+
+      // Log thông tin response để debug
+      console.log("Thanh toán thành công:", response);
+
+      // Xóa giỏ hàng sau khi thanh toán thành công
+      clearCart();
+
+      // Kiểm tra URL chuyển hướng từ API - thêm kiểm tra cụ thể hơn
+      if (
+        response &&
+        response.redirectUrl &&
+        response.redirectUrl.trim() !== ""
+      ) {
+        toast.success("Đang chuyển đến trang thanh toán");
+
+        // Log URL trước khi chuyển hướng
+        console.log("Đang chuyển hướng đến:", response.redirectUrl);
+
+        // Chuyển hướng trực tiếp không qua setTimeout để tránh lỗi
+        window.location.href = response.redirectUrl;
+      } else {
+        console.error("URL thanh toán không hợp lệ:", response);
+        toast.error("Không nhận được thông tin thanh toán từ hệ thống");
+      }
+    } catch (error) {
+      console.error("Lỗi khi thanh toán:", error);
+      toast.error("Có lỗi xảy ra khi xử lý thanh toán. Vui lòng thử lại sau.");
+    } finally {
+      setIsProcessingCheckout(false);
+    }
   };
 
   // Đảm bảo hiển thị nội dung chỉ ở client-side
@@ -75,9 +105,7 @@ export default function CartPage() {
 
   // Tính toán các giá trị khi render, không lưu vào state
   const subtotal = calculateSubtotal();
-  const shippingFee = calculateShippingFee();
-  const total = subtotal + shippingFee;
-  const totalItems = calculateTotalItems();
+  const total = subtotal; // Không tính phí ship
 
   return (
     <div className="container mx-auto py-6 md:py-10 px-4">
@@ -131,21 +159,68 @@ export default function CartPage() {
                   {items.map((item) => (
                     <tr key={item.id} className="border-b border-gray-200">
                       <td className="py-4 px-2">
-                        <div className="flex items-center">
-                          <div className="relative w-16 h-16 md:w-20 md:h-20 mr-4 flex-shrink-0">
-                            <Image
-                              src={item.imageUrl || "/images/food-test.png"}
-                              alt={item.name}
-                              fill
-                              sizes="(max-width: 768px) 64px, 80px"
-                              className="object-cover rounded-md"
-                            />
+                        <div className="flex flex-col">
+                          <div className="flex items-center">
+                            <div className="relative w-16 h-16 md:w-20 md:h-20 mr-4 flex-shrink-0">
+                              <Image
+                                src={item.imageUrl || "/images/food-test.png"}
+                                alt={item.name}
+                                fill
+                                sizes="(max-width: 768px) 64px, 80px"
+                                className="object-cover rounded-md"
+                              />
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-sm md:text-base">
+                                {item.name}
+                              </h3>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-medium text-sm md:text-base">
-                              {item.name}
-                            </h3>
-                          </div>
+
+                          {/* Blog liên quan */}
+                          {item.blog && (
+                            <div className="mt-2 ml-24">
+                              <div className="flex items-center">
+                                {item.blog.imageUrl && (
+                                  <div className="relative w-8 h-8 mr-2 flex-shrink-0">
+                                    <Image
+                                      src={item.blog.imageUrl}
+                                      alt={item.blog.name}
+                                      fill
+                                      sizes="32px"
+                                      className="object-cover rounded-full"
+                                    />
+                                  </div>
+                                )}
+                                <Link
+                                  href={`/blog/${item.blogId}`}
+                                  className="text-xs text-gray-600 hover:text-pink-doca hover:underline flex items-center"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-3 w-3 mr-1"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                    />
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                    />
+                                  </svg>
+                                  {item.blog.name}
+                                </Link>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="py-4 px-2 text-sm md:text-base">
@@ -249,26 +324,70 @@ export default function CartPage() {
                           </svg>
                         </button>
                       </div>
-                      <p className="text-gray-600 text-sm mt-1">
+                      <p className="text-gray-500 text-sm mb-2">
                         {formatPrice(item.price)}
                       </p>
+
+                      {/* Blog liên quan mobile */}
+                      {item.blog && (
+                        <div className="mb-3">
+                          <div className="flex items-center">
+                            {item.blog.imageUrl && (
+                              <div className="relative w-6 h-6 mr-2 flex-shrink-0">
+                                <Image
+                                  src={item.blog.imageUrl}
+                                  alt={item.blog.name}
+                                  fill
+                                  sizes="24px"
+                                  className="object-cover rounded-full"
+                                />
+                              </div>
+                            )}
+                            <Link
+                              href={`/blog/${item.blogId}`}
+                              className="text-xs text-gray-600 hover:text-pink-doca hover:underline flex items-center"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-3 w-3 mr-1"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                />
+                              </svg>
+                              {item.blog.name}
+                            </Link>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-
                   <div className="flex justify-between items-center">
-                    <div className="flex items-center">
+                    <div className="flex items-center border rounded-md">
                       <button
-                        className="px-2 py-1 bg-gray-200 rounded-l-md"
                         onClick={() =>
                           handleQuantityChange(item, item.quantity - 1)
                         }
+                        className="w-8 h-8 flex items-center justify-center border-r"
                         disabled={item.quantity <= 1}
                       >
                         -
                       </button>
                       <input
                         type="number"
-                        className="w-10 px-1 py-1 text-center border-gray-200 border-y text-sm"
+                        className="w-10 h-8 text-center text-sm border-none"
                         value={item.quantity}
                         onChange={(e) =>
                           handleQuantityChange(
@@ -279,77 +398,81 @@ export default function CartPage() {
                         min={1}
                       />
                       <button
-                        className="px-2 py-1 bg-gray-200 rounded-r-md"
                         onClick={() =>
                           handleQuantityChange(item, item.quantity + 1)
                         }
+                        className="w-8 h-8 flex items-center justify-center border-l"
                       >
                         +
                       </button>
                     </div>
-                    <div className="font-medium">
+                    <p className="font-medium">
                       {formatPrice(item.price * item.quantity)}
-                    </div>
+                    </p>
                   </div>
                 </div>
               ))}
             </div>
+
+            <div className="mt-8 text-right">
+              <Link
+                href="/shop"
+                className="text-pink-doca hover:underline text-sm md:text-base"
+              >
+                &larr; Tiếp tục mua sắm
+              </Link>
+            </div>
           </div>
 
-          {/* Thông tin đơn hàng */}
+          {/* Phần tổng đơn hàng */}
           <div className="lg:col-span-1">
-            <div className="bg-gray-50 p-4 md:p-6 rounded-lg sticky top-4">
-              <h2 className="text-lg md:text-xl font-bold mb-4">
-                Thông tin đơn hàng
-              </h2>
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <h2 className="text-xl font-bold mb-6">Tổng giỏ hàng</h2>
 
               <div className="space-y-4">
                 <div className="flex justify-between border-b pb-4">
-                  <span className="text-sm md:text-base">Tạm Tính</span>
-                  <span className="font-medium text-sm md:text-base">
-                    {formatPrice(subtotal)}
-                  </span>
+                  <span className="text-gray-600">Tạm tính</span>
+                  <span className="font-medium">{formatPrice(subtotal)}</span>
                 </div>
-
-                <div className="flex justify-between border-b pb-4">
-                  <span className="text-sm md:text-base">Phí giao hàng</span>
-                  <span className="font-medium text-sm md:text-base">
-                    {shippingFee === 0 ? (
-                      <span className="text-green-600">Miễn phí</span>
-                    ) : (
-                      formatPrice(shippingFee)
-                    )}
-                  </span>
-                </div>
-
-                {totalItems > 0 && totalItems < 3 && (
-                  <div className="text-xs text-gray-500 italic pb-2">
-                    Mua thêm {3 - totalItems} sản phẩm để được miễn phí giao
-                    hàng
-                  </div>
-                )}
 
                 <div className="flex justify-between pt-2">
-                  <span className="font-bold text-sm md:text-base">Tổng</span>
-                  <span className="font-bold text-lg md:text-xl text-pink-doca">
+                  <span className="font-bold text-lg">Tổng thanh toán</span>
+                  <span className="font-bold text-lg text-pink-doca">
                     {formatPrice(total)}
                   </span>
                 </div>
+
+                <div className="pt-4">
+                  <p className="text-gray-600 text-sm mb-4">
+                    Địa chỉ nhận hàng:{" "}
+                    <span className="font-medium">Sài Gòn Time</span>
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleCheckout}
+                  disabled={isProcessingCheckout || items.length === 0}
+                  className={`w-full py-3 rounded-md mt-6 flex items-center justify-center ${
+                    isProcessingCheckout || items.length === 0
+                      ? "bg-gray-400 cursor-not-allowed text-white"
+                      : "bg-pink-doca text-white hover:bg-pink-700 transition-colors"
+                  }`}
+                >
+                  {isProcessingCheckout ? (
+                    <>
+                      <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    "Tiến hành thanh toán"
+                  )}
+                </button>
+
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  Bằng cách nhấn vào &quot;Tiến hành thanh toán&quot;, bạn đồng
+                  ý với các điều khoản và điều kiện của chúng tôi.
+                </p>
               </div>
-
-              <button
-                onClick={handleCheckout}
-                className="w-full bg-pink-doca text-white py-3 rounded-md mt-6 hover:bg-pink-600 transition-colors"
-              >
-                Thanh toán
-              </button>
-
-              <Link
-                href="/shop"
-                className="w-full block text-center text-gray-600 hover:text-pink-doca mt-4 text-sm md:text-base"
-              >
-                Tiếp tục mua sắm
-              </Link>
             </div>
           </div>
         </div>

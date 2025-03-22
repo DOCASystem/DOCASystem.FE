@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useCartStore } from "@/store/cart-store";
+import { CartService } from "@/service/cart-service";
+import { BlogService } from "@/service/blog-service";
 
 interface ProductImage {
   id: string;
@@ -43,7 +45,33 @@ interface ProductInfoProps {
 
 export default function ProductInfo({ product, priceInfo }: ProductInfoProps) {
   const [quantity, setQuantity] = useState(1);
+  const [randomBlogId, setRandomBlogId] = useState<string | null>(null);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
+
+  // Lấy một blog ngẫu nhiên khi component được tải
+  useEffect(() => {
+    const fetchRandomBlog = async () => {
+      try {
+        const response = await BlogService.getBlogs({
+          page: 1,
+          size: 10,
+        });
+
+        if (response.data.items && response.data.items.length > 0) {
+          const randomIndex = Math.floor(
+            Math.random() * response.data.items.length
+          );
+          const randomBlog = response.data.items[randomIndex];
+          setRandomBlogId(randomBlog.id);
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy blog ngẫu nhiên:", error);
+      }
+    };
+
+    fetchRandomBlog();
+  }, []);
 
   // Format giá tiền
   const formatPrice = (price: number) => {
@@ -79,29 +107,55 @@ export default function ProductInfo({ product, priceInfo }: ProductInfoProps) {
   };
 
   // Xử lý thêm vào giỏ hàng
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (product.quantity <= 0) {
       toast.error("Sản phẩm đã hết hàng");
       return;
     }
 
-    // Lấy hình ảnh đầu tiên của sản phẩm (nếu có)
-    const mainImage =
-      product.productImages && product.productImages.length > 0
-        ? product.productImages.find((img) => img.isMain)?.imageUrl ||
-          product.productImages[0].imageUrl
-        : "/images/product-placeholder.jpg";
+    setIsAddingToCart(true);
 
-    // Thêm sản phẩm vào giỏ hàng
-    addItem({
-      id: product.id,
-      name: product.name,
-      price: priceInfo.currentPrice,
-      quantity: quantity,
-      imageUrl: mainImage,
-    });
+    try {
+      // Lấy hình ảnh đầu tiên của sản phẩm (nếu có)
+      const mainImage =
+        product.productImages && product.productImages.length > 0
+          ? product.productImages.find((img) => img.isMain)?.imageUrl ||
+            product.productImages[0].imageUrl
+          : "/images/product-placeholder.jpg";
 
-    toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng`);
+      // Gọi API thêm vào giỏ hàng
+      const response = await CartService.addToCart({
+        productId: product.id,
+        blogId: randomBlogId || undefined,
+        quantity: quantity,
+      });
+
+      // Thêm sản phẩm vào giỏ hàng local (zustand)
+      addItem({
+        id: product.id,
+        name: product.name,
+        price: priceInfo.currentPrice,
+        quantity: quantity,
+        imageUrl: mainImage,
+        blogId: response.blogId || randomBlogId || undefined,
+        blog: response.blog
+          ? {
+              id: response.blog.id,
+              name: response.blog.name,
+              imageUrl: response.blog.imageUrl,
+            }
+          : undefined,
+      });
+
+      toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng`);
+    } catch (error) {
+      console.error("Lỗi khi thêm vào giỏ hàng:", error);
+      toast.error(
+        "Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại sau."
+      );
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   // Thông tin chi tiết sản phẩm
@@ -181,7 +235,7 @@ export default function ProductInfo({ product, priceInfo }: ProductInfoProps) {
             <button
               onClick={decreaseQuantity}
               className="w-10 h-10 flex items-center justify-center border-r text-gray-600 hover:text-pink-doca"
-              disabled={quantity <= 1}
+              disabled={quantity <= 1 || isAddingToCart}
             >
               -
             </button>
@@ -192,39 +246,50 @@ export default function ProductInfo({ product, priceInfo }: ProductInfoProps) {
               min="1"
               max="100"
               className="w-14 h-10 text-center focus:outline-none"
+              disabled={isAddingToCart}
             />
             <button
               onClick={increaseQuantity}
               className="w-10 h-10 flex items-center justify-center border-l text-gray-600 hover:text-pink-doca"
+              disabled={isAddingToCart}
             >
               +
             </button>
           </div>
           <button
             onClick={handleAddToCart}
-            disabled={product.quantity <= 0}
+            disabled={product.quantity <= 0 || isAddingToCart}
             className={`flex-1 py-3 px-4 rounded-md text-white font-medium flex items-center justify-center gap-2 ${
-              product.quantity <= 0
+              product.quantity <= 0 || isAddingToCart
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-pink-doca hover:bg-pink-700"
             }`}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <path d="M16 10a4 4 0 0 1-8 0"></path>
-            </svg>
-            {product.quantity <= 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
+            {isAddingToCart ? (
+              <>
+                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                Đang thêm...
+              </>
+            ) : (
+              <>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <path d="M16 10a4 4 0 0 1-8 0"></path>
+                </svg>
+                {product.quantity <= 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
+              </>
+            )}
           </button>
         </div>
       </div>

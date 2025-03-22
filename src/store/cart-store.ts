@@ -1,6 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+// Định nghĩa kiểu dữ liệu cho blog trong giỏ hàng
+export interface CartBlog {
+  id: string;
+  name: string;
+  imageUrl?: string;
+}
+
 // Định nghĩa kiểu dữ liệu cho sản phẩm trong giỏ hàng
 export interface CartItem {
   id: string;
@@ -8,6 +15,8 @@ export interface CartItem {
   price: number;
   quantity: number;
   imageUrl?: string;
+  blogId?: string;
+  blog?: CartBlog;
 }
 
 // Định nghĩa kiểu dữ liệu cho store giỏ hàng
@@ -16,6 +25,7 @@ interface CartStore {
   addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
+  updateItemBlog: (id: string, blogId: string, blog?: CartBlog) => void;
   clearCart: () => void;
 }
 
@@ -35,7 +45,12 @@ export const useCartStore = create<CartStore>()(
             return {
               items: state.items.map((i) =>
                 i.id === item.id
-                  ? { ...i, quantity: i.quantity + item.quantity }
+                  ? {
+                      ...i,
+                      quantity: i.quantity + item.quantity,
+                      blogId: item.blogId || i.blogId,
+                      blog: item.blog || i.blog,
+                    }
                   : i
               ),
             };
@@ -58,6 +73,15 @@ export const useCartStore = create<CartStore>()(
         set((state) => ({
           items: state.items.map((item) =>
             item.id === id ? { ...item, quantity } : item
+          ),
+        }));
+      },
+
+      // Cập nhật blog cho sản phẩm
+      updateItemBlog: (id: string, blogId: string, blog?: CartBlog) => {
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.id === id ? { ...item, blogId, blog } : item
           ),
         }));
       },

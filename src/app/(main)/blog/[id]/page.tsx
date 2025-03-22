@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { Blog, BlogService } from "@/service/blog-service";
+import { GetProductDetailResponse } from "@/api/generated";
+import { ProductService } from "@/service/product-service";
+import CardProduct from "@/components/common/card/card-product/card-food";
 
 // Interface cho API error response
 interface ApiErrorDetail {
@@ -21,6 +24,9 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
   const [imageUrl, setImageUrl] = useState<string>(
     "/images/blog-placeholder.png"
   );
+  const [randomProduct, setRandomProduct] =
+    useState<GetProductDetailResponse | null>(null);
+  const [loadingProduct, setLoadingProduct] = useState(true);
   const router = useRouter();
 
   // Sử dụng một phương thức duy nhất để lấy chi tiết blog
@@ -130,6 +136,37 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
     fetchBlogDetail();
   }, [params.id, router]);
 
+  // Lấy một sản phẩm ngẫu nhiên
+  useEffect(() => {
+    const fetchRandomProduct = async () => {
+      setLoadingProduct(true);
+      try {
+        // Lấy danh sách sản phẩm từ API
+        const response = await ProductService.getProducts({
+          page: 1,
+          size: 10, // Lấy 10 sản phẩm để chọn ngẫu nhiên 1 sản phẩm
+        });
+
+        if (response.data.items && response.data.items.length > 0) {
+          // Chọn ngẫu nhiên 1 sản phẩm từ danh sách
+          const randomIndex = Math.floor(
+            Math.random() * response.data.items.length
+          );
+          setRandomProduct(response.data.items[randomIndex]);
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy sản phẩm ngẫu nhiên:", error);
+      } finally {
+        setLoadingProduct(false);
+      }
+    };
+
+    // Chỉ gọi API khi blog đã được load thành công
+    if (!loading && blog) {
+      fetchRandomProduct();
+    }
+  }, [loading, blog]);
+
   // Format date to local date string
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
@@ -226,56 +263,108 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
         </Link>
       </div>
 
-      <article className="bg-white rounded-lg shadow-md overflow-hidden">
-        {/* Blog Image */}
-        {imageUrl && (
-          <div className="relative h-[400px] md:h-[500px] w-full">
-            <img
-              src={imageUrl}
-              alt={blog.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
-
-        {/* Blog Content */}
-        <div className="p-6 md:p-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">{blog.name}</h1>
-
-          <div className="flex items-center text-gray-500 mb-6">
-            {blog.authorName && (
-              <span className="mr-4">Tác giả: {blog.authorName}</span>
-            )}
-            <span className="mr-4">
-              Đăng ngày: {formatDate(blog.createdAt)}
-            </span>
-            {blog.status !== undefined && (
-              <span className="bg-gray-200 px-2 py-1 text-sm rounded">
-                {getStatusText(blog.status)}
-              </span>
-            )}
-          </div>
-
-          {/* Danh mục blog nếu có */}
-          {blog.blogCategories && blog.blogCategories.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2">
-              {blog.blogCategories.map((category) => (
-                <span
-                  key={category.id}
-                  className="bg-pink-100 text-pink-800 text-sm px-2 py-1 rounded"
-                >
-                  {category.name}
-                </span>
-              ))}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <article className="bg-white rounded-lg shadow-md overflow-hidden lg:col-span-2">
+          {/* Blog Image */}
+          {imageUrl && (
+            <div className="relative h-[300px] md:h-[400px] w-full">
+              <img
+                src={imageUrl}
+                alt={blog.name}
+                className="w-full h-full object-cover"
+              />
             </div>
           )}
 
-          <div
-            className="prose max-w-none"
-            dangerouslySetInnerHTML={{ __html: blog.description || "" }}
-          />
-        </div>
-      </article>
+          {/* Blog Content */}
+          <div className="p-6 md:p-8">
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">{blog.name}</h1>
+
+            <div className="flex items-center text-gray-500 mb-6">
+              {blog.authorName && (
+                <span className="mr-4">Tác giả: {blog.authorName}</span>
+              )}
+              <span className="mr-4">
+                Đăng ngày: {formatDate(blog.createdAt)}
+              </span>
+              {blog.status !== undefined && (
+                <span className="bg-gray-200 px-2 py-1 text-sm rounded">
+                  {getStatusText(blog.status)}
+                </span>
+              )}
+            </div>
+
+            {/* Blog description */}
+            <div className="prose max-w-none">
+              <p className="whitespace-pre-wrap">{blog.description}</p>
+            </div>
+
+            {/* Tags or Categories */}
+            {blog.blogCategories && blog.blogCategories.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold mb-2">Danh mục:</h3>
+                <div className="flex flex-wrap gap-2">
+                  {blog.blogCategories.map((category) => (
+                    <span
+                      key={category.id}
+                      className="bg-pink-50 text-pink-doca px-3 py-1 rounded-full text-sm"
+                    >
+                      {category.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </article>
+
+        {/* Sản phẩm ngẫu nhiên */}
+        <aside className="lg:col-span-1">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-bold mb-6 text-pink-doca">
+              Gợi ý cho bạn
+            </h2>
+
+            {loadingProduct ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-doca"></div>
+              </div>
+            ) : randomProduct ? (
+              <div className="mb-8">
+                <CardProduct product={randomProduct} />
+                <div className="mt-4 text-center">
+                  <Link
+                    href="/shop"
+                    className="inline-block bg-pink-doca text-white px-4 py-2 rounded-lg hover:bg-pink-600 transition-colors"
+                  >
+                    Xem thêm sản phẩm
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-4">
+                Không có sản phẩm nào để hiển thị
+              </p>
+            )}
+
+            {/* Các mục blog khác có thể thêm vào đây sau */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <h3 className="font-semibold mb-4">Bài viết liên quan</h3>
+              <p className="text-sm text-gray-500">
+                Xem thêm các bài viết khác tại mục Blog của chúng tôi.
+              </p>
+              <div className="mt-4">
+                <Link
+                  href="/blog"
+                  className="text-pink-doca hover:underline text-sm font-medium"
+                >
+                  Xem tất cả bài viết &rarr;
+                </Link>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

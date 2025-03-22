@@ -7,17 +7,19 @@ import CardProduct from "@/components/common/card/card-product/card-food";
 import { useState, useEffect } from "react";
 import { GetProductDetailResponse } from "@/api/generated";
 import { ProductService } from "@/service/product-service";
-import { mockBlogs } from "@/mock/blogs";
+import { Blog, BlogService } from "@/service/blog-service";
 
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<
     GetProductDetailResponse[]
   >([]);
+  const [latestBlogs, setLatestBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
-  const latestBlogs = mockBlogs.slice(0, 3);
+  const [loadingBlogs, setLoadingBlogs] = useState(true);
 
   useEffect(() => {
     fetchFeaturedProducts();
+    fetchLatestBlogs();
   }, []);
 
   const fetchFeaturedProducts = async () => {
@@ -35,6 +37,37 @@ export default function Home() {
       console.error("Lỗi khi lấy sản phẩm nổi bật:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLatestBlogs = async () => {
+    setLoadingBlogs(true);
+    try {
+      const response = await BlogService.getBlogs({
+        page: 1,
+        size: 3,
+        sortBy: "createdAt",
+        isAsc: false, // Sắp xếp giảm dần theo thời gian tạo
+      });
+
+      if (response.data.items) {
+        setLatestBlogs(response.data.items);
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy bài viết mới nhất:", error);
+      setLatestBlogs([]);
+    } finally {
+      setLoadingBlogs(false);
+    }
+  };
+
+  // Hàm lấy URL hình ảnh blog
+  const getBlogImageUrl = (blog: Blog): string => {
+    try {
+      return BlogService.getBlogImageUrl(blog);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_error) {
+      return "/images/blog-placeholder.png";
     }
   };
 
@@ -135,7 +168,10 @@ export default function Home() {
 
           {loading ? (
             <div className="text-center py-10">
-              Đang tải sản phẩm nổi bật...
+              <div className="flex justify-center mb-4">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-doca"></div>
+              </div>
+              <p>Đang tải sản phẩm nổi bật...</p>
             </div>
           ) : (
             <>
@@ -176,36 +212,51 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
-            {latestBlogs.map((blog) => (
-              <div
-                key={blog.id}
-                className="rounded-lg overflow-hidden shadow-md bg-white hover:-translate-y-2 transition-transform duration-300 mx-auto sm:mx-0 max-w-md w-full"
-              >
-                <Link href={`/blog/${blog.id}`}>
-                  <div className="relative h-40 sm:h-44 md:h-48">
-                    <Image
-                      src="/images/blog-placeholder.png"
-                      alt={blog.name || "Bài viết"}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-4 md:p-6">
-                    <h3 className="text-lg md:text-xl font-bold mb-2 line-clamp-2">
-                      {blog.name}
-                    </h3>
-                    <p className="text-sm md:text-base text-gray-600 mb-3 md:mb-4 line-clamp-3">
-                      {blog.description}
-                    </p>
-                    <span className="text-pink-doca font-medium">
-                      Đọc thêm →
-                    </span>
-                  </div>
-                </Link>
+          {loadingBlogs ? (
+            <div className="text-center py-10">
+              <div className="flex justify-center mb-4">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-doca"></div>
               </div>
-            ))}
-          </div>
+              <p>Đang tải bài viết mới nhất...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
+              {latestBlogs.length > 0 ? (
+                latestBlogs.map((blog) => (
+                  <div
+                    key={blog.id}
+                    className="rounded-lg overflow-hidden shadow-md bg-white hover:-translate-y-2 transition-transform duration-300 mx-auto sm:mx-0 max-w-md w-full"
+                  >
+                    <Link href={`/blog/${blog.id}`}>
+                      <div className="relative h-40 sm:h-44 md:h-48">
+                        <Image
+                          src={getBlogImageUrl(blog)}
+                          alt={blog.name || "Bài viết"}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="p-4 md:p-6">
+                        <h3 className="text-lg md:text-xl font-bold mb-2 line-clamp-2">
+                          {blog.name}
+                        </h3>
+                        <p className="text-sm md:text-base text-gray-600 mb-3 md:mb-4 line-clamp-3">
+                          {blog.description}
+                        </p>
+                        <span className="text-pink-doca font-medium">
+                          Đọc thêm →
+                        </span>
+                      </div>
+                    </Link>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-10">
+                  <p>Không có bài viết nào.</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="text-center mt-8 md:mt-10">
             <Link href="/blog">
