@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { ProductService } from "@/service/product-service";
 import { toast } from "react-toastify";
+import Slider from "rc-slider";
+import "rc-slider/assets/index.css";
 
 interface Category {
   id: string;
@@ -14,7 +16,7 @@ export interface ShopFilters {
   categoryIds?: string[];
   minPrice?: number;
   maxPrice?: number;
-  sortBy?: "price" | "name" | "createdAt";
+  sortBy?: "price" | "name";
   sortOrder?: "asc" | "desc";
 }
 
@@ -22,7 +24,7 @@ interface ShopProductFilterProps {
   onFilterChange: (filters: ShopFilters) => void;
 }
 
-type SortByType = "price" | "name" | "createdAt";
+type SortByType = "price" | "name";
 type SortOrderType = "asc" | "desc";
 
 export default function ShopProductFilter({
@@ -30,12 +32,9 @@ export default function ShopProductFilter({
 }: ShopProductFilterProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState({
-    min: "",
-    max: "",
-  });
-  const [sortBy, setSortBy] = useState<SortByType>("createdAt");
-  const [sortOrder, setSortOrder] = useState<SortOrderType>("desc");
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
+  const [sortBy, setSortBy] = useState<SortByType>("name");
+  const [sortOrder, setSortOrder] = useState<SortOrderType>("asc");
 
   // Lấy danh sách danh mục từ API sản phẩm
   useEffect(() => {
@@ -43,22 +42,31 @@ export default function ShopProductFilter({
       try {
         const response = await ProductService.getProducts({
           page: 1,
-          size: 1,
+          size: 100,
         });
 
-        if (response?.data?.items?.[0]?.categories) {
-          // Lọc danh mục trùng lặp và đảm bảo kiểu dữ liệu
-          const uniqueCategories = response.data.items[0].categories
-            .filter(
-              (category): category is Category =>
-                category.id !== undefined &&
-                category.name !== undefined &&
-                category.description !== undefined
-            )
-            .filter(
-              (category, index, self) =>
-                index === self.findIndex((c) => c.id === category.id)
-            );
+        if (response?.data?.items) {
+          // Lấy tất cả danh mục từ các sản phẩm
+          const allCategories = response.data.items
+            .flatMap((product) => product.categories || [])
+            .filter((category): category is Category => {
+              return (
+                category !== null &&
+                category !== undefined &&
+                typeof category.id === "string" &&
+                typeof category.name === "string" &&
+                typeof category.description === "string"
+              );
+            });
+
+          // Lọc danh mục trùng lặp
+          const uniqueCategories = allCategories.filter(
+            (category, index, self) =>
+              index === self.findIndex((c) => c.id === category.id)
+          );
+
+          // Sắp xếp danh mục theo tên
+          uniqueCategories.sort((a, b) => a.name.localeCompare(b.name));
           setCategories(uniqueCategories);
         }
       } catch (error) {
@@ -86,17 +94,14 @@ export default function ShopProductFilter({
   };
 
   // Xử lý khi thay đổi khoảng giá
-  const handlePriceChange = (type: "min" | "max", value: string) => {
-    setPriceRange((prev) => {
-      const newRange = { ...prev, [type]: value };
-
+  const handlePriceChange = (value: number | number[]) => {
+    if (Array.isArray(value) && value.length === 2) {
+      setPriceRange(value as [number, number]);
       onFilterChange({
-        minPrice: newRange.min ? Number(newRange.min) : undefined,
-        maxPrice: newRange.max ? Number(newRange.max) : undefined,
+        minPrice: value[0],
+        maxPrice: value[1],
       });
-
-      return newRange;
-    });
+    }
   };
 
   // Xử lý khi thay đổi sắp xếp
@@ -108,7 +113,7 @@ export default function ShopProductFilter({
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Danh mục */}
         <div>
           <h3 className="text-sm font-medium text-gray-700 mb-2">Danh mục</h3>
@@ -133,39 +138,31 @@ export default function ShopProductFilter({
         {/* Khoảng giá */}
         <div>
           <h3 className="text-sm font-medium text-gray-700 mb-2">Khoảng giá</h3>
-          <div className="space-y-2">
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">
-                Giá tối thiểu
-              </label>
-              <input
-                type="number"
-                value={priceRange.min}
-                onChange={(e) => handlePriceChange("min", e.target.value)}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-pink-doca focus:ring-pink-doca"
-                placeholder="0"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">
-                Giá tối đa
-              </label>
-              <input
-                type="number"
-                value={priceRange.max}
-                onChange={(e) => handlePriceChange("max", e.target.value)}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-pink-doca focus:ring-pink-doca"
-                placeholder="1000000"
-              />
+          <div className="space-y-4">
+            <Slider
+              range
+              min={0}
+              max={1000000}
+              step={10000}
+              value={priceRange}
+              onChange={handlePriceChange}
+              railStyle={{ backgroundColor: "#e5e7eb" }}
+              trackStyle={[{ backgroundColor: "#ec4899" }]}
+              handleStyle={[
+                { borderColor: "#ec4899", backgroundColor: "#fff" },
+                { borderColor: "#ec4899", backgroundColor: "#fff" },
+              ]}
+            />
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>{priceRange[0].toLocaleString("vi-VN")} VNĐ</span>
+              <span>{priceRange[1].toLocaleString("vi-VN")} VNĐ</span>
             </div>
           </div>
         </div>
 
-        {/* Sắp xếp theo */}
+        {/* Sắp xếp */}
         <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-2">
-            Sắp xếp theo
-          </h3>
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Sắp xếp</h3>
           <div className="space-y-2">
             <select
               value={sortBy}
@@ -174,37 +171,31 @@ export default function ShopProductFilter({
               }
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-pink-doca focus:ring-pink-doca"
             >
-              <option value="createdAt">Ngày tạo</option>
-              <option value="price">Giá</option>
               <option value="name">Tên sản phẩm</option>
+              <option value="price">Giá</option>
             </select>
-          </div>
-        </div>
-
-        {/* Thứ tự sắp xếp */}
-        <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Thứ tự</h3>
-          <div className="space-y-2">
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={sortOrder === "asc"}
-                onChange={() => handleSortChange(sortBy, "asc")}
-                name="sortOrder"
-                className="text-pink-doca focus:ring-pink-doca"
-              />
-              <span className="text-sm text-gray-600">Tăng dần</span>
-            </label>
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={sortOrder === "desc"}
-                onChange={() => handleSortChange(sortBy, "desc")}
-                name="sortOrder"
-                className="text-pink-doca focus:ring-pink-doca"
-              />
-              <span className="text-sm text-gray-600">Giảm dần</span>
-            </label>
+            <div className="space-y-2">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  checked={sortOrder === "asc"}
+                  onChange={() => handleSortChange(sortBy, "asc")}
+                  name="sortOrder"
+                  className="text-pink-doca focus:ring-pink-doca"
+                />
+                <span className="text-sm text-gray-600">Tăng dần</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  checked={sortOrder === "desc"}
+                  onChange={() => handleSortChange(sortBy, "desc")}
+                  name="sortOrder"
+                  className="text-pink-doca focus:ring-pink-doca"
+                />
+                <span className="text-sm text-gray-600">Giảm dần</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
