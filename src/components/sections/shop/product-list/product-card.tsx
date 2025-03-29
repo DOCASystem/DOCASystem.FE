@@ -2,33 +2,46 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import { Product } from "@/types/product";
-import { useCartStore } from "@/store/cart-store";
 import { toast } from "react-toastify";
+import { CartService } from "@/service/cart-service";
 
 interface ProductCardProps {
   product: Product;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  // Lấy hàm addItem từ store
-  const addItem = useCartStore((state) => state.addItem);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   // Xử lý thêm vào giỏ hàng
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault(); // Ngăn chặn hành vi mặc định (chuyển trang)
 
-    // Thêm sản phẩm vào giỏ hàng
-    addItem({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      quantity: 1,
-      imageUrl: product.images[0] || "/images/placeholder.png",
-    });
+    if (product.stock <= 0) {
+      toast.error("Sản phẩm đã hết hàng");
+      return;
+    }
 
-    // Hiển thị thông báo thành công
-    toast.success("Đã thêm sản phẩm vào giỏ hàng");
+    try {
+      setIsAddingToCart(true);
+
+      // Gọi API thêm vào giỏ hàng
+      await CartService.addToCart({
+        productId: product.id,
+        quantity: 1,
+      });
+
+      // Hiển thị thông báo thành công
+      toast.success("Đã thêm sản phẩm vào giỏ hàng");
+    } catch (error) {
+      console.error("Lỗi khi thêm vào giỏ hàng:", error);
+      toast.error(
+        "Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại sau."
+      );
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   // Format giá tiền trực tiếp thay vì import
@@ -75,26 +88,33 @@ export default function ProductCard({ product }: ProductCardProps) {
             </div>
             <button
               data-cart-button="true"
-              className="bg-pink-doca text-white p-2 rounded-full hover:bg-pink-600 transition-colors"
+              className={`p-2 rounded-full transition-colors ${
+                isAddingToCart || product.stock <= 0
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-pink-doca text-white hover:bg-pink-600"
+              }`}
               onClick={handleAddToCart}
+              disabled={isAddingToCart || product.stock <= 0}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 20h6" />
-                <path d="M12 16v4" />
-                <path d="M6.33 12h11.34" />
-                <path d="M5 10 2 7l3-3" />
-                <path d="m19 10 3-3-3-3" />
-              </svg>
+              {isAddingToCart ? (
+                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <path d="M16 10a4 4 0 0 1-8 0"></path>
+                </svg>
+              )}
             </button>
           </div>
         </div>

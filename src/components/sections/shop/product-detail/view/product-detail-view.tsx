@@ -338,7 +338,17 @@ export default function ProductDetailView({
 
           {/* Thông tin sản phẩm */}
           <div>
-            <ProductInfo product={product} priceInfo={priceInfo} />
+            <ProductInfo
+              id={product.id}
+              name={product.name}
+              description={product.description}
+              price={priceInfo.currentPrice}
+              originalPrice={priceInfo.originalPrice}
+              discount={priceInfo.discountPercentage}
+              quantity={product.quantity}
+              categoryName={product.categoryName}
+              volume={product.volume}
+            />
           </div>
         </div>
       </div>

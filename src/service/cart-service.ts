@@ -14,21 +14,24 @@ export interface AddToCartPayload {
 
 // Interface cho kết quả giỏ hàng
 export interface CartItemResponse {
-  id: string;
   productId: string;
   blogId: string;
+  productName: string;
+  blogName: string;
+  productDescription: string;
+  blogDescription: string;
+  price: number;
   quantity: number;
-  product: {
-    id: string;
-    name: string;
-    price: number;
-    imageUrl?: string;
-  };
-  blog?: {
-    id: string;
-    name: string;
-    imageUrl?: string;
-  };
+  volume: number;
+  mainImage: string;
+  productQuantity: number;
+}
+
+// Interface cho thông tin cập nhật giỏ hàng
+export interface UpdateCartPayload {
+  productId: string;
+  blogId?: string;
+  quantity: number;
 }
 
 // Service cho giỏ hàng
@@ -101,7 +104,9 @@ export const CartService = {
       const cartApiUrl = `${API_URL}/api/v1/carts`;
       console.log(`[CartService] Gọi API giỏ hàng: ${cartApiUrl}`);
 
-      const response = await axios.get(cartApiUrl, { headers });
+      const response = await axios.get<CartItemResponse[]>(cartApiUrl, {
+        headers,
+      });
 
       console.log("[CartService] Lấy giỏ hàng thành công:", response.data);
       return response.data;
@@ -159,6 +164,33 @@ export const CartService = {
       console.log(`[CartService] Gọi API cập nhật giỏ hàng: ${cartApiUrl}`);
 
       const payload = { quantity };
+      const response = await axios.patch(cartApiUrl, payload, { headers });
+
+      console.log("[CartService] Cập nhật giỏ hàng thành công:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("[CartService] Lỗi khi cập nhật giỏ hàng:", error);
+      throw error;
+    }
+  },
+
+  // Phương thức mới để cập nhật số lượng sản phẩm trong giỏ hàng với API PATCH
+  updateCartItem: async (payload: UpdateCartPayload) => {
+    try {
+      console.log("[CartService] Cập nhật giỏ hàng:", payload);
+
+      const token = getToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const cartApiUrl = `${API_URL}/api/v1/carts`;
+      console.log(`[CartService] Gọi API PATCH giỏ hàng: ${cartApiUrl}`);
+
       const response = await axios.patch(cartApiUrl, payload, { headers });
 
       console.log("[CartService] Cập nhật giỏ hàng thành công:", response.data);

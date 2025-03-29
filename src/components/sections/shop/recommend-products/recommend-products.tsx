@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import axios from "axios";
-import { useProductStore } from "@/hooks/use-product-store";
+import { toast } from "react-toastify";
+import { CartService } from "@/service/cart-service";
 
 // Định nghĩa kiểu dữ liệu sản phẩm
 interface ProductImage {
@@ -16,12 +17,25 @@ interface Product {
   id: string;
   name: string;
   price: number;
+  quantity?: number;
   productImages: ProductImage[];
 }
+
+interface ProductStore {
+  products: Product[];
+  setProducts: (products: Product[]) => void;
+}
+
+// Simple store implementation for products
+const useProductStore = (): ProductStore => {
+  const [products, setProducts] = useState<Product[]>([]);
+  return { products, setProducts };
+};
 
 export default function RecommendProducts() {
   const { products, setProducts } = useProductStore();
   const [loading, setLoading] = useState(false);
+  const [addingToCartId, setAddingToCartId] = useState<string | null>(null);
 
   // Hàm lấy danh sách sản phẩm gợi ý
   const fetchProducts = useCallback(async () => {
@@ -70,6 +84,35 @@ export default function RecommendProducts() {
     }
   }, [fetchProducts, products]);
 
+  // Xử lý thêm vào giỏ hàng
+  const handleAddToCart = async (e: React.MouseEvent, product: Product) => {
+    e.preventDefault(); // Ngăn chặn hành vi chuyển trang
+
+    if (product.quantity !== undefined && product.quantity <= 0) {
+      toast.error("Sản phẩm đã hết hàng");
+      return;
+    }
+
+    try {
+      setAddingToCartId(product.id);
+
+      // Gọi API thêm vào giỏ hàng
+      await CartService.addToCart({
+        productId: product.id,
+        quantity: 1,
+      });
+
+      toast.success("Đã thêm sản phẩm vào giỏ hàng");
+    } catch (error) {
+      console.error("[RecommendProducts] Lỗi khi thêm vào giỏ hàng:", error);
+      toast.error(
+        "Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại sau."
+      );
+    } finally {
+      setAddingToCartId(null);
+    }
+  };
+
   // Format giá tiền
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -107,27 +150,68 @@ export default function RecommendProducts() {
                 : "/images/product-placeholder.jpg";
 
             return (
-              <Link
-                href={`/shop/product-detail/${product.id}`}
+              <div
                 key={product.id}
-                className="bg-white rounded-lg shadow-sm p-4 flex flex-col transform transition-all hover:shadow-md hover:-translate-y-1"
+                className="bg-white rounded-lg shadow-sm p-4 flex flex-col transform transition-all hover:shadow-md hover:-translate-y-1 relative"
               >
-                <div className="relative aspect-square w-full mb-4 rounded-md overflow-hidden">
-                  <Image
-                    src={imageUrl}
-                    alt={product.name || "Sản phẩm"}
-                    fill
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                    className="object-cover"
-                  />
+                <Link
+                  href={`/shop/product-detail/${product.id}`}
+                  className="group"
+                >
+                  <div className="relative aspect-square w-full mb-4 rounded-md overflow-hidden">
+                    <Image
+                      src={imageUrl}
+                      alt={product.name || "Sản phẩm"}
+                      fill
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                      className="object-cover group-hover:scale-105 transition-transform"
+                    />
+                  </div>
+                  <h3 className="font-medium text-gray-800 line-clamp-2 min-h-[2.5rem]">
+                    {product.name}
+                  </h3>
+                </Link>
+
+                <div className="mt-auto pt-2 flex justify-between items-center">
+                  <p className="text-pink-doca font-bold">
+                    {formatPrice(product.price)}
+                  </p>
+
+                  <button
+                    onClick={(e) => handleAddToCart(e, product)}
+                    disabled={
+                      addingToCartId === product.id ||
+                      (product.quantity !== undefined && product.quantity <= 0)
+                    }
+                    className={`p-2 rounded-full transition-colors ${
+                      addingToCartId === product.id ||
+                      (product.quantity !== undefined && product.quantity <= 0)
+                        ? "bg-gray-400 text-white cursor-not-allowed"
+                        : "bg-pink-doca text-white hover:bg-pink-600"
+                    }`}
+                  >
+                    {addingToCartId === product.id ? (
+                      <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                      </svg>
+                    )}
+                  </button>
                 </div>
-                <h3 className="font-medium text-gray-800 line-clamp-2 min-h-[2.5rem]">
-                  {product.name}
-                </h3>
-                <p className="text-pink-doca font-bold mt-auto">
-                  {formatPrice(product.price)}
-                </p>
-              </Link>
+              </div>
             );
           })}
         </div>

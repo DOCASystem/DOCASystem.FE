@@ -1,153 +1,91 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "react-toastify";
-import { useCartStore } from "@/store/cart-store";
 import { CartService } from "@/service/cart-service";
-import { BlogService } from "@/service/blog-service";
 
-interface ProductImage {
-  id: string;
-  imageUrl: string;
-  isMain?: boolean;
-}
-
-interface ProductDetail {
+// Interface cho Product Info component
+interface ProductInfoProps {
   id: string;
   name: string;
   description: string;
   price: number;
+  originalPrice?: number;
+  discount?: number;
   quantity: number;
-  isAvailable: boolean;
-  status: string;
-  categoryId: string;
-  categoryName: string;
-  userId: string;
-  createdAt: string;
-  modifiedAt: string;
-  productImages: ProductImage[];
-  salePrice?: number;
-  shortDescription?: string;
+  categoryName?: string;
   volume?: number;
-  categories?: { id: string; name: string }[];
 }
 
-interface PriceInfo {
-  currentPrice: number;
-  originalPrice: number;
-  discountPercentage: number;
-}
-
-interface ProductInfoProps {
-  product: ProductDetail;
-  priceInfo: PriceInfo;
-}
-
-export default function ProductInfo({ product, priceInfo }: ProductInfoProps) {
-  const [quantity, setQuantity] = useState(1);
-  const [randomBlogId, setRandomBlogId] = useState<string | null>(null);
+export default function ProductInfo({
+  id,
+  name,
+  description,
+  price,
+  originalPrice,
+  discount,
+  quantity,
+  categoryName,
+  volume,
+}: ProductInfoProps) {
+  const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const addItem = useCartStore((state) => state.addItem);
-
-  // Lấy một blog ngẫu nhiên khi component được tải
-  useEffect(() => {
-    const fetchRandomBlog = async () => {
-      try {
-        const response = await BlogService.getBlogs({
-          page: 1,
-          size: 10,
-        });
-
-        if (response.data.items && response.data.items.length > 0) {
-          const randomIndex = Math.floor(
-            Math.random() * response.data.items.length
-          );
-          const randomBlog = response.data.items[randomIndex];
-          setRandomBlogId(randomBlog.id);
-        }
-      } catch (error) {
-        console.error("Lỗi khi lấy blog ngẫu nhiên:", error);
-      }
-    };
-
-    fetchRandomBlog();
-  }, []);
 
   // Format giá tiền
-  const formatPrice = (price: number) => {
+  const formatPrice = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(price);
+    })
+      .format(amount)
+      .replace("₫", "đ");
   };
 
-  // Xử lý thay đổi số lượng
-  const handleQuantityChange = (newQuantity: number) => {
-    if (newQuantity < 1) {
-      setQuantity(1);
-      return;
-    }
-
-    if (newQuantity > Math.max(1, product.quantity)) {
-      setQuantity(Math.max(1, product.quantity));
-      return;
-    }
-
-    setQuantity(newQuantity);
-  };
-
-  // Tăng số lượng sản phẩm
-  const increaseQuantity = () => {
-    handleQuantityChange(quantity + 1);
-  };
-
-  // Giảm số lượng sản phẩm
+  // Xử lý tăng giảm số lượng
   const decreaseQuantity = () => {
-    handleQuantityChange(quantity - 1);
+    if (selectedQuantity > 1) {
+      setSelectedQuantity(selectedQuantity - 1);
+    }
+  };
+
+  const increaseQuantity = () => {
+    if (selectedQuantity < quantity) {
+      setSelectedQuantity(selectedQuantity + 1);
+    } else {
+      toast.warning("Đã đạt số lượng tối đa có sẵn.");
+    }
+  };
+
+  // Xử lý khi nhập số lượng trực tiếp
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+
+    if (isNaN(value) || value < 1) {
+      setSelectedQuantity(1);
+    } else if (value > quantity) {
+      setSelectedQuantity(quantity);
+      toast.warning("Đã đạt số lượng tối đa có sẵn.");
+    } else {
+      setSelectedQuantity(value);
+    }
   };
 
   // Xử lý thêm vào giỏ hàng
   const handleAddToCart = async () => {
-    if (product.quantity <= 0) {
-      toast.error("Sản phẩm đã hết hàng");
+    if (selectedQuantity < 1 || selectedQuantity > quantity) {
+      toast.error("Số lượng không hợp lệ");
       return;
     }
 
-    setIsAddingToCart(true);
-
     try {
-      // Lấy hình ảnh đầu tiên của sản phẩm (nếu có)
-      const mainImage =
-        product.productImages && product.productImages.length > 0
-          ? product.productImages.find((img) => img.isMain)?.imageUrl ||
-            product.productImages[0].imageUrl
-          : "/images/product-placeholder.jpg";
+      setIsAddingToCart(true);
 
-      // Gọi API thêm vào giỏ hàng
-      const response = await CartService.addToCart({
-        productId: product.id,
-        blogId: randomBlogId || undefined,
-        quantity: quantity,
+      await CartService.addToCart({
+        productId: id,
+        quantity: selectedQuantity,
       });
 
-      // Thêm sản phẩm vào giỏ hàng local (zustand)
-      addItem({
-        id: product.id,
-        name: product.name,
-        price: priceInfo.currentPrice,
-        quantity: quantity,
-        imageUrl: mainImage,
-        blogId: response.blogId || randomBlogId || undefined,
-        blog: response.blog
-          ? {
-              id: response.blog.id,
-              name: response.blog.name,
-              imageUrl: response.blog.imageUrl,
-            }
-          : undefined,
-      });
-
-      toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng`);
+      toast.success("Đã thêm sản phẩm vào giỏ hàng");
     } catch (error) {
       console.error("Lỗi khi thêm vào giỏ hàng:", error);
       toast.error(
@@ -158,141 +96,147 @@ export default function ProductInfo({ product, priceInfo }: ProductInfoProps) {
     }
   };
 
-  // Thông tin chi tiết sản phẩm
   return (
-    <div className="flex flex-col">
-      <h1 className="text-2xl md:text-3xl font-bold mb-4">{product.name}</h1>
+    <div className="flex flex-col space-y-4">
+      {/* Tên sản phẩm */}
+      <h1 className="text-2xl md:text-3xl font-bold">{name}</h1>
 
-      {/* Giá sản phẩm */}
-      <div className="mb-6">
-        {priceInfo.discountPercentage > 0 ? (
-          <div className="flex items-center">
-            <span className="text-xl md:text-2xl font-bold text-pink-doca">
-              {formatPrice(priceInfo.currentPrice)}
-            </span>
-            <span className="text-gray-500 line-through ml-2">
-              {formatPrice(priceInfo.originalPrice)}
-            </span>
-            <span className="ml-2 bg-pink-100 text-pink-800 px-2 py-1 rounded text-xs">
-              -{priceInfo.discountPercentage}%
-            </span>
-          </div>
-        ) : (
-          <span className="text-xl md:text-2xl font-bold text-pink-doca">
-            {formatPrice(priceInfo.originalPrice)}
+      {/* Hiển thị giá */}
+      <div className="flex items-center space-x-3 my-2">
+        <span className="text-2xl font-bold text-pink-doca">
+          {formatPrice(price)}
+        </span>
+
+        {originalPrice && originalPrice > price && (
+          <span className="text-gray-500 line-through text-lg">
+            {formatPrice(originalPrice)}
+          </span>
+        )}
+
+        {discount && discount > 0 && (
+          <span className="bg-red-500 text-white px-2 py-1 text-xs font-semibold rounded">
+            -{discount}%
           </span>
         )}
       </div>
 
-      {/* Mô tả sản phẩm */}
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-2">Mô tả sản phẩm</h2>
-        <div className="text-gray-700 whitespace-pre-line">
-          {product.description}
+      {/* Danh mục */}
+      {categoryName && (
+        <div className="text-sm text-gray-600">
+          <span className="font-medium">Danh mục:</span> {categoryName}
         </div>
+      )}
+
+      {/* Khối lượng/Dung tích */}
+      {volume && (
+        <div className="text-sm text-gray-600">
+          <span className="font-medium">Khối lượng/Dung tích:</span> {volume} kg
+        </div>
+      )}
+
+      {/* Số lượng tồn kho */}
+      <div className="text-sm text-gray-600">
+        <span className="font-medium">Tình trạng:</span>{" "}
+        {quantity > 0 ? (
+          <span className="text-green-600">Còn hàng ({quantity} sản phẩm)</span>
+        ) : (
+          <span className="text-red-600">Hết hàng</span>
+        )}
       </div>
 
-      {/* Thông tin thêm */}
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-2">Thông tin chi tiết</h2>
-        <ul className="space-y-2 text-gray-700">
-          {product.volume !== undefined && (
-            <li className="flex">
-              <span className="font-medium w-32">Khối lượng:</span>
-              <span>{product.volume} kg</span>
-            </li>
-          )}
-          <li className="flex">
-            <span className="font-medium w-32">Tình trạng:</span>
-            <span>
-              {product.quantity > 0
-                ? `Còn hàng (${product.quantity})`
-                : "Hết hàng"}
-            </span>
-          </li>
-          {product.categories && product.categories.length > 0 && (
-            <li className="flex">
-              <span className="font-medium w-32">Danh mục:</span>
-              <div className="flex flex-wrap gap-2">
-                {product.categories.map((category) => (
-                  <span
-                    key={category.id}
-                    className="bg-gray-100 px-2 py-1 rounded text-sm"
-                  >
-                    {category.name}
-                  </span>
-                ))}
-              </div>
-            </li>
-          )}
-        </ul>
+      {/* Mô tả sản phẩm */}
+      <div className="my-4">
+        <h3 className="text-lg font-semibold mb-2">Mô tả sản phẩm</h3>
+        <div className="text-gray-700 whitespace-pre-line">{description}</div>
       </div>
 
-      {/* Nút thêm vào giỏ hàng */}
-      <div className="mt-auto pt-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center border rounded-md">
-            <button
-              onClick={decreaseQuantity}
-              className="w-10 h-10 flex items-center justify-center border-r text-gray-600 hover:text-pink-doca"
-              disabled={quantity <= 1 || isAddingToCart}
-            >
-              -
-            </button>
-            <input
-              type="number"
-              value={quantity}
-              onChange={(e) => handleQuantityChange(Number(e.target.value))}
-              min="1"
-              max="100"
-              className="w-14 h-10 text-center focus:outline-none"
-              disabled={isAddingToCart}
-            />
-            <button
-              onClick={increaseQuantity}
-              className="w-10 h-10 flex items-center justify-center border-l text-gray-600 hover:text-pink-doca"
-              disabled={isAddingToCart}
-            >
-              +
-            </button>
+      {/* Chọn số lượng và thêm vào giỏ hàng */}
+      {quantity > 0 && (
+        <div className="mt-6 space-y-4">
+          <div className="flex items-center space-x-4">
+            <span className="font-medium">Số lượng:</span>
+            <div className="flex items-center border border-gray-300 rounded">
+              <button
+                className="px-3 py-1 bg-gray-100 border-r border-gray-300"
+                onClick={decreaseQuantity}
+                disabled={isAddingToCart}
+              >
+                -
+              </button>
+              <input
+                type="number"
+                min="1"
+                max={quantity}
+                value={selectedQuantity}
+                onChange={handleQuantityChange}
+                className="w-12 text-center py-1 border-none focus:ring-0"
+                disabled={isAddingToCart}
+              />
+              <button
+                className="px-3 py-1 bg-gray-100 border-l border-gray-300"
+                onClick={increaseQuantity}
+                disabled={isAddingToCart}
+              >
+                +
+              </button>
+            </div>
           </div>
+
           <button
             onClick={handleAddToCart}
-            disabled={product.quantity <= 0 || isAddingToCart}
-            className={`flex-1 py-3 px-4 rounded-md text-white font-medium flex items-center justify-center gap-2 ${
-              product.quantity <= 0 || isAddingToCart
+            disabled={isAddingToCart || quantity <= 0}
+            className={`flex items-center justify-center space-x-2 px-6 py-3 rounded-md font-medium text-white transition-colors ${
+              isAddingToCart || quantity <= 0
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-pink-doca hover:bg-pink-700"
+                : "bg-pink-doca hover:bg-pink-600"
             }`}
           >
             {isAddingToCart ? (
               <>
-                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                Đang thêm...
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                <span>Đang thêm...</span>
               </>
             ) : (
               <>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
                   fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
                 >
-                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                  <line x1="3" y1="6" x2="21" y2="6"></line>
-                  <path d="M16 10a4 4 0 0 1-8 0"></path>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
                 </svg>
-                {product.quantity <= 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
+                <span>Thêm vào giỏ hàng</span>
               </>
             )}
           </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
