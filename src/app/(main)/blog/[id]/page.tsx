@@ -8,7 +8,7 @@ import { Blog, BlogService } from "@/service/blog-service";
 import { GetProductDetailResponse } from "@/api/generated";
 import { ProductService } from "@/service/product-service";
 import CardProduct from "@/components/common/card/card-product/card-food";
-
+import Image from "next/image";
 // Interface cho API error response
 interface ApiErrorDetail {
   status: number;
@@ -268,9 +268,11 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
           {/* Blog Image */}
           {imageUrl && (
             <div className="relative h-[300px] md:h-[400px] w-full">
-              <img
+              <Image
                 src={imageUrl}
                 alt={blog.name}
+                width={1000}
+                height={1000}
                 className="w-full h-full object-cover"
               />
             </div>
