@@ -11,7 +11,7 @@ export default function AdminHeader() {
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    router.push("/");
   };
 
   return (

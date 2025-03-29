@@ -24,7 +24,7 @@ export default function ProfileMenu() {
 
   const handleLogout = () => {
     AuthService.logout();
-    router.push("/login");
+    router.push("/");
   };
 
   const toggleMenu = () => {

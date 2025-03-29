@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
    */
   const logout = () => {
     storeLogout();
-    router.push("/login");
+    router.push("/");
   };
 
   // Check for token expiration or changes (optimized to reduce frequency)

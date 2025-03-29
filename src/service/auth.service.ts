@@ -149,8 +149,8 @@ const logout = (): void => {
   deleteCookie("token");
   deleteCookie("userData");
 
-  // Redirect to login page
-  window.location.href = "/login";
+  // Redirect to home page instead of login page
+  window.location.href = "/";
 };
 
 /**
@@ -244,7 +244,7 @@ const AuthService = {
     if (!isBrowser()) return false;
 
     if (!isAuthenticated()) {
-      window.location.href = "/login";
+      window.location.href = "/";
       return false;
     }
     return true;

@@ -47,7 +47,7 @@ export default function AdminAuthGuard({
 
     const checkAuth = () => {
       if (!isAuthenticated) {
-        router.replace("/login");
+        router.replace("/");
         return;
       }
 

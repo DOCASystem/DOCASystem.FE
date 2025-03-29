@@ -23,7 +23,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
     // Quick initial check from cache first
     if (!AuthService.isAuthenticated()) {
-      router.push("/login");
+      router.push("/");
       return;
     }
 

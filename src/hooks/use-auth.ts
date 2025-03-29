@@ -26,7 +26,7 @@ export const useAuth = () => {
   const logout = () => {
     localStorage.removeItem("token");
     setUser(null);
-    router.push("/auth/login");
+    router.push("/");
   };
 
   return { user, login, logout };
