@@ -18,27 +18,29 @@ export interface Product {
 
 // Interface cho ProductImage từ API
 interface ProductImage {
-  id?: string;
-  imageUrl?: string;
-  isMain?: boolean;
+  id?: string | null;
+  imageUrl?: string | null;
+  isMain?: boolean | null;
 }
 
 // Interface cho API product
 interface ApiProduct {
-  id?: string;
-  name?: string;
-  description?: string;
-  price?: number;
-  originalPrice?: number;
-  quantity?: number;
-  productImages?: ProductImage[];
-  categories?: {
-    id?: string;
-    name?: string;
-    description?: string;
-  }[];
-  createdAt?: string;
-  updatedAt?: string;
+  id?: string | null;
+  name?: string | null;
+  description?: string | null;
+  price?: number | null;
+  originalPrice?: number | null;
+  quantity?: number | null;
+  productImages?: ProductImage[] | null;
+  categories?:
+    | {
+        id?: string | null;
+        name?: string | null;
+        description?: string | null;
+      }[]
+    | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 // Chuyển đổi từ API response sang Product interface
@@ -48,7 +50,7 @@ export const mapApiToProduct = (apiProduct: ApiProduct): Product => {
     name: apiProduct.name || "",
     description: apiProduct.description || "",
     price: apiProduct.price || 0,
-    originalPrice: apiProduct.originalPrice,
+    originalPrice: apiProduct.originalPrice || undefined,
     stock: apiProduct.quantity || 0, // Map từ quantity sang stock
     images:
       apiProduct.productImages

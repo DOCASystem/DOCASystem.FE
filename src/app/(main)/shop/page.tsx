@@ -29,9 +29,11 @@ export default function ShopPage() {
 
       if (response?.data?.items) {
         // Chuyển đổi API response sang kiểu dữ liệu Product
-        const mappedProducts = response.data.items.map((item) =>
-          mapApiToProduct(item)
-        );
+        const mappedProducts = response.data.items
+          .filter((item) => item && item.id) // Lọc các item không hợp lệ
+          .map((item) => mapApiToProduct(item))
+          .filter(Boolean) as Product[]; // Filter null products after mapping
+
         setProducts(mappedProducts);
 
         // Cập nhật thông tin phân trang
