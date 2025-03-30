@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { useCartStore } from "@/store/cart-store";
+import { CartService } from "@/service/cart-service";
 
 interface CartIconProps {
   width?: number;
@@ -16,17 +17,44 @@ const CartIcon: React.FC<CartIconProps> = ({
   className = "text-black hover:text-[#F36]",
   ...props
 }) => {
-  // Chỉ sử dụng một state, không cần kiểm tra isClient trong useEffect
   const [cartCount, setCartCount] = useState(0);
 
-  // Lấy trực tiếp items từ store thay vì lấy hàm getTotalItems
+  // Hàm fetch số lượng sản phẩm trong giỏ hàng từ API
+  const fetchCartCount = async () => {
+    try {
+      const cartItems = await CartService.getCart();
+      // Đếm số lượng sản phẩm khác nhau trong giỏ hàng (không phải tổng số lượng)
+      setCartCount(cartItems.length);
+    } catch (error) {
+      console.error("Lỗi khi lấy số lượng giỏ hàng:", error);
+      setCartCount(0);
+    }
+  };
+
+  // Lấy dữ liệu khi component mount và khi store thay đổi
+  useEffect(() => {
+    fetchCartCount();
+
+    // Đăng ký sự kiện lắng nghe cập nhật giỏ hàng
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "doca-cart-storage") {
+        fetchCartCount();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
+  // Theo dõi sự thay đổi của store để cập nhật UI
   const items = useCartStore((state) => state.items);
 
-  // useEffect chỉ chạy khi mảng items thay đổi (lưu ý [] để đảm bảo chỉ chạy sau khi render)
   useEffect(() => {
-    // Cập nhật count thay vì sử dụng getTotalItems trực tiếp
-    const count = items.reduce((total, item) => total + item.quantity, 0);
-    setCartCount(count);
+    // Khi store thay đổi, cập nhật lại số lượng từ API
+    fetchCartCount();
   }, [items]);
 
   return (

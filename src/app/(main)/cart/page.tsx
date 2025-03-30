@@ -16,6 +16,9 @@ export default function CartPage() {
   const [updatingItems, setUpdatingItems] = useState<Record<string, boolean>>(
     {}
   );
+  const [removingItems, setRemovingItems] = useState<Record<string, boolean>>(
+    {}
+  );
 
   // Format giá tiền
   const formatPrice = (price: number) => {
@@ -169,6 +172,29 @@ export default function CartPage() {
     }
   };
 
+  // Xử lý xóa sản phẩm khỏi giỏ hàng
+  const handleRemoveItem = async (item: CartItemResponse) => {
+    if (removingItems[item.productId]) return;
+
+    try {
+      setRemovingItems((prev) => ({ ...prev, [item.productId]: true }));
+
+      await CartService.removeFromCart(item.productId);
+
+      // Cập nhật state nội bộ
+      setCartItems((prevItems) =>
+        prevItems.filter((cartItem) => cartItem.productId !== item.productId)
+      );
+
+      toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
+    } catch (error) {
+      console.error("Lỗi khi xóa sản phẩm:", error);
+      toast.error("Không thể xóa sản phẩm khỏi giỏ hàng");
+    } finally {
+      setRemovingItems((prev) => ({ ...prev, [item.productId]: false }));
+    }
+  };
+
   // Xử lý thanh toán
   const handleCheckout = async () => {
     if (cartItems.length === 0) {
@@ -319,6 +345,7 @@ export default function CartPage() {
                     <th className="text-left py-4 px-2">Giá</th>
                     <th className="text-left py-4 px-2">Số Lượng</th>
                     <th className="text-left py-4 px-2">Thành Tiền</th>
+                    <th className="text-center py-4 px-2"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -406,6 +433,37 @@ export default function CartPage() {
                       <td className="py-4 px-2 text-sm md:text-base">
                         {formatPrice(item.price * item.quantity)}
                       </td>
+                      <td className="py-4 px-2 text-center">
+                        <button
+                          onClick={() => handleRemoveItem(item)}
+                          disabled={removingItems[item.productId]}
+                          className={`p-2 rounded-full transition-colors ${
+                            removingItems[item.productId]
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : "bg-gray-200 text-red-500 hover:bg-red-100"
+                          }`}
+                          aria-label="Xóa sản phẩm"
+                        >
+                          {removingItems[item.productId] ? (
+                            <div className="animate-spin h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full"></div>
+                          ) : (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -417,8 +475,39 @@ export default function CartPage() {
               {cartItems.map((item) => (
                 <div
                   key={item.productId}
-                  className="border rounded-lg p-4 shadow-sm"
+                  className="border rounded-lg p-4 shadow-sm relative"
                 >
+                  {/* Nút xóa ở góc trên bên phải */}
+                  <button
+                    onClick={() => handleRemoveItem(item)}
+                    disabled={removingItems[item.productId]}
+                    className={`absolute top-2 right-2 p-1.5 rounded-full transition-colors ${
+                      removingItems[item.productId]
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-gray-200 text-red-500 hover:bg-red-100"
+                    }`}
+                    aria-label="Xóa sản phẩm"
+                  >
+                    {removingItems[item.productId] ? (
+                      <div className="animate-spin h-3.5 w-3.5 border-2 border-red-500 border-t-transparent rounded-full"></div>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    )}
+                  </button>
+
                   <div className="flex items-start space-x-4">
                     <div className="relative w-20 h-20 flex-shrink-0">
                       <Image
@@ -430,7 +519,7 @@ export default function CartPage() {
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm truncate">
+                      <h3 className="font-medium text-sm truncate pr-6">
                         {item.productName}
                       </h3>
                       <div className="mt-2 flex flex-wrap justify-between">
