@@ -209,22 +209,20 @@ export default function CartPage() {
         address: "Sài Gòn Time", // Địa chỉ mặc định
       });
 
-      // Log thông tin response để debug
-      console.log("Thanh toán thành công:", response);
+      // Log chi tiết thông tin response để debug
+      console.log("Response thanh toán:", JSON.stringify(response, null, 2));
 
-      // Kiểm tra URL chuyển hướng từ API - thêm kiểm tra cụ thể hơn
-      if (
-        response &&
-        response.redirectUrl &&
-        response.redirectUrl.trim() !== ""
-      ) {
+      // Nới lỏng điều kiện kiểm tra URL, chỉ cần có redirectUrl
+      if (response && response.redirectUrl) {
         toast.success("Đang chuyển đến trang thanh toán");
 
         // Log URL trước khi chuyển hướng
         console.log("Đang chuyển hướng đến:", response.redirectUrl);
 
-        // Chuyển hướng trực tiếp không qua setTimeout để tránh lỗi
-        window.location.href = response.redirectUrl;
+        // Thêm timeout ngắn để đảm bảo toast message hiển thị
+        setTimeout(() => {
+          window.location.href = response.redirectUrl;
+        }, 500);
       } else {
         console.error("URL thanh toán không hợp lệ:", response);
         toast.error("Không nhận được thông tin thanh toán từ hệ thống");

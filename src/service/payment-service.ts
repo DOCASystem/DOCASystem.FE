@@ -47,20 +47,53 @@ export const PaymentService = {
 
       const responseData = response.data;
 
-      // Kiểm tra và log thông tin response
-      if (responseData && responseData.redirectUrl) {
-        console.log(
-          "[PaymentService] Thanh toán thành công:",
-          responseData.redirectUrl
-        );
-      } else {
+      // Kiểm tra chi tiết response data để debug
+      console.log(
+        "[PaymentService] Response data:",
+        JSON.stringify(responseData, null, 2)
+      );
+
+      // Xử lý và chuẩn hóa redirectUrl từ response
+      const result: CheckoutResponse = {
+        id: responseData.id || "",
+        redirectUrl: "",
+        qrCodeUrl: responseData.qrCodeUrl || "",
+      };
+
+      // Xử lý trường hợp redirectUrl có thể nằm ở các vị trí khác nhau trong response
+      if (typeof responseData === "string" && responseData.includes("http")) {
+        // Trường hợp response trả về trực tiếp là URL string
+        result.redirectUrl = responseData;
+      } else if (responseData.redirectUrl) {
+        // Trường hợp chuẩn với redirectUrl trong object
+        result.redirectUrl = responseData.redirectUrl;
+      } else if (responseData.url) {
+        // Trường hợp url thay vì redirectUrl
+        result.redirectUrl = responseData.url;
+      } else if (responseData.paymentUrl) {
+        // Trường hợp paymentUrl thay vì redirectUrl
+        result.redirectUrl = responseData.paymentUrl;
+      }
+
+      // Kiểm tra xem đã có URL chưa
+      if (!result.redirectUrl) {
         console.error(
-          "[PaymentService] Response không có redirectUrl:",
+          "[PaymentService] Không tìm thấy URL trong response:",
           responseData
+        );
+        throw new Error(
+          "Không tìm thấy URL thanh toán trong phản hồi từ máy chủ"
         );
       }
 
-      return responseData;
+      // Đảm bảo URL không có khoảng trắng thừa
+      result.redirectUrl = result.redirectUrl.trim();
+
+      console.log(
+        "[PaymentService] URL thanh toán đã xử lý:",
+        result.redirectUrl
+      );
+      return result;
     } catch (error: unknown) {
       const axiosError = error as AxiosError;
       console.error(
