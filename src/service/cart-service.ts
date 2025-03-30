@@ -5,6 +5,17 @@ import { BlogService } from "./blog-service";
 // URL API duy nhất
 const API_URL = "https://production.doca.love";
 
+// Định nghĩa custom event cho cart update
+export const CART_UPDATED_EVENT = "cart-updated";
+
+// Hàm để emit event khi giỏ hàng thay đổi
+export const emitCartUpdatedEvent = () => {
+  if (typeof window !== "undefined") {
+    const event = new CustomEvent(CART_UPDATED_EVENT);
+    window.dispatchEvent(event);
+  }
+};
+
 // Interface cho thông tin thêm vào giỏ hàng
 export interface AddToCartPayload {
   productId: string;
@@ -80,6 +91,10 @@ export const CartService = {
       const response = await axios.post(cartApiUrl, payload, { headers });
 
       console.log("[CartService] Thêm vào giỏ hàng thành công:", response.data);
+
+      // Emit event sau khi thêm thành công
+      emitCartUpdatedEvent();
+
       return response.data;
     } catch (error) {
       console.error("[CartService] Lỗi khi thêm vào giỏ hàng:", error);
@@ -136,6 +151,10 @@ export const CartService = {
       const response = await axios.delete(cartApiUrl, { headers });
 
       console.log("[CartService] Xóa khỏi giỏ hàng thành công");
+
+      // Emit event sau khi xóa thành công
+      emitCartUpdatedEvent();
+
       return response.data;
     } catch (error) {
       console.error("[CartService] Lỗi khi xóa khỏi giỏ hàng:", error);
@@ -167,6 +186,10 @@ export const CartService = {
       const response = await axios.patch(cartApiUrl, payload, { headers });
 
       console.log("[CartService] Cập nhật giỏ hàng thành công:", response.data);
+
+      // Emit event sau khi cập nhật thành công
+      emitCartUpdatedEvent();
+
       return response.data;
     } catch (error) {
       console.error("[CartService] Lỗi khi cập nhật giỏ hàng:", error);
@@ -194,6 +217,10 @@ export const CartService = {
       const response = await axios.patch(cartApiUrl, payload, { headers });
 
       console.log("[CartService] Cập nhật giỏ hàng thành công:", response.data);
+
+      // Emit event sau khi cập nhật thành công
+      emitCartUpdatedEvent();
+
       return response.data;
     } catch (error) {
       console.error("[CartService] Lỗi khi cập nhật giỏ hàng:", error);

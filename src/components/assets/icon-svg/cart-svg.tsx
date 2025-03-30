@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { useCartStore } from "@/store/cart-store";
-import { CartService } from "@/service/cart-service";
+import { CartService, CART_UPDATED_EVENT } from "@/service/cart-service";
 
 interface CartIconProps {
   width?: number;
@@ -23,39 +22,45 @@ const CartIcon: React.FC<CartIconProps> = ({
   const fetchCartCount = async () => {
     try {
       const cartItems = await CartService.getCart();
-      // Đếm số lượng sản phẩm khác nhau trong giỏ hàng (không phải tổng số lượng)
-      setCartCount(cartItems.length);
+      // Tính tổng số lượng của tất cả sản phẩm (bao gồm quantity)
+      const totalQuantity = cartItems.reduce(
+        (sum, item) => sum + item.quantity,
+        0
+      );
+      setCartCount(totalQuantity);
     } catch (error) {
       console.error("Lỗi khi lấy số lượng giỏ hàng:", error);
       setCartCount(0);
     }
   };
 
-  // Lấy dữ liệu khi component mount và khi store thay đổi
+  // Lấy dữ liệu khi component mount và cài đặt các event listener
   useEffect(() => {
+    // Fetch dữ liệu ban đầu
     fetchCartCount();
 
-    // Đăng ký sự kiện lắng nghe cập nhật giỏ hàng
+    // Lắng nghe sự kiện từ localStorage (cho các tab khác)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "doca-cart-storage") {
         fetchCartCount();
       }
     };
 
-    window.addEventListener("storage", handleStorageChange);
+    // Lắng nghe sự kiện từ CartService (cùng tab)
+    const handleCartUpdated = () => {
+      fetchCartCount();
+    };
 
+    // Đăng ký các event listener
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener(CART_UPDATED_EVENT, handleCartUpdated);
+
+    // Cleanup khi component unmount
     return () => {
       window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener(CART_UPDATED_EVENT, handleCartUpdated);
     };
   }, []);
-
-  // Theo dõi sự thay đổi của store để cập nhật UI
-  const items = useCartStore((state) => state.items);
-
-  useEffect(() => {
-    // Khi store thay đổi, cập nhật lại số lượng từ API
-    fetchCartCount();
-  }, [items]);
 
   return (
     <div className="relative">
