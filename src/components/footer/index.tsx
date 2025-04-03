@@ -14,9 +14,7 @@ export default function Footer() {
           <div className="flex flex-col w-full lg:w-[349px] gap-4 md:gap-7">
             <LogoDoca />
             <p className="text-sm md:text-base">
-              Chúng mình cung cấp đa dạng các sản phẩm thức ăn thú cưng với chất
-              lượng cao. Qua đó giúp đỡ các bé có hoàn cảnh khó khăn cần được
-              giúp đỡ tại Trạm cứu hộ chó mèo Sài Gòn Time.
+              Của ít lòng nhiều, cùng nhau làm việc nhỏ, kết quả to!
             </p>
             <div className="flex flex-row gap-5">
               <FooterIcon

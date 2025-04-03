@@ -136,17 +136,16 @@ export default function Home() {
 
           <div className="text-center mb-10 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">
-              Sứ mệnh của Doca
+              Về Doca
             </h2>
             <div className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto px-4">
               <p className="mb-4">
-                Doca kết nối tình yêu thương từ bạn đến Trạm cứu trợ chó mèo
-                SaiGon Time - nơi đang chăm sóc hàng trăm bé thú cưng bị bỏ rơi
-                hoặc bị thương.
+                Chúng mình cung cấp đa dạng các sản phẩm thức ăn thú cưng với
+                chất lượng cao.
               </p>
               <p>
-                Mỗi đóng góp nhỏ của bạn, dù là thức ăn hay vật dụng, đều là sự
-                tiếp sức quý báu giúp các bé có cuộc sống tốt đẹp hơn.
+                Qua đó giúp đỡ các bé có hoàn cảnh khó khăn cần được giúp đỡ tại
+                Trạm cứu hộ chó mèo Sài Gòn Time
               </p>
             </div>
             <div className="mt-6 md:mt-8">

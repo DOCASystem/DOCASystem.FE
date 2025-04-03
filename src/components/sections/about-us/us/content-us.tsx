@@ -1,9 +1,9 @@
 import Image from "next/image";
 
 const content = [
-  { id: 1, number: "2k+", text: "Khách Hàng Hài Lòng" },
+  { id: 1, number: "5k+", text: "Khách Hàng Hài Lòng" },
   { id: 2, number: "10", text: "Thương Hiệu" },
-  { id: 3, number: "100+", text: "Sản Phẩm" },
+  { id: 3, number: "200+", text: "Sản Phẩm" },
   { id: 4, number: "2024", text: "Thành Lập" },
 ];
 
@@ -37,7 +37,7 @@ export default function ContentUs() {
     <div className="flex flex-col gap-6 md:gap-10">
       <div>
         <h2 className="text-2xl md:text-[30px]/[120%] font-semibold mb-4 md:mb-6 text-center md:text-left">
-          Doca - Kết nối yêu thương đến những mái ấm nhỏ
+          Giới thiệu về Doca – Kết nối yêu thương đến những mái ấm nhỏ
         </h2>
 
         <div className="flex flex-col md:flex-row gap-6 md:gap-[110px] text-sm md:text-base text-center md:text-left">
@@ -53,6 +53,40 @@ export default function ContentUs() {
             các trạm cứu hộ thông qua mỗi đơn hàng. Tất cả đều được chuyển đến
             tận nơi một cách rõ ràng và minh bạch.
           </p>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-2xl md:text-[30px]/[120%] font-semibold mb-4 md:mb-6 text-center md:text-left">
+          Sứ mệnh của Doca
+        </h2>
+
+        <div className="flex flex-col md:flex-row gap-6 md:gap-[110px] text-sm md:text-base text-center md:text-left">
+          <div className="md:flex-1 space-y-4">
+            <p>
+              Doca được tạo ra với sứ mệnh kết nối những người yêu thương động
+              vật với Trạm cứu trợ chó mèo SaiGon Time – nơi đang chăm sóc hàng
+              trăm bé chó mèo bị bỏ rơi, bị thương hoặc không nơi nương tựa.
+            </p>
+            <p>
+              Chúng mình mong muốn thông qua Doca, mọi người có thể dễ dàng gửi
+              tặng thức ăn, vật dụng thiết yếu đến Trạm, góp phần san sẻ gánh
+              nặng và mang lại điều kiện sống tốt hơn cho các bé tại đây.
+            </p>
+          </div>
+
+          <div className="md:flex-1 space-y-4">
+            <p>
+              Doca tin rằng, chỉ một hành động nhỏ như gửi một bao thức ăn, một
+              chiếc chăn hay gói thuốc trị ve rận… cũng có thể trở thành sự tiếp
+              sức kịp thời, giúp Trạm tiếp tục hành trình cưu mang những sinh
+              linh bé bỏng.
+            </p>
+            <p>
+              Chúng mình không làm điều gì lớn lao — chỉ đơn giản là tạo thêm
+              một con đường để lòng tốt được đến đúng nơi.
+            </p>
+          </div>
         </div>
       </div>
 
