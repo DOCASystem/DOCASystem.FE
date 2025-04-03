@@ -105,9 +105,7 @@ export default function RecommendProducts() {
       toast.success("Đã thêm sản phẩm vào giỏ hàng");
     } catch (error) {
       console.error("[RecommendProducts] Lỗi khi thêm vào giỏ hàng:", error);
-      toast.error(
-        "Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại sau."
-      );
+      toast.error("Bạn cần đăng nhập để mua hàng");
     } finally {
       setAddingToCartId(null);
     }
