@@ -20,7 +20,7 @@ const nav = [
   { id: 1, text: "Trang chủ", path: "/" },
   { id: 2, text: "Sản phẩm", path: "/shop" },
   { id: 3, text: "Blog", path: "/blog" },
-  { id: 4, text: "Về chúng tôi", path: "/about-us" },
+  { id: 4, text: "Về chúng mình", path: "/about-us" },
   { id: 5, text: "Liên hệ", path: "/contact" },
 ];
 

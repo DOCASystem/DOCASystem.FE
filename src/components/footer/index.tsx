@@ -56,7 +56,7 @@ export default function Footer() {
 
             <FooterColumn title="Công ty">
               <Link href="#!" className={color}>
-                Về chúng tôi
+                Về chúng mình
               </Link>
               <p className="text-sm md:text-base">083 722 0173</p>
               <p className="text-sm md:text-base">alodocafpt@gmail.com</p>
@@ -67,7 +67,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="mt-8 pt-6 border-t border-gray-300 text-center">
           <p className="text-xs md:text-sm text-gray-600">
-            © 2024 DOCA Pet Shop. Tất cả các quyền được bảo lưu.
+            © 2024 DOCA. Tất cả các quyền được bảo lưu.
           </p>
         </div>
       </div>

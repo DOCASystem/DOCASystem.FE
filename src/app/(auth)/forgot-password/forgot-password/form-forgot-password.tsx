@@ -227,7 +227,7 @@ export default function ForgotPasswordForm() {
             >
               <h1 className="text-2xl font-semibold">Xác nhận OTP</h1>
               <p className="text-gray-600 mt-2 mb-6 text-center">
-                Chúng tôi đã gửi mã OTP đến email {email}.<br />
+                Chúng mình đã gửi mã OTP đến email {email}.<br />
                 Vui lòng kiểm tra và nhập mã OTP vào ô bên dưới.
               </p>
               <div className="flex flex-col gap-4 mt-6">

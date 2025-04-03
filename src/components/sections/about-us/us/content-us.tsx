@@ -10,45 +10,48 @@ const content = [
 const saigon = [
   {
     id: 1,
+    title: "Chia sẻ hành trình của các bé chó mèo tại Trạm SaiGon Time",
+    text: "Thông qua blog và mạng xã hội, Doca kể lại những câu chuyện thật về cuộc sống, hoàn cảnh và tính cách đáng yêu của các bé chó mèo đang được chăm sóc tại Trạm cứu trợ SaiGon Time.",
+  },
+  {
+    id: 2,
+    title: "Giúp bạn gửi tặng thức ăn và đồ dùng thiết yếu cho các bé ở Trạm",
+    text: "Doca cung cấp danh sách các sản phẩm cần thiết - từ thức ăn, sữa tắm đến đồ chơi - để người dùng dễ dàng mua và gửi thẳng đến Trạm, đúng món, đúng bé đang cần.",
+  },
+];
+
+const saigontime = [
+  {
+    id: 1,
     title: "Liên kết cứu trợ",
-    text: "Chúng tôi làm việc với các tổ chức cứu trợ động vật, hỗ trợ họ trong việc tìm kiếm những gia đình phù hợp cho các con vật bị bỏ rơi.",
+    text: "Chúng mình làm việc với các tổ chức cứu trợ động vật, hỗ trợ họ trong việc tìm kiếm những gia đình phù hợp cho các con vật bị bỏ rơi.",
   },
   {
     id: 2,
     title: "Kết nối khách hàng",
-    text: "Chúng tôi giúp các cá nhân, gia đình tìm thấy những thú cưng cần được cứu hộ, cung cấp thông tin và hướng dẫn quy trình nhận nuôi một cách minh bạch và hiệu quả.",
-  },
-  {
-    id: 3,
-    title: "Hỗ trợ tổ chức cứu trợ",
-    text: "Chúng tôi cung cấp các giải pháp và dịch vụ để hỗ trợ các tổ chức cứu trợ trong việc quản lý và phát triển hoạt động cứu hộ của họ.",
+    text: "Chúng mình giúp các cá nhân, gia đình tìm thấy những thú cưng cần được cứu hộ, cung cấp thông tin và hướng dẫn quy trình nhận nuôi một cách minh bạch và hiệu quả.",
   },
 ];
-
 export default function ContentUs() {
   return (
     <div className="flex flex-col gap-6 md:gap-10">
       <div>
         <h2 className="text-2xl md:text-[30px]/[120%] font-semibold mb-4 md:mb-6 text-center md:text-left">
-          Chúng tôi là
+          Doca - Kết nối yêu thương đến những mái ấm nhỏ
         </h2>
 
         <div className="flex flex-col md:flex-row gap-6 md:gap-[110px] text-sm md:text-base text-center md:text-left">
           <p className="md:flex-1">
-            Một tổ chức trung gian chuyên kết nối các tổ chức cứu trợ động vật
-            với những người yêu thương và sẵn lòng nhận nuôi thú cưng. Với mục
-            tiêu giúp đỡ các sinh vật bị bỏ rơi và tạo cơ hội để chúng có một
-            cuộc sống mới, chúng tôi đóng vai trò là cầu nối giữa các bên cứu
-            trợ và khách hàng, mang đến những giải pháp hiệu quả và bền vững cho
-            phúc lợi động vật.
+            Doca là nơi dành cho những người yêu thương động vật, và cũng là cầu
+            nối giữa bạn và những trạm cứu hộ chó mèo đang ngày đêm chăm sóc
+            những bé thú cưng không may bị bỏ rơi.
           </p>
 
           <p className="md:flex-1">
-            Sứ mệnh của chúng tôi là giúp đỡ và hỗ trợ các tổ chức cứu trợ động
-            vật, đồng thời tạo điều kiện để những người có lòng yêu thương dễ
-            dàng tiếp cận với các vật nuôi cần được chăm sóc. Chúng tôi tin rằng
-            thông qua việc kết nối này, nhiều sinh linh bị bỏ rơi sẽ có cơ hội
-            được sống trong môi trường an toàn và đầy tình yêu thương.
+            Tại Doca, bạn có thể dễ dàng mua thức ăn, đồ dùng cho thú cưng –
+            không chỉ cho bé cưng của mình, mà còn có thể gửi tặng trực tiếp đến
+            các trạm cứu hộ thông qua mỗi đơn hàng. Tất cả đều được chuyển đến
+            tận nơi một cách rõ ràng và minh bạch.
           </p>
         </div>
       </div>
@@ -80,10 +83,36 @@ export default function ContentUs() {
 
         <div className="flex-1">
           <h2 className="text-2xl md:text-[30px]/[120%] font-semibold mb-4 md:mb-6 text-center lg:text-left">
-            Chúng tôi làm gì
+            Doca làm gì
           </h2>
           <div className="w-full lg:w-[636px] flex flex-col gap-4 md:gap-6 text-sm md:text-base">
             {saigon.map((item) => (
+              <div key={item.id} className="text-center lg:text-left">
+                <p className="font-semibold mb-1">{item.title}</p>
+                <p>{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col lg:flex-row-reverse items-center gap-8 md:gap-12 lg:gap-16 py-6 md:py-10">
+        <div className="w-full max-w-sm lg:max-w-none lg:w-auto">
+          <Image
+            src="/images/saigon-time.png"
+            alt="Saigon Time"
+            width={400}
+            height={568}
+            className="rounded-[20px] md:rounded-[40px] shadow-[5px_16px_12px_2px_rgba(0,0,0,0.03)] w-full h-auto"
+          />
+        </div>
+
+        <div className="flex-1">
+          <h2 className="text-2xl md:text-[30px]/[120%] font-semibold mb-4 md:mb-6 text-center lg:text-left">
+            Đối tác của Doca
+          </h2>
+          <div className="w-full lg:w-[636px] flex flex-col gap-4 md:gap-6 text-sm md:text-base">
+            {saigontime.map((item) => (
               <div key={item.id} className="text-center lg:text-left">
                 <p className="font-semibold mb-1">{item.title}</p>
                 <p>{item.text}</p>

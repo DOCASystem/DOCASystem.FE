@@ -353,7 +353,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
             <div className="mt-8 pt-6 border-t border-gray-200">
               <h3 className="font-semibold mb-4">Bài viết liên quan</h3>
               <p className="text-sm text-gray-500">
-                Xem thêm các bài viết khác tại mục Blog của chúng tôi.
+                Xem thêm các bài viết khác tại mục Blog của Chúng mình.
               </p>
               <div className="mt-4">
                 <Link

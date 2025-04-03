@@ -136,13 +136,19 @@ export default function Home() {
 
           <div className="text-center mb-10 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">
-              Về Doca Pet Shop
+              Sứ mệnh của Doca
             </h2>
-            <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto px-4">
-              Chúng tôi cung cấp đa dạng các sản phẩm thức ăn thú cưng với chất
-              lượng cao. Qua đó giúp đỡ các bé có hoàn cảnh khó khăn có thể được
-              chăm sóc tốt hơn.
-            </p>
+            <div className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto px-4">
+              <p className="mb-4">
+                Doca kết nối tình yêu thương từ bạn đến Trạm cứu trợ chó mèo
+                SaiGon Time - nơi đang chăm sóc hàng trăm bé thú cưng bị bỏ rơi
+                hoặc bị thương.
+              </p>
+              <p>
+                Mỗi đóng góp nhỏ của bạn, dù là thức ăn hay vật dụng, đều là sự
+                tiếp sức quý báu giúp các bé có cuộc sống tốt đẹp hơn.
+              </p>
+            </div>
             <div className="mt-6 md:mt-8">
               <Link href="/about-us">
                 <Button className="bg-pink-doca text-white rounded-lg hover:bg-pink-600 transition-colors">
@@ -162,7 +168,7 @@ export default function Home() {
               Sản phẩm nổi bật
             </h2>
             <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto px-4">
-              Khám phá những sản phẩm chăm sóc thú cưng tốt nhất của chúng tôi
+              Khám phá những sản phẩm chăm sóc thú cưng tốt nhất của Chúng mình
             </p>
           </div>
 

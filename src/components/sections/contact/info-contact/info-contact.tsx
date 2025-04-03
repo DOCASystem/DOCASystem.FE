@@ -33,7 +33,7 @@ export default function InfoContact() {
       <div className="flex flex-col gap-6 md:gap-10 text-center lg:text-left">
         <div className="flex flex-col gap-3 md:gap-5">
           <h2 className="text-2xl md:text-3xl font-semibold">
-            Hãy liên hệ với chúng tôi
+            Hãy liên hệ với chúng mình
           </h2>
           <p className="text-sm md:text-base">
             Kêt nối với tổ chức cứu trợ chó mèo bị bỏ rơi, lang thang hoặc gặp

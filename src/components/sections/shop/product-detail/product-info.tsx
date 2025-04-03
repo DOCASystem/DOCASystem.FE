@@ -23,7 +23,7 @@ export default function ProductInfo({
   description,
   price,
   originalPrice,
-  discount,
+  // discount,
   quantity,
   categoryName,
   volume,
@@ -113,11 +113,11 @@ export default function ProductInfo({
           </span>
         )}
 
-        {discount && discount > 0 && (
+        {/* {discount && discount > 0 && (
           <span className="bg-red-500 text-white px-2 py-1 text-xs font-semibold rounded">
             -{discount}%
           </span>
-        )}
+        )} */}
       </div>
 
       {/* Danh mục */}
