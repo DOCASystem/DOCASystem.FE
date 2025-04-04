@@ -77,12 +77,15 @@ export default function Home() {
       <section className="relative bg-gradient-to-r from-pink-50 to-purple-50 overflow-hidden">
         <div className="container mx-auto py-10 md:py-16 lg:py-20 px-4 flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
           <div className="flex-1 space-y-4 md:space-y-6 px-4 lg:pl-10 text-center lg:text-left">
-            <h1 className="text-3xl md:text-4xl lg:text-[45px] font-semibold text-pink-doca">
-              Chúng em cần yêu thương, một chút tấm lòng nhỏ.
+            <h1 className="text-3xl md:text-4xl lg:text-[40px] lg:leading-[1.3] font-semibold text-pink-doca">
+              Sài Gòn Time - Hơn 600 Sinh Mệnh Cần Bạn!
             </h1>
             <p className="text-base md:text-lg text-gray-600">
-              Để một con vật cảm thấy an toàn và hạnh phúc, tình yêu thương và
-              sẻ chia là điều vô cùng quan trọng.
+              💔 Hơn 650 chiếc bụng đói – cần một bữa ăn.
+              <br />
+              💔 Hơn 650 đôi mắt ngây thơ – mong chờ một cơ hội.
+              <br />
+              💔 Hơn 650 trái tim – cần một bàn tay đưa ra giúp đỡ.
             </p>
             <div className="pt-4 md:pt-6 flex flex-wrap justify-center lg:justify-start gap-3 md:gap-4">
               <Link href="/shop">
@@ -100,8 +103,8 @@ export default function Home() {
 
           <div className="flex-1 relative h-[300px] sm:h-[350px] md:h-[400px] lg:h-[500px] w-full mt-6 lg:mt-0">
             <Image
-              src="/images/pet-love.png"
-              alt="Pet love"
+              src="/images/saigon-home.png"
+              alt="Saigon Time"
               fill
               className="object-contain"
               priority
