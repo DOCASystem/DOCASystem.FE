@@ -13,18 +13,41 @@ export default function BlogList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const pageSize = 9;
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Sử dụng pageSize khác nhau dựa vào loại thiết bị
+  const pageSize = isMobile ? 3 : 6;
+
+  useEffect(() => {
+    // Kiểm tra thiết bị mobile khi component được mount
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    // Kiểm tra ban đầu
+    checkIfMobile();
+
+    // Thêm event listener để theo dõi sự thay đổi kích thước màn hình
+    window.addEventListener("resize", checkIfMobile);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("resize", checkIfMobile);
+    };
+  }, []);
 
   useEffect(() => {
     fetchBlogs();
-  }, [currentPage]);
+  }, [currentPage, isMobile]);
 
   const fetchBlogs = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      console.log(`[BlogList] Đang tải danh sách blog trang ${currentPage}`);
+      console.log(
+        `[BlogList] Đang tải danh sách blog trang ${currentPage}, pageSize: ${pageSize}`
+      );
 
       // Sử dụng BlogService thay vì dữ liệu giả
       const response = await BlogService.getBlogs({

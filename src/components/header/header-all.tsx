@@ -80,7 +80,7 @@ export default function Header() {
       </div>
 
       {/* Main header - logo, navigation, cart */}
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 relative">
         <div className="py-3 sm:py-4 lg:py-6 px-4 sm:px-6 lg:px-10 flex flex-row justify-between items-center mx-auto bg-white shadow-[0px_16px_12px_0px_rgba(0,0,0,0.03)] rounded-2xl md:rounded-[40px]">
           {/* Logo */}
           <LogoDoca />
@@ -168,9 +168,9 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation - Chuyển sang dạng overlay */}
         {mobileMenuOpen && (
-          <div className="lg:hidden py-4 px-4 bg-white shadow-md rounded-b-2xl animate-fadeIn">
+          <div className="lg:hidden absolute top-full left-0 right-0 mt-1 z-50 py-4 px-4 bg-white shadow-md rounded-b-2xl animate-fadeIn">
             <nav className="flex flex-col space-y-3">
               {nav.map((item) => {
                 const isActive = pathname === item.path;

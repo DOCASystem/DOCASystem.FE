@@ -101,14 +101,32 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex-1 relative h-[300px] sm:h-[350px] md:h-[400px] lg:h-[500px] w-full mt-6 lg:mt-0">
-            <Image
-              src="/images/saigon-home.png"
-              alt="Saigon Time"
-              fill
-              className="object-contain"
-              priority
-            />
+          <div className="flex-1 relative h-[350px] sm:h-[400px] md:h-[450px] lg:h-[550px] w-full mt-6 lg:mt-0 px-2 sm:px-4">
+            <div className="relative h-full w-full">
+              <Image
+                src="/images/saigon-home.png"
+                alt="Saigon Time"
+                fill
+                className="object-contain rounded-2xl md:rounded-3xl opacity-95"
+                sizes="(max-width: 768px) 100vw, 50vw"
+                style={{
+                  objectFit: "cover",
+                  objectPosition: "center",
+                  maskImage:
+                    "linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)",
+                  WebkitMaskImage:
+                    "linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)",
+                }}
+                priority
+              />
+              <div
+                className="absolute inset-0 pointer-events-none rounded-2xl md:rounded-3xl"
+                style={{
+                  background:
+                    "radial-gradient(circle at center, transparent 60%, rgba(252, 231, 243, 0.5) 100%)",
+                }}
+              ></div>
+            </div>
           </div>
         </div>
       </section>
