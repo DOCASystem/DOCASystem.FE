@@ -88,7 +88,7 @@ export default function UserDropdown() {
                 >
                   {isAdmin ? "Bảng điều khiển" : "Thông tin cá nhân"}
                 </button>
-                <Link
+                {/* <Link
                   href={
                     isAdmin ? "/orders-management" : "/profile?tab=don-hang"
                   }
@@ -96,7 +96,7 @@ export default function UserDropdown() {
                   onClick={() => setIsOpen(false)}
                 >
                   Đơn hàng
-                </Link>
+                </Link> */}
                 <button
                   onClick={handleLogout}
                   className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
