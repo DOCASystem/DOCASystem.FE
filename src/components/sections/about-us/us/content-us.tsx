@@ -20,18 +20,19 @@ const saigon = [
   },
 ];
 
-const saigontime = [
-  {
-    id: 1,
-    title: "Liên kết cứu trợ",
-    text: "Chúng mình làm việc với các tổ chức cứu trợ động vật, hỗ trợ họ trong việc tìm kiếm những gia đình phù hợp cho các con vật bị bỏ rơi.",
-  },
-  {
-    id: 2,
-    title: "Kết nối khách hàng",
-    text: "Chúng mình giúp các cá nhân, gia đình tìm thấy những thú cưng cần được cứu hộ, cung cấp thông tin và hướng dẫn quy trình nhận nuôi một cách minh bạch và hiệu quả.",
-  },
+// Thông tin chi tiết về đối tác Sài Gòn Time
+const saiGonTimeInfo = [
+  "• Trạm Cứu Hộ Chó Mèo Sài Gòn Time",
+  "• Thành lập: Tháng 4 năm 2014",
+  "• Người sáng lập: Chị Trần Uyên Như",
+  "• Mục đích: Cưu mang, chăm sóc và cứu trợ các loài động vật, đặc biệt là chó, mèo bị bỏ rơi, lạc chủ hoặc gặp phải các vấn đề về thương tật.",
+  "• Số lượng động vật hiện tại: Hơn 650 bé chó và mèo, cùng các loài động vật khác như chim, gà,...",
+  '• Trang Facebook: "Cứu Hộ Chó Mèo Sài Gòn Time - SGT"',
+  "• Số người theo dõi: Hơn 173.000 người",
+  "• Trang có độ phủ sóng rộng, kết nối cộng đồng yêu động vật tại TP.HCM và các tỉnh lân cận.",
+  "• Các chú chó, mèo tại Sài Gòn Time đều có tên riêng, gắn liền với đặc điểm hoặc kỷ niệm, tạo cảm giác chúng như một phần trong gia đình.",
 ];
+
 export default function ContentUs() {
   return (
     <div className="flex flex-col gap-6 md:gap-10">
@@ -145,12 +146,11 @@ export default function ContentUs() {
           <h2 className="text-2xl md:text-[30px]/[120%] font-semibold mb-4 md:mb-6 text-center lg:text-left">
             Đối tác của Doca
           </h2>
-          <div className="w-full lg:w-[636px] flex flex-col gap-4 md:gap-6 text-sm md:text-base">
-            {saigontime.map((item) => (
-              <div key={item.id} className="text-center lg:text-left">
-                <p className="font-semibold mb-1">{item.title}</p>
-                <p>{item.text}</p>
-              </div>
+          <div className="w-full lg:w-[636px] flex flex-col gap-3 md:gap-4 text-sm md:text-base">
+            {saiGonTimeInfo.map((info, index) => (
+              <p key={index} className="text-center lg:text-left">
+                {info}
+              </p>
             ))}
           </div>
         </div>
