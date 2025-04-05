@@ -78,7 +78,7 @@ export default function Home() {
         <div className="container mx-auto py-10 md:py-16 lg:py-20 px-4 flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
           <div className="flex-1 space-y-4 md:space-y-6 px-4 lg:pl-10 text-center lg:text-left">
             <h1 className="text-3xl md:text-4xl lg:text-[40px] lg:leading-[1.3] font-semibold text-pink-doca">
-              Sài Gòn Time - Hơn 600 Sinh Mệnh Cần Bạn!
+              Sài Gòn Time - Hơn 650 Sinh Mệnh Cần Bạn!
             </h1>
             <p className="text-base md:text-lg text-gray-600">
               💔 Hơn 650 chiếc bụng đói – cần một bữa ăn.
@@ -93,7 +93,7 @@ export default function Home() {
                   Mua sắm ngay
                 </Button>
               </Link>
-              <Link href="/service-doca">
+              <Link href="/contact">
                 <Button className="bg-white text-pink-doca border border-pink-doca rounded-lg hover:bg-pink-50 transition-colors">
                   Dịch vụ
                 </Button>
