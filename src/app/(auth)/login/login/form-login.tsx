@@ -13,6 +13,9 @@ import { toast } from "react-hot-toast";
 import { AxiosError } from "axios";
 import axios from "axios";
 import { getApiUrl, API_ENDPOINTS } from "@/utils/api-config";
+import { useAuthContext } from "@/contexts/auth-provider";
+import { initializeAuthStore } from "@/store/auth-store";
+import AuthService from "@/service/auth.service";
 
 // Helper để kiểm tra môi trường browser
 const isBrowser = () => typeof window !== "undefined";
@@ -52,6 +55,8 @@ const generateCSRFToken = () => {
 export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [csrfToken, setCsrfToken] = useState("");
+  const [isApiConnecting, setIsApiConnecting] = useState(false);
+  const { refreshAuth } = useAuthContext();
 
   const methods = useForm<FormData>({
     resolver: yupResolver(loginSchema),
@@ -67,10 +72,11 @@ export default function LoginForm() {
     console.log("Form submitted with data:", data);
     try {
       setLoading(true);
+      setIsApiConnecting(true);
 
       // Log URL API login
       const loginUrl = getApiUrl(API_ENDPOINTS.AUTH.LOGIN);
-      console.log(`Đang gọi API login tại: ${loginUrl}`);
+      console.log(`Đang kết nối đến API login tại: ${loginUrl}`);
 
       let response;
       try {
@@ -83,26 +89,9 @@ export default function LoginForm() {
         console.log("API response:", response);
       } catch (apiError) {
         console.error("Error from Swagger client:", apiError);
-
-        // Thử gọi trực tiếp bằng axios nếu Swagger client gặp lỗi
-        console.log("Trying direct API call with axios...");
-        const directResponse = await axios.post(
-          loginUrl,
-          {
-            usernameOrPhoneNumber: data.email,
-            password: data.password,
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        console.log("Direct API response:", directResponse);
-
-        // Sử dụng response từ axios
-        response = { data: directResponse.data };
+        throw apiError;
+      } finally {
+        setIsApiConnecting(false);
       }
 
       // Lưu token vào localStorage và cookie
@@ -124,15 +113,32 @@ export default function LoginForm() {
         username: response.data.username,
         phoneNumber: response.data.phoneNumber,
         fullName: response.data.fullName,
-        role: response.data.role || "USER", // Đảm bảo có thông tin role
+        roles: response.data.roles || ["USER"], // Đảm bảo có thông tin roles
       };
 
       if (isBrowser()) {
         try {
+          // Lưu dữ liệu người dùng và đảm bảo nó được cập nhật ngay lập tức
           const userDataString = JSON.stringify(userData);
+
+          // Xóa cache cũ trước khi lưu mới (nếu có)
+          if (sessionStorage.getItem("cached_user_data")) {
+            sessionStorage.removeItem("cached_user_data");
+          }
+
+          // Lưu vào localStorage
           localStorage.setItem("userData", userDataString);
+
+          // Lưu vào sessionStorage để truy cập nhanh hơn
+          sessionStorage.setItem("cached_user_data", userDataString);
+
+          // Lưu vào cookie để duy trì giữa các phiên
           setCookie("userData", userDataString, 7); // Lưu cookie trong 7 ngày
+
           console.log("userData đã được lưu trữ", userData);
+
+          // Reset toàn bộ cache để đảm bảo dữ liệu mới nhất
+          AuthService.resetCache();
 
           // Kiểm tra lại xem đã lưu thành công chưa
           console.log(
@@ -153,40 +159,68 @@ export default function LoginForm() {
             "userData:",
             savedUserData
           );
+
+          // Cập nhật trạng thái auth store để đảm bảo dữ liệu được đồng bộ
+          initializeAuthStore();
+
+          // Làm mới context để các component khác nhận được dữ liệu mới
+          refreshAuth();
+
+          // Gửi sự kiện để các component khác có thể lắng nghe và cập nhật UI
+          if (isBrowser()) {
+            // Tạo và phát sự kiện để thông báo cho các component khác
+            const authEvent = new CustomEvent("auth-state-changed", {
+              detail: {
+                isAuthenticated: true,
+                userData: userData,
+                timestamp: Date.now(),
+              },
+            });
+            window.dispatchEvent(authEvent);
+
+            // Thêm sự kiện vào localStorage để đảm bảo đồng bộ trên nhiều tab
+            localStorage.setItem("auth_last_updated", Date.now().toString());
+          }
+
+          toast.success("Đăng nhập thành công!");
+
+          // Kiểm tra nếu là admin thì chuyển đến trang admin, ngược lại về trang chủ
+          const isAdmin =
+            data.email === "admin" ||
+            userData.username === "admin" ||
+            userData.roles.includes("ADMIN");
+
+          console.log("Vai trò người dùng:", isAdmin ? "ADMIN" : "USER");
+
+          // Chỉ chuyển hướng khi đã nhận được đầy đủ dữ liệu và đã cập nhật store
+          if (isAdmin) {
+            console.log(
+              "Đăng nhập với tài khoản admin, chuyển hướng đến trang quản lý"
+            );
+            // Sử dụng setTimeout để đảm bảo toast message hiển thị trước khi chuyển trang
+            // và để đảm bảo dữ liệu được cập nhật trước khi chuyển trang
+            setTimeout(() => {
+              // Cập nhật lại trạng thái auth store một lần nữa trước khi chuyển trang
+              refreshAuth();
+              window.location.href = "/products-management";
+            }, 1500);
+          } else {
+            console.log(
+              "Đăng nhập với tài khoản người dùng, chuyển hướng đến trang chủ"
+            );
+            setTimeout(() => {
+              // Cập nhật lại trạng thái auth store một lần nữa trước khi chuyển trang
+              refreshAuth();
+              window.location.href = "/";
+            }, 1500);
+          }
         } catch (error) {
           console.error("Lỗi khi lưu userData:", error);
         }
       }
-
-      toast.success("Đăng nhập thành công!");
-
-      // Kiểm tra nếu là admin thì chuyển đến trang admin, ngược lại về trang chủ
-      const isAdmin =
-        data.email === "admin" ||
-        userData.username === "admin" ||
-        userData.role === "ADMIN";
-
-      console.log("Vai trò người dùng:", isAdmin ? "ADMIN" : "USER");
-
-      // Sử dụng window.location.href để đảm bảo trang được reload
-      if (isAdmin) {
-        console.log(
-          "Đăng nhập với tài khoản admin, chuyển hướng đến trang quản lý"
-        );
-        // Sử dụng setTimeout để đảm bảo toast message hiển thị trước khi chuyển trang
-        setTimeout(() => {
-          window.location.href = "/products-management";
-        }, 1000);
-      } else {
-        console.log(
-          "Đăng nhập với tài khoản người dùng, chuyển hướng đến trang chủ"
-        );
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 1000);
-      }
     } catch (error: unknown) {
       console.error("Lỗi đăng nhập:", error);
+      setIsApiConnecting(false);
 
       let message = "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.";
 
@@ -269,7 +303,7 @@ export default function LoginForm() {
 
             <LinkNav
               href="/forgot-password"
-              className="text-pink-doca hover:underline left-0 "
+              className="text-pink-doca hover:underline left-0"
             >
               Quên mật khẩu?
             </LinkNav>
@@ -279,7 +313,18 @@ export default function LoginForm() {
               disabled={loading}
               type="submit"
             >
-              {loading ? "Đang xử lý..." : "Đăng Nhập"}
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <span>
+                    {isApiConnecting
+                      ? "Đang kết nối đến máy chủ..."
+                      : "Đang xử lý..."}
+                  </span>
+                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                </div>
+              ) : (
+                "Đăng Nhập"
+              )}
             </Button>
             <div className="flex gap-2 items-center justify-center">
               <p>Bạn chưa có tài khoản? </p>

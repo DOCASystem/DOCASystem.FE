@@ -5,14 +5,127 @@ import { useRouter } from "next/navigation";
 import UserIcon from "./heart-svg";
 import { useAuthContext } from "@/contexts/auth-provider";
 import Link from "next/link";
+import AuthService from "@/service/auth.service";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { isAuthenticated, userData, logout } = useAuthContext();
+  const { isAuthenticated, userData, logout, refreshAuth } = useAuthContext();
+  const [localUserData, setLocalUserData] = useState(userData);
+
+  // Cập nhật thông tin người dùng khi mở dropdown hoặc khi component được render
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Tìm nạp thông tin người dùng mới từ localStorage và sessionStorage
+      const freshUserData = AuthService.getUserData();
+      if (freshUserData) {
+        setLocalUserData(freshUserData);
+      }
+    }
+  }, [isOpen, isAuthenticated]);
+
+  // Cập nhật liên tục thông tin người dùng khi isAuthenticated thay đổi
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Gọi refreshAuth để cập nhật context
+      refreshAuth();
+
+      // Đồng thời cập nhật state local
+      const freshUserData = AuthService.getUserData();
+      if (freshUserData) {
+        setLocalUserData(freshUserData);
+      }
+
+      // Kiểm tra mỗi 2 giây trong 10 giây đầu tiên sau khi đăng nhập
+      const checkInterval = setInterval(() => {
+        const freshUserData = AuthService.getUserData();
+        if (freshUserData) {
+          setLocalUserData(freshUserData);
+        }
+      }, 2000);
+
+      // Dừng kiểm tra sau 10 giây
+      setTimeout(() => {
+        clearInterval(checkInterval);
+      }, 10000);
+    } else {
+      setLocalUserData(null);
+    }
+  }, [isAuthenticated, refreshAuth]);
+
+  // Cập nhật localUserData khi userData từ context thay đổi
+  useEffect(() => {
+    if (userData) {
+      setLocalUserData(userData);
+    }
+  }, [userData]);
+
+  // Lắng nghe sự kiện auth-state-changed từ form đăng nhập
+  useEffect(() => {
+    const handleAuthChange = (event: CustomEvent) => {
+      console.log("Received auth-state-changed event", event.detail);
+      if (event.detail.isAuthenticated) {
+        // Làm mới cache trước
+        AuthService.resetCache();
+
+        // Làm mới thông tin người dùng trong context
+        refreshAuth();
+
+        // Cập nhật trạng thái local
+        const freshUserData = AuthService.getUserData();
+        if (freshUserData) {
+          setLocalUserData(freshUserData);
+        } else {
+          // Nếu không lấy được từ service, dùng dữ liệu từ event
+          setLocalUserData(event.detail.userData);
+        }
+      }
+    };
+
+    // Đăng ký lắng nghe sự kiện
+    window.addEventListener(
+      "auth-state-changed",
+      handleAuthChange as EventListener
+    );
+
+    // Lắng nghe thay đổi localStorage
+    const handleStorageChange = (event: StorageEvent) => {
+      if (
+        event.key === "auth_last_updated" ||
+        event.key === "userData" ||
+        event.key === "token"
+      ) {
+        console.log("Storage changed:", event.key);
+        refreshAuth();
+
+        const freshUserData = AuthService.getUserData();
+        if (freshUserData) {
+          setLocalUserData(freshUserData);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener(
+        "auth-state-changed",
+        handleAuthChange as EventListener
+      );
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [refreshAuth]);
 
   const toggleDropdown = () => {
+    // Làm mới thông tin người dùng khi mở dropdown
+    if (!isOpen && isAuthenticated) {
+      refreshAuth();
+      const freshUserData = AuthService.getUserData();
+      if (freshUserData) {
+        setLocalUserData(freshUserData);
+      }
+    }
     setIsOpen(!isOpen);
   };
 
@@ -32,11 +145,14 @@ export default function UserDropdown() {
     };
   }, []);
 
-  const isAdmin = userData?.username === "admin";
+  const isAdmin =
+    localUserData?.username === "admin" ||
+    (localUserData?.roles && localUserData.roles.includes("ADMIN"));
 
   const handleLogout = () => {
     logout();
     setIsOpen(false);
+    setLocalUserData(null);
   };
 
   const handleProfileClick = () => {
@@ -65,14 +181,14 @@ export default function UserDropdown() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
           <div className="py-1">
-            {isAuthenticated ? (
+            {isAuthenticated && localUserData ? (
               <>
                 <div className="px-4 py-3 text-sm text-gray-700 border-b">
                   <p className="font-medium text-base">
-                    {userData?.fullName || userData?.username}
+                    {localUserData?.fullName || localUserData?.username}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {userData?.phoneNumber}
+                    {localUserData?.phoneNumber}
                   </p>
                   {isAdmin && (
                     <div className="mt-1">

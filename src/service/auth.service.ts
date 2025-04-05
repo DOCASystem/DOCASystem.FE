@@ -114,11 +114,51 @@ const getRefreshToken = (): string => {
 const getUserData = (): Partial<LoginResponse> | null => {
   if (!isBrowser()) return null;
 
+  // Thử lấy từ session storage trước để cải thiện tốc độ
+  try {
+    const cachedUserData = sessionStorage.getItem("cached_user_data");
+    if (cachedUserData) {
+      return JSON.parse(cachedUserData);
+    }
+  } catch (error) {
+    console.error("Lỗi khi đọc userData từ sessionStorage:", error);
+  }
+
+  // Nếu không có trong session storage, kiểm tra cache
   if (!authCache.isAuthCacheInitialized) {
     initializeAuthCache();
   }
 
-  return authCache.userData;
+  // Nếu có trong cache thì trả về
+  if (authCache.userData) {
+    // Lưu vào session storage để truy cập nhanh hơn lần sau
+    try {
+      sessionStorage.setItem(
+        "cached_user_data",
+        JSON.stringify(authCache.userData)
+      );
+    } catch (error) {
+      console.error("Lỗi khi lưu userData vào sessionStorage:", error);
+    }
+    return authCache.userData;
+  }
+
+  // Nếu không có trong cache, thử lấy từ localStorage
+  try {
+    const userDataJson = localStorage.getItem("userData");
+    if (userDataJson) {
+      const userData = JSON.parse(userDataJson);
+      // Cập nhật cache
+      authCache.userData = userData;
+      // Lưu vào session storage
+      sessionStorage.setItem("cached_user_data", userDataJson);
+      return userData;
+    }
+  } catch (error) {
+    console.error("Lỗi khi đọc userData từ localStorage:", error);
+  }
+
+  return null;
 };
 
 /**
@@ -151,6 +191,34 @@ const logout = (): void => {
 
   // Redirect to home page instead of login page
   window.location.href = "/";
+};
+
+/**
+ * Reset cache và tải lại dữ liệu từ localStorage
+ * Dùng sau khi đăng nhập hoặc khi cần làm mới dữ liệu
+ */
+const resetCache = (): void => {
+  if (!isBrowser()) return;
+
+  // Xóa cache trong bộ nhớ
+  authCache.isAuthCacheInitialized = false;
+
+  // Làm mới cache từ localStorage
+  initializeAuthCache();
+
+  // Làm mới session storage
+  try {
+    // Xóa cache cũ
+    sessionStorage.removeItem("cached_user_data");
+
+    // Lấy dữ liệu mới từ localStorage và lưu vào sessionStorage
+    const userDataJson = localStorage.getItem("userData");
+    if (userDataJson) {
+      sessionStorage.setItem("cached_user_data", userDataJson);
+    }
+  } catch (error) {
+    console.error("Lỗi khi làm mới sessionStorage:", error);
+  }
 };
 
 /**
@@ -190,9 +258,13 @@ const login = async (
       username: data.username,
       phoneNumber: data.phoneNumber,
       fullName: data.fullName,
+      roles: data.roles || ["USER"], // Đảm bảo có thông tin roles
     };
 
     saveUserData(userData);
+
+    // Làm mới toàn bộ cache sau khi đăng nhập
+    resetCache();
 
     return data;
   } catch (error) {
@@ -235,6 +307,7 @@ const AuthService = {
   getUserData,
   refreshToken,
   getRefreshToken,
+  resetCache,
 
   /**
    * Check user session and redirect if not authenticated
