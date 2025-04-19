@@ -117,8 +117,10 @@ function redirectAuthenticated(request: NextRequest) {
     const userDataCookie = request.cookies.get("userData")?.value;
     if (userDataCookie) {
       const userData = JSON.parse(decodeURIComponent(userDataCookie));
-      const userRole = userData.role || "USER";
-      isAdmin = userRole === "ADMIN" || userData.username === "admin";
+      // Kiểm tra roles là một mảng và chứa "ADMIN"
+      isAdmin =
+        (Array.isArray(userData.roles) && userData.roles.includes("ADMIN")) ||
+        userData.username === "admin";
     }
   } catch {
     // If error parsing user data, assume regular user

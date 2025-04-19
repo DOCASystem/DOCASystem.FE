@@ -1,10 +1,10 @@
 import axios from "axios";
 import { ProductApi, Configuration } from "@/api/generated";
 import { getToken } from "@/auth/auth-service";
-import { REAL_API_BASE_URL, API_CORS_HEADERS } from "@/utils/api-config";
+import { API_CORS_HEADERS } from "@/utils/api-config";
 import { compressImage } from "@/utils/image-utils";
 
-// URL API trực tiếp không được ẩn đi
+// Sử dụng duy nhất một API URL cho môi trường production
 const API_URL = "https://production.doca.love";
 
 // Tạo instance mới của API client
@@ -20,7 +20,7 @@ const getProductApiInstance = () => {
   });
 
   // Log URL API trực tiếp cho mục đích debug
-  console.log("[ProductService] Sử dụng API URL trực tiếp:", API_URL);
+  console.log("[ProductService] Sử dụng API URL:", API_URL);
 
   return new ProductApi(config);
 };
@@ -305,7 +305,7 @@ export const ProductService = {
         while (retryCount <= maxRetries) {
           try {
             const response = await axios.post(
-              `${REAL_API_BASE_URL}/api/v1/products`,
+              `${API_URL}/api/v1/products`,
               formData,
               {
                 headers: {
@@ -361,19 +361,16 @@ export const ProductService = {
         );
 
         try {
-          const fetchResponse = await fetch(
-            `${REAL_API_BASE_URL}/api/v1/products`,
-            {
-              method: "POST",
-              body: formData,
-              headers: {
-                Authorization: `Bearer ${token}`,
-                // Fetch API sẽ tự động thiết lập Content-Type cho multipart/form-data
-              },
-              // Không cần thiết lập timeout cho fetch, browser có timeout mặc định
-              mode: "no-cors", // Thêm mode no-cors để tránh lỗi CORS
-            }
-          );
+          const fetchResponse = await fetch(`${API_URL}/api/v1/products`, {
+            method: "POST",
+            body: formData,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              // Fetch API sẽ tự động thiết lập Content-Type cho multipart/form-data
+            },
+            // Không cần thiết lập timeout cho fetch, browser có timeout mặc định
+            mode: "no-cors", // Thêm mode no-cors để tránh lỗi CORS
+          });
 
           if (!fetchResponse.ok && fetchResponse.type !== "opaque") {
             throw new Error(`HTTP error! Status: ${fetchResponse.status}`);
@@ -471,16 +468,13 @@ export const ProductService = {
         throw new Error("Không tìm thấy token, vui lòng đăng nhập lại");
       }
 
-      const response = await axios.delete(
-        `${REAL_API_BASE_URL}/api/v1/products/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            ...API_CORS_HEADERS,
-          },
-          timeout: 30000, // 30 giây
-        }
-      );
+      const response = await axios.delete(`${API_URL}/api/v1/products/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...API_CORS_HEADERS,
+        },
+        timeout: 30000, // 30 giây
+      });
 
       console.log(
         "ProductService.deleteProduct - Kết quả API:",

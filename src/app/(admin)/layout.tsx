@@ -40,9 +40,13 @@ export default function AdminRootLayout({
       <Toaster position="top-center" />
       <div className="min-h-screen flex flex-col">
         <AdminHeader />
-        <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1 p-6 overflow-auto">{children}</main>
+        <div className="flex flex-1 h-[calc(100vh-64px)]">
+          <div className="fixed left-0 h-[calc(100vh-64px)] z-10">
+            <Sidebar />
+          </div>
+          <div className="ml-[250px] flex-1">
+            <main className="p-6 h-full overflow-y-auto">{children}</main>
+          </div>
         </div>
       </div>
     </AdminAuthGuard>

@@ -160,7 +160,7 @@ export default function AdminProductPage() {
     currentPage: 1,
     totalPages: 0,
     totalItems: 0,
-    pageSize: 10,
+    pageSize: 5,
   });
   const [cachedData, setCachedData] = useState<{
     [key: string]: {
@@ -174,9 +174,12 @@ export default function AdminProductPage() {
   // Lấy danh sách sản phẩm với bộ nhớ đệm
   const fetchProducts = useCallback(
     async (page = 1) => {
+      // Cập nhật trang hiện tại ngay lập tức
+      setPagination((prev) => ({ ...prev, currentPage: page }));
+
       // Kiểm tra cache
       const now = Date.now();
-      const cacheMaxAge = 5 * 60 * 1000; // Tăng thời gian cache lên 5 phút
+      const cacheMaxAge = 5 * 60 * 1000; // 5 phút
       const cacheKey = `${page}-${JSON.stringify(filters)}`;
       const cachedEntry = cachedData[cacheKey];
 
@@ -185,7 +188,13 @@ export default function AdminProductPage() {
           `Sử dụng dữ liệu đã lưu trong bộ nhớ đệm cho trang ${page}`
         );
         setProducts(cachedEntry.products);
-        setPagination(cachedEntry.pagination);
+        // Chỉ cập nhật các giá trị khác, giữ currentPage
+        setPagination((prev) => ({
+          ...prev,
+          totalPages: cachedEntry.pagination.totalPages,
+          totalItems: cachedEntry.pagination.totalItems,
+          pageSize: cachedEntry.pagination.pageSize,
+        }));
         return;
       }
 
@@ -206,12 +215,13 @@ export default function AdminProductPage() {
           // Kiểm tra dữ liệu trước khi cập nhật state
           if (Array.isArray(data.items)) {
             setProducts(data.items);
-            setPagination({
-              currentPage: data.currentPage || 1,
+            // Đảm bảo giữ giá trị currentPage đã cập nhật ở trên
+            setPagination((prev) => ({
+              ...prev,
               totalPages: data.totalPages || 1,
               totalItems: data.totalItems || 0,
               pageSize: data.size || pagination.pageSize,
-            });
+            }));
 
             // Lưu vào cache
             setCachedData((prev) => ({
@@ -219,7 +229,7 @@ export default function AdminProductPage() {
               [cacheKey]: {
                 products: data.items,
                 pagination: {
-                  currentPage: data.currentPage || 1,
+                  currentPage: page,
                   totalPages: data.totalPages || 1,
                   totalItems: data.totalItems || 0,
                   pageSize: data.size || pagination.pageSize,
@@ -285,6 +295,8 @@ export default function AdminProductPage() {
   // Xử lý khi thay đổi trang
   const handlePageChange = useCallback(
     (page: number) => {
+      // Cập nhật state pagination trước khi gọi fetchProducts
+      setPagination((prev) => ({ ...prev, currentPage: page }));
       fetchProducts(page);
     },
     [fetchProducts]

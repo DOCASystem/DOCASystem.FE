@@ -40,7 +40,7 @@ const sidebarItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   return (
-    <aside className="w-[250px] h-screen bg-white border-r border-gray-200 shadow-sm flex flex-col">
+    <aside className="w-[250px] h-full bg-white border-r border-gray-200 shadow-sm flex flex-col">
       <div className="flex-1 py-6 overflow-y-auto">
         <div className="px-4 mb-6">
           <h2 className="text-xs uppercase font-semibold text-gray-500 tracking-wide mb-3 pl-3">
