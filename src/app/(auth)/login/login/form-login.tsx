@@ -341,11 +341,11 @@ export default function LoginForm() {
       <div className="hidden md:block">
         <LinkNav href="/">
           <Image
-            src="/images/bg-login.png"
+            src="/images/doca.png"
             alt="bg-login"
-            width={600}
+            width={1000}
             height={900}
-            className="w-full h-auto max-h-[700px] md:h-[500px] lg:h-[600px] xl:h-[700px] rounded-l-2xl object-cover"
+            className="w-full h-auto max-h-[800px] md:h-[500px] lg:h-[600px] xl:h-[700px] rounded-l-2xl object-cover"
           />
         </LinkNav>
       </div>

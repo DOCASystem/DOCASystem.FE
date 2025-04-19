@@ -314,7 +314,7 @@ export default function ForgotPasswordForm() {
 
       <LinkNav href="/" className="w-[700px] h-[700px] rounded-l-2xl">
         <Image
-          src="/images/bg-login.png"
+          src="/images/doca.png"
           alt="bg-login"
           width={600}
           height={900}
