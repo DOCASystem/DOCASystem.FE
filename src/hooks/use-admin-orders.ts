@@ -145,6 +145,11 @@ export const useAdminOrders = (token?: string) => {
         return dateB - dateA;
       });
 
+      // Biến để lưu thông tin về tháng/năm để sắp xếp
+      const monthYearToFirstDate = new Map<string, Date>();
+      const weekToFirstDate = new Map<string, Date>();
+      const yearToFirstDate = new Map<string, number>();
+
       for (const order of sortedOrders) {
         const date = parseISO(order.createdAt);
 
@@ -158,6 +163,19 @@ export const useAdminOrders = (token?: string) => {
 
         // Format cho năm (yyyy)
         const yearKey = format(date, "yyyy", { locale: vi });
+
+        // Lưu thông tin về ngày để sắp xếp sau này
+        if (!weekToFirstDate.has(weekKey)) {
+          weekToFirstDate.set(weekKey, date);
+        }
+
+        if (!monthYearToFirstDate.has(monthKey)) {
+          monthYearToFirstDate.set(monthKey, date);
+        }
+
+        if (!yearToFirstDate.has(yearKey)) {
+          yearToFirstDate.set(yearKey, date.getFullYear());
+        }
 
         // Thêm vào nhóm theo tuần
         if (!byWeek.has(weekKey)) {
@@ -178,28 +196,47 @@ export const useAdminOrders = (token?: string) => {
         byYear.get(yearKey)?.push(order);
       }
 
-      // Sắp xếp các nhóm theo thời gian mới nhất
+      // Sắp xếp dữ liệu trong mỗi nhóm để hiển thị ngày mới nhất trước
+      Array.from(byMonth.entries()).forEach(([key, orderList]) => {
+        byMonth.set(
+          key,
+          orderList.sort((a: FormattedOrder, b: FormattedOrder) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateB - dateA;
+          })
+        );
+      });
+
+      Array.from(byWeek.entries()).forEach(([key, orderList]) => {
+        byWeek.set(
+          key,
+          orderList.sort((a: FormattedOrder, b: FormattedOrder) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateB - dateA;
+          })
+        );
+      });
+
+      Array.from(byYear.entries()).forEach(([key, orderList]) => {
+        byYear.set(
+          key,
+          orderList.sort((a: FormattedOrder, b: FormattedOrder) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateB - dateA;
+          })
+        );
+      });
+
+      // Sắp xếp các nhóm theo thời gian mới nhất (năm mới nhất trước, sau đó tháng mới nhất, sau đó tuần mới nhất)
       return {
         byWeek: new Map(
           Array.from(byWeek.entries()).sort((a, b) => {
-            const [weekA, monthYearA] = a[0].split(", ");
-            const [weekB, monthYearB] = b[0].split(", ");
-
-            // So sánh tháng/năm trước
-            const [monthA, yearA] = monthYearA.split("/");
-            const [monthB, yearB] = monthYearB.split("/");
-
-            if (yearA !== yearB) {
-              return parseInt(yearB) - parseInt(yearA);
-            }
-            if (monthA !== monthB) {
-              return parseInt(monthB) - parseInt(monthA);
-            }
-
-            // Sau đó so sánh số tuần
-            const weekNumA = parseInt(weekA.replace("Tuần ", ""));
-            const weekNumB = parseInt(weekB.replace("Tuần ", ""));
-            return weekNumB - weekNumA;
+            const dateA = weekToFirstDate.get(a[0]) as Date;
+            const dateB = weekToFirstDate.get(b[0]) as Date;
+            return dateB.getTime() - dateA.getTime();
           })
         ),
         byMonth: new Map(
@@ -207,9 +244,11 @@ export const useAdminOrders = (token?: string) => {
             const [monthA, yearA] = a[0].split("/");
             const [monthB, yearB] = b[0].split("/");
 
+            // Sắp xếp năm trước (giảm dần)
             if (yearA !== yearB) {
               return parseInt(yearB) - parseInt(yearA);
             }
+            // Sau đó sắp xếp tháng (giảm dần)
             return parseInt(monthB) - parseInt(monthA);
           })
         ),

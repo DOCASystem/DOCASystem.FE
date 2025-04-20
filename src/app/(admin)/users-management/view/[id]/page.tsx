@@ -1,41 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Button from "@/components/common/button/button";
-
-// Định nghĩa kiểu dữ liệu cho người dùng
-type User = {
-  id: string;
-  username: string;
-  fullName: string;
-  phoneNumber: string;
-  role: "ADMIN" | "USER" | "STAFF";
-  status: "Hoạt động" | "Bị khóa";
-  createdAt: string;
-  lastLogin?: string;
-  address?: string;
-  email?: string;
-};
-
-// Định nghĩa kiểu dữ liệu cho lịch sử đơn hàng
-type OrderHistory = {
-  id: string;
-  date: string;
-  total: number;
-  status: string;
-  products: { name: string; quantity: number; price: number }[];
-};
+import memberService, { Member } from "@/service/member-service";
+import AuthService from "@/service/auth.service";
+import { format, parseISO } from "date-fns";
+import { vi } from "date-fns/locale";
+import ConfirmDialog from "@/components/common/dialog/confirm-dialog";
 
 export default function ViewUserPage() {
   const params = useParams();
+  const router = useRouter();
   const userId = params.id as string;
 
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
-  const [orderHistory, setOrderHistory] = useState<OrderHistory[]>([]);
+  const [member, setMember] = useState<Member | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isToggleStatusDialogOpen, setIsToggleStatusDialogOpen] =
+    useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -43,64 +28,19 @@ export default function ViewUserPage() {
       setError(null);
 
       try {
-        // Trong thực tế, gọi API để lấy thông tin người dùng
-        // Ở đây chúng ta giả lập dữ liệu
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        // Lấy token từ localStorage
+        const token = AuthService.getToken();
 
-        // Mock dữ liệu
-        if (userId === "1") {
-          setUser({
-            id: "1",
-            username: "johndoe",
-            fullName: "John Doe",
-            phoneNumber: "0901234567",
-            role: "USER",
-            status: "Hoạt động",
-            createdAt: "2024-03-01",
-            lastLogin: "2024-03-10 15:30:22",
-            address: "123 Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh",
-            email: "johndoe@example.com",
-          });
-
-          // Fake data cho lịch sử đơn hàng
-          setOrderHistory([
-            {
-              id: "ORD00123",
-              date: "2024-03-15",
-              total: 1250000,
-              status: "Đã giao",
-              products: [
-                { name: "Sản phẩm A", quantity: 2, price: 500000 },
-                { name: "Sản phẩm B", quantity: 1, price: 250000 },
-              ],
-            },
-            {
-              id: "ORD00098",
-              date: "2024-02-28",
-              total: 850000,
-              status: "Đã giao",
-              products: [{ name: "Sản phẩm C", quantity: 1, price: 850000 }],
-            },
-          ]);
-        } else if (userId === "2") {
-          setUser({
-            id: "2",
-            username: "adminuser",
-            fullName: "Admin User",
-            phoneNumber: "0912345678",
-            role: "ADMIN",
-            status: "Hoạt động",
-            createdAt: "2024-03-02",
-            lastLogin: "2024-03-11 08:15:40",
-            email: "admin@example.com",
-          });
-
-          // Admin không có lịch sử đơn hàng
-          setOrderHistory([]);
-        } else {
-          // Giả lập không tìm thấy người dùng
-          setError("Không tìm thấy thông tin người dùng");
+        if (!token) {
+          setError("Bạn cần đăng nhập để xem thông tin này");
+          setIsLoading(false);
+          return;
         }
+
+        console.log(`Đang tải thông tin người dùng với ID: ${userId}`);
+        const data = await memberService.getMemberById(userId, token);
+        console.log("Dữ liệu người dùng:", data);
+        setMember(data);
       } catch (error) {
         console.error("Lỗi khi lấy thông tin người dùng:", error);
         setError("Có lỗi xảy ra khi tải thông tin người dùng");
@@ -111,6 +51,38 @@ export default function ViewUserPage() {
 
     fetchUserData();
   }, [userId]);
+
+  // Xử lý xóa người dùng
+  const handleDeleteUser = useCallback(() => {
+    setIsDeleteDialogOpen(true);
+  }, []);
+
+  const confirmDeleteUser = useCallback(() => {
+    console.log(`Xóa người dùng với ID: ${userId}`);
+    // Ở đây cần gọi API để xóa người dùng
+    setIsDeleteDialogOpen(false);
+    // Sau khi xóa, chuyển về trang danh sách
+    router.push("/users-management");
+  }, [userId, router]);
+
+  const cancelDeleteUser = useCallback(() => {
+    setIsDeleteDialogOpen(false);
+  }, []);
+
+  // Xử lý chuyển đổi trạng thái người dùng
+  const handleToggleStatus = useCallback(() => {
+    setIsToggleStatusDialogOpen(true);
+  }, []);
+
+  const confirmToggleStatus = useCallback(() => {
+    console.log(`Chuyển trạng thái người dùng ${userId}`);
+    // Ở đây cần gọi API để cập nhật trạng thái
+    setIsToggleStatusDialogOpen(false);
+  }, [userId]);
+
+  const cancelToggleStatus = useCallback(() => {
+    setIsToggleStatusDialogOpen(false);
+  }, []);
 
   // Hiển thị trạng thái loading
   if (isLoading) {
@@ -134,7 +106,7 @@ export default function ViewUserPage() {
   }
 
   // Hiển thị lỗi
-  if (error || !user) {
+  if (error || !member) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
@@ -165,6 +137,16 @@ export default function ViewUserPage() {
     }).format(amount);
   };
 
+  // Format ngày tháng
+  const formatDate = (dateString: string) => {
+    try {
+      return format(parseISO(dateString), "dd/MM/yyyy", { locale: vi });
+    } catch (err) {
+      console.error("Lỗi định dạng ngày", err);
+      return dateString;
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
@@ -172,13 +154,25 @@ export default function ViewUserPage() {
           Chi tiết người dùng
         </h1>
         <div className="flex space-x-3">
-          <Link href={`/users-management/edit/${user.id}`}>
-            <Button className="bg-pink-doca hover:bg-pink-doca w-52 h-11 text-lg">
+          <Link href={`/users-management/edit/${member.id}`}>
+            <Button className="bg-pink-doca hover:bg-pink-doca px-4 py-2 text-sm">
               Chỉnh sửa
             </Button>
           </Link>
+          <Button
+            className="border border-yellow-500 text-yellow-700 hover:bg-yellow-50 px-4 py-2 text-sm"
+            onClick={handleToggleStatus}
+          >
+            Khóa tài khoản
+          </Button>
+          <Button
+            className="border border-red-500 text-red-700 hover:bg-red-50 px-4 py-2 text-sm"
+            onClick={handleDeleteUser}
+          >
+            Xóa
+          </Button>
           <Link href="/users-management">
-            <Button className="border-pink-doca hover:bg-pink-doca w-52 h-11 text-lg">
+            <Button className="border-pink-doca hover:bg-pink-doca px-4 py-2 text-sm">
               Quay lại
             </Button>
           </Link>
@@ -195,27 +189,37 @@ export default function ViewUserPage() {
               <div className="bg-gray-50 p-4 rounded-md">
                 <div className="grid grid-cols-3 gap-4">
                   <div className="col-span-1 text-gray-600">ID:</div>
-                  <div className="col-span-2 font-medium">{user.id}</div>
+                  <div className="col-span-2 font-medium">{member.id}</div>
 
                   <div className="col-span-1 text-gray-600">Tên đăng nhập:</div>
-                  <div className="col-span-2 font-medium">{user.username}</div>
+                  <div className="col-span-2 font-medium">
+                    {member.username || "Chưa cung cấp"}
+                  </div>
 
                   <div className="col-span-1 text-gray-600">Họ tên:</div>
-                  <div className="col-span-2 font-medium">{user.fullName}</div>
+                  <div className="col-span-2 font-medium">
+                    {member.fullName || "Chưa cung cấp"}
+                  </div>
 
                   <div className="col-span-1 text-gray-600">Email:</div>
                   <div className="col-span-2 font-medium">
-                    {user.email || "Chưa cung cấp"}
+                    {member.username || "Chưa cung cấp"}
                   </div>
 
                   <div className="col-span-1 text-gray-600">Số điện thoại:</div>
                   <div className="col-span-2 font-medium">
-                    {user.phoneNumber}
+                    {member.phoneNumber || "Chưa cung cấp"}
                   </div>
 
                   <div className="col-span-1 text-gray-600">Địa chỉ:</div>
                   <div className="col-span-2 font-medium">
-                    {user.address || "Chưa cung cấp"}
+                    {member.address
+                      ? `${member.address}${
+                          member.commune ? `, ${member.commune}` : ""
+                        }${member.district ? `, ${member.district}` : ""}${
+                          member.province ? `, ${member.province}` : ""
+                        }`
+                      : "Chưa cung cấp"}
                   </div>
                 </div>
               </div>
@@ -232,43 +236,29 @@ export default function ViewUserPage() {
                   <div className="col-span-1 text-gray-600">Vai trò:</div>
                   <div className="col-span-2">
                     <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.role === "ADMIN"
-                          ? "bg-purple-100 text-purple-800"
-                          : user.role === "STAFF"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800`}
                     >
-                      {user.role === "ADMIN"
-                        ? "Admin"
-                        : user.role === "STAFF"
-                        ? "Nhân viên"
-                        : "Khách hàng"}
+                      Khách hàng
                     </span>
                   </div>
 
                   <div className="col-span-1 text-gray-600">Trạng thái:</div>
                   <div className="col-span-2">
                     <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.status === "Hoạt động"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800`}
                     >
-                      {user.status}
+                      Hoạt động
                     </span>
                   </div>
 
-                  <div className="col-span-1 text-gray-600">Ngày tạo:</div>
-                  <div className="col-span-2 font-medium">{user.createdAt}</div>
-
-                  <div className="col-span-1 text-gray-600">
-                    Đăng nhập gần nhất:
-                  </div>
+                  <div className="col-span-1 text-gray-600">ID người dùng:</div>
                   <div className="col-span-2 font-medium">
-                    {user.lastLogin || "Chưa có thông tin"}
+                    {member.userId || "Không có"}
+                  </div>
+
+                  <div className="col-span-1 text-gray-600">Số đơn hàng:</div>
+                  <div className="col-span-2 font-medium">
+                    {member.orders?.length || 0} đơn hàng
                   </div>
                 </div>
               </div>
@@ -281,7 +271,7 @@ export default function ViewUserPage() {
             Lịch sử đơn hàng
           </h2>
           <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-            {orderHistory.length > 0 ? (
+            {member.orders && member.orders.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -314,18 +304,24 @@ export default function ViewUserPage() {
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
+                        Địa chỉ
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
                         Chi tiết
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {orderHistory.map((order) => (
+                    {member.orders.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-pink-doca">
-                          {order.id}
+                          {order.id.substring(0, 8)}...
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {order.date}
+                          {formatDate(order.createdAt)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                           {formatCurrency(order.total)}
@@ -334,39 +330,37 @@ export default function ViewUserPage() {
                           <span
                             className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                             ${
-                              order.status === "Đã giao"
+                              order.status === "Completed"
                                 ? "bg-green-100 text-green-800"
-                                : order.status === "Đang giao"
+                                : order.status === "Shipping"
                                 ? "bg-blue-100 text-blue-800"
-                                : order.status === "Đã hủy"
+                                : order.status === "Cancelled"
                                 ? "bg-red-100 text-red-800"
                                 : "bg-yellow-100 text-yellow-800"
                             }`}
                           >
-                            {order.status}
+                            {order.status === "Pending"
+                              ? "Chờ xử lý"
+                              : order.status === "Processing"
+                              ? "Đang xử lý"
+                              : order.status === "Shipping"
+                              ? "Đang giao"
+                              : order.status === "Completed"
+                              ? "Hoàn thành"
+                              : order.status === "Cancelled"
+                              ? "Đã hủy"
+                              : order.status}
                           </span>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate">
+                          {order.address || "Không có"}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <button
-                            className="text-indigo-600 hover:text-indigo-900"
-                            onClick={() => {
-                              // Có thể thêm logic mở modal chi tiết đơn hàng ở đây
-                              window.alert(
-                                `Chi tiết đơn hàng ${
-                                  order.id
-                                }:\n${order.products
-                                  .map(
-                                    (p) =>
-                                      `${p.name} x${
-                                        p.quantity
-                                      } - ${formatCurrency(p.price)}`
-                                  )
-                                  .join("\n")}`
-                              );
-                            }}
-                          >
-                            Xem chi tiết
-                          </button>
+                          <Link href={`/orders-management/view/${order.id}`}>
+                            <button className="text-indigo-600 hover:text-indigo-900">
+                              Xem chi tiết
+                            </button>
+                          </Link>
                         </td>
                       </tr>
                     ))}
@@ -381,6 +375,30 @@ export default function ViewUserPage() {
           </div>
         </div>
       </div>
+
+      {/* Dialog xác nhận xóa */}
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        title="Xóa người dùng"
+        message="Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác."
+        confirmText="Xóa"
+        cancelText="Hủy"
+        onConfirm={confirmDeleteUser}
+        onCancel={cancelDeleteUser}
+        type="danger"
+      />
+
+      {/* Dialog xác nhận khóa/mở khóa tài khoản */}
+      <ConfirmDialog
+        isOpen={isToggleStatusDialogOpen}
+        title="Khóa tài khoản"
+        message="Bạn có chắc chắn muốn khóa tài khoản này?"
+        confirmText="Khóa"
+        cancelText="Hủy"
+        onConfirm={confirmToggleStatus}
+        onCancel={cancelToggleStatus}
+        type="warning"
+      />
     </div>
   );
 }
