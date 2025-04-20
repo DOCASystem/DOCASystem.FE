@@ -146,7 +146,10 @@ export const useAdminOrders = (token?: string) => {
       });
 
       // Biến để lưu thông tin về tháng/năm để sắp xếp
-      const monthYearToFirstDate = new Map<string, Date>();
+      const monthToDateMap = new Map<
+        string,
+        { year: number; month: number; firstDate: Date }
+      >();
       const weekToFirstDate = new Map<string, Date>();
       const yearToFirstDate = new Map<string, number>();
 
@@ -160,6 +163,8 @@ export const useAdminOrders = (token?: string) => {
 
         // Format cho tháng (MM/yyyy)
         const monthKey = format(date, "MM/yyyy", { locale: vi });
+        const month = date.getMonth() + 1; // 1-12
+        const year = date.getFullYear();
 
         // Format cho năm (yyyy)
         const yearKey = format(date, "yyyy", { locale: vi });
@@ -169,8 +174,13 @@ export const useAdminOrders = (token?: string) => {
           weekToFirstDate.set(weekKey, date);
         }
 
-        if (!monthYearToFirstDate.has(monthKey)) {
-          monthYearToFirstDate.set(monthKey, date);
+        // Lưu thông tin về tháng để sắp xếp theo tháng mới nhất
+        if (!monthToDateMap.has(monthKey)) {
+          monthToDateMap.set(monthKey, {
+            year,
+            month,
+            firstDate: date,
+          });
         }
 
         if (!yearToFirstDate.has(yearKey)) {
@@ -230,7 +240,7 @@ export const useAdminOrders = (token?: string) => {
         );
       });
 
-      // Sắp xếp các nhóm theo thời gian mới nhất (năm mới nhất trước, sau đó tháng mới nhất, sau đó tuần mới nhất)
+      // Sắp xếp các nhóm theo thời gian mới nhất
       return {
         byWeek: new Map(
           Array.from(byWeek.entries()).sort((a, b) => {
@@ -239,17 +249,19 @@ export const useAdminOrders = (token?: string) => {
             return dateB.getTime() - dateA.getTime();
           })
         ),
+        // Sắp xếp tháng mới nhất trước (sắp xếp theo năm trước, sau đó theo tháng)
         byMonth: new Map(
           Array.from(byMonth.entries()).sort((a, b) => {
-            const [monthA, yearA] = a[0].split("/");
-            const [monthB, yearB] = b[0].split("/");
+            const infoA = monthToDateMap.get(a[0])!;
+            const infoB = monthToDateMap.get(b[0])!;
 
-            // Sắp xếp năm trước (giảm dần)
-            if (yearA !== yearB) {
-              return parseInt(yearB) - parseInt(yearA);
+            // Sắp xếp theo năm trước (giảm dần)
+            if (infoA.year !== infoB.year) {
+              return infoB.year - infoA.year;
             }
-            // Sau đó sắp xếp tháng (giảm dần)
-            return parseInt(monthB) - parseInt(monthA);
+
+            // Sau đó sắp xếp theo tháng (giảm dần)
+            return infoB.month - infoA.month;
           })
         ),
         byYear: new Map(
@@ -307,7 +319,27 @@ export const useAdminOrders = (token?: string) => {
 
       try {
         const data = await orderService.getAllOrders(authToken, page, size);
-        console.log("API response received");
+        console.log("API response received:", data);
+
+        if (!data) {
+          console.error("API response is null or undefined");
+          throw new Error("Không nhận được dữ liệu từ API");
+        }
+
+        // Kiểm tra cấu trúc dữ liệu phản hồi
+        if (data.items && Array.isArray(data.items)) {
+          console.log(
+            "API response format: using 'items' array with length:",
+            data.items.length
+          );
+        } else if (Array.isArray(data)) {
+          console.log(
+            "API response format: direct array with length:",
+            data.length
+          );
+        } else {
+          console.log("API response structure:", Object.keys(data));
+        }
 
         // Format và lưu trữ đơn hàng
         const formattedOrders = formatOrders(data);
@@ -329,6 +361,7 @@ export const useAdminOrders = (token?: string) => {
         console.error("Error fetching orders:", err);
         const errorMessage =
           err instanceof Error ? err.message : "Lỗi khi tải dữ liệu đơn hàng";
+        console.error("Error details:", JSON.stringify(err, null, 2));
         setError(errorMessage);
       } finally {
         setLoading(false);

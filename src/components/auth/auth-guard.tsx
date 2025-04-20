@@ -1,3 +1,5 @@
+"use client";
+
 import { ReactNode, useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthContext } from "@/contexts/auth-provider";
@@ -97,6 +99,7 @@ export default function AuthGuard({
     pathname,
     redirectTo,
     userData,
+    hasPermission,
   ]);
 
   // Hiển thị trang loading trong khi kiểm tra quyền

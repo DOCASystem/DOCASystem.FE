@@ -61,12 +61,6 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState<RoleFilterType>("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("ALL");
 
-  // Mở dialog xóa
-  const openDeleteDialog = (userId: string) => {
-    setUserToDelete(userId);
-    setIsDeleteDialogOpen(true);
-  };
-
   // Xử lý xóa người dùng - ở đây chỉ log ra thông tin, cần API endpoint để xóa
   const confirmDeleteUser = () => {
     if (userToDelete) {
@@ -81,12 +75,6 @@ export default function AdminUsersPage() {
   const cancelDeleteUser = () => {
     setIsDeleteDialogOpen(false);
     setUserToDelete(null);
-  };
-
-  // Mở dialog chuyển trạng thái người dùng
-  const openToggleStatusDialog = (userId: string) => {
-    setUserToToggleStatus(userId);
-    setIsToggleStatusDialogOpen(true);
   };
 
   // Xử lý chuyển trạng thái người dùng - ở đây chỉ log ra thông tin, cần API endpoint để cập nhật

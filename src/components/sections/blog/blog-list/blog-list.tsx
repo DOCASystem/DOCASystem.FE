@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Pagination from "@/components/common/pagination/pagination";
@@ -18,29 +18,8 @@ export default function BlogList() {
   // Sử dụng pageSize khác nhau dựa vào loại thiết bị
   const pageSize = isMobile ? 3 : 6;
 
-  useEffect(() => {
-    // Kiểm tra thiết bị mobile khi component được mount
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    // Kiểm tra ban đầu
-    checkIfMobile();
-
-    // Thêm event listener để theo dõi sự thay đổi kích thước màn hình
-    window.addEventListener("resize", checkIfMobile);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener("resize", checkIfMobile);
-    };
-  }, []);
-
-  useEffect(() => {
-    fetchBlogs();
-  }, [currentPage, isMobile]);
-
-  const fetchBlogs = async () => {
+  // Định nghĩa fetchBlogs trước khi sử dụng trong useEffect
+  const fetchBlogs = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -81,7 +60,29 @@ export default function BlogList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, pageSize]);
+
+  useEffect(() => {
+    // Kiểm tra thiết bị mobile khi component được mount
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    // Kiểm tra ban đầu
+    checkIfMobile();
+
+    // Thêm event listener để theo dõi sự thay đổi kích thước màn hình
+    window.addEventListener("resize", checkIfMobile);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("resize", checkIfMobile);
+    };
+  }, []);
+
+  useEffect(() => {
+    fetchBlogs();
+  }, [fetchBlogs]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);

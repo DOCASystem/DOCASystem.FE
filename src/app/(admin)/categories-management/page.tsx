@@ -205,7 +205,7 @@ export default function CategoriesManagementPage() {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [fetchCategories]);
 
   // Xử lý thêm danh mục
   const handleAddCategory = async () => {

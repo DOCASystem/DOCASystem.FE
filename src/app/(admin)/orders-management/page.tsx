@@ -241,7 +241,7 @@ export default function AdminOrderPage() {
     if (token) {
       fetchOrders(pagination.page, ORDERS_PER_PAGE);
     }
-  }, [token, fetchOrders]);
+  }, [token, fetchOrders, pagination.page]);
 
   // Đã có auth-guard ở layout admin nên không cần kiểm tra lại ở đây
   if (loading && orders.length === 0) {

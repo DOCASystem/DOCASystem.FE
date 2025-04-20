@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import CardProduct from "@/components/common/card/card-product/card-food";
 import Pagination from "@/components/common/pagination/pagination";
 import { GetProductDetailResponse } from "@/api/generated";
@@ -23,11 +23,8 @@ export default function ProductList({ filters }: ProductListProps) {
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 9;
 
-  useEffect(() => {
-    fetchProducts();
-  }, [currentPage, filters]);
-
-  const fetchProducts = async () => {
+  // Convert fetchProducts to useCallback
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       // Sử dụng API thực thay vì dữ liệu giả
@@ -55,7 +52,11 @@ export default function ProductList({ filters }: ProductListProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, pageSize, filters]); // Include all dependencies
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]); // fetchProducts is now a dependency
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
