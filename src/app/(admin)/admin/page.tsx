@@ -33,6 +33,11 @@ const COLORS = [
   "#FF5A5A",
 ];
 
+// Format số
+const formatNumber = (value: number) => {
+  return new Intl.NumberFormat("vi-VN").format(value);
+};
+
 // Format tiền VND
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -117,7 +122,7 @@ export default function AdminPage() {
   const statCards = [
     {
       title: "Tổng đơn hàng",
-      value: totalOrders,
+      value: formatNumber(totalOrders),
       icon: (
         <svg
           className="h-8 w-8 text-pink-doca"
@@ -135,6 +140,7 @@ export default function AdminPage() {
       ),
       bgColor: "bg-pink-50",
       textColor: "text-pink-700",
+      link: "/orders-management",
     },
     {
       title: "Tổng doanh thu",
@@ -156,6 +162,7 @@ export default function AdminPage() {
       ),
       bgColor: "bg-blue-50",
       textColor: "text-blue-700",
+      link: "/orders-management",
     },
   ];
 
@@ -188,9 +195,10 @@ export default function AdminPage() {
       {/* Thống kê tóm tắt */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
         {statCards.map((card, index) => (
-          <div
+          <Link
+            href={card.link}
             key={index}
-            className={`${card.bgColor} rounded-lg border border-gray-100 shadow-sm p-5`}
+            className={`${card.bgColor} rounded-lg border border-gray-100 shadow-sm p-5 hover:shadow-md transition-all cursor-pointer`}
           >
             <div className="flex justify-between items-center">
               <div>
@@ -205,7 +213,7 @@ export default function AdminPage() {
                 {card.icon}
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 

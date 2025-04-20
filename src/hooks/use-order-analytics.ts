@@ -137,8 +137,11 @@ export const useOrderAnalytics = (token?: string): OrderAnalytics => {
     setMonthlyData(monthlyResult.slice(-12));
     setYearlyData(yearlyResult.slice(-12));
 
-    setTotalOrders(orders.length);
+    // Lưu tổng doanh thu từ các đơn hàng đã xử lý
     setTotalRevenue(sumTotal);
+
+    // Không cập nhật tổng số đơn hàng ở đây nữa
+    // setTotalOrders(orders.length); <- xóa dòng này
   }, []);
 
   useEffect(() => {
@@ -161,6 +164,15 @@ export const useOrderAnalytics = (token?: string): OrderAnalytics => {
 
         if (data && data.items) {
           processOrderData(data.items);
+
+          // Lưu tổng số đơn hàng từ response API thay vì chỉ đếm số items đã lấy
+          // Nếu API trả về tổng số đơn hàng, sử dụng giá trị đó
+          if (data.total !== undefined) {
+            setTotalOrders(data.total);
+          } else {
+            // Nếu không, sử dụng số lượng items
+            setTotalOrders(data.items.length);
+          }
         } else {
           setError("Không thể lấy dữ liệu đơn hàng");
         }

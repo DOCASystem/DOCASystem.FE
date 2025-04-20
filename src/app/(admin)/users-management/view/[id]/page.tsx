@@ -19,12 +19,22 @@ type User = {
   email?: string;
 };
 
+// Định nghĩa kiểu dữ liệu cho lịch sử đơn hàng
+type OrderHistory = {
+  id: string;
+  date: string;
+  total: number;
+  status: string;
+  products: { name: string; quantity: number; price: number }[];
+};
+
 export default function ViewUserPage() {
   const params = useParams();
   const userId = params.id as string;
 
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [orderHistory, setOrderHistory] = useState<OrderHistory[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,6 +61,27 @@ export default function ViewUserPage() {
             address: "123 Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh",
             email: "johndoe@example.com",
           });
+
+          // Fake data cho lịch sử đơn hàng
+          setOrderHistory([
+            {
+              id: "ORD00123",
+              date: "2024-03-15",
+              total: 1250000,
+              status: "Đã giao",
+              products: [
+                { name: "Sản phẩm A", quantity: 2, price: 500000 },
+                { name: "Sản phẩm B", quantity: 1, price: 250000 },
+              ],
+            },
+            {
+              id: "ORD00098",
+              date: "2024-02-28",
+              total: 850000,
+              status: "Đã giao",
+              products: [{ name: "Sản phẩm C", quantity: 1, price: 850000 }],
+            },
+          ]);
         } else if (userId === "2") {
           setUser({
             id: "2",
@@ -63,6 +94,9 @@ export default function ViewUserPage() {
             lastLogin: "2024-03-11 08:15:40",
             email: "admin@example.com",
           });
+
+          // Admin không có lịch sử đơn hàng
+          setOrderHistory([]);
         } else {
           // Giả lập không tìm thấy người dùng
           setError("Không tìm thấy thông tin người dùng");
@@ -121,6 +155,15 @@ export default function ViewUserPage() {
       </div>
     );
   }
+
+  // Hàm định dạng tiền tệ
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -235,12 +278,106 @@ export default function ViewUserPage() {
 
         <div className="mt-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-2">
-            Lịch sử hoạt động
+            Lịch sử đơn hàng
           </h2>
-          <div className="bg-gray-50 p-4 rounded-md">
-            <p className="text-gray-500 italic">
-              Chức năng đang được phát triển...
-            </p>
+          <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+            {orderHistory.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Mã đơn hàng
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Ngày đặt
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Tổng tiền
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Trạng thái
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Chi tiết
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {orderHistory.map((order) => (
+                      <tr key={order.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-pink-doca">
+                          {order.id}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {order.date}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                          {formatCurrency(order.total)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <span
+                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            ${
+                              order.status === "Đã giao"
+                                ? "bg-green-100 text-green-800"
+                                : order.status === "Đang giao"
+                                ? "bg-blue-100 text-blue-800"
+                                : order.status === "Đã hủy"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <button
+                            className="text-indigo-600 hover:text-indigo-900"
+                            onClick={() => {
+                              // Có thể thêm logic mở modal chi tiết đơn hàng ở đây
+                              window.alert(
+                                `Chi tiết đơn hàng ${
+                                  order.id
+                                }:\n${order.products
+                                  .map(
+                                    (p) =>
+                                      `${p.name} x${
+                                        p.quantity
+                                      } - ${formatCurrency(p.price)}`
+                                  )
+                                  .join("\n")}`
+                              );
+                            }}
+                          >
+                            Xem chi tiết
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="py-6 text-center text-gray-500">
+                <p>Người dùng chưa có đơn hàng nào.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
