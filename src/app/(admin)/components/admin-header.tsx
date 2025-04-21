@@ -2,16 +2,13 @@
 
 import Image from "next/image";
 import { useAuthContext } from "@/contexts/auth-provider";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function AdminHeader() {
   const { logout, userData } = useAuthContext();
-  const router = useRouter();
 
   const handleLogout = () => {
     logout();
-    router.push("/");
   };
 
   return (

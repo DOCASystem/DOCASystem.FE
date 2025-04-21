@@ -74,7 +74,9 @@ export const useAuthStore = create<AuthState>()(
           const axiosError = err as AxiosError<{ message?: string }>;
           const errorMessage =
             axiosError.response?.data?.message ||
-            (err instanceof Error ? err.message : "Login failed");
+            (err instanceof Error
+              ? err.message
+              : "Kiểm tra lại tài khoản và mật khẩu");
 
           set({ error: errorMessage });
           throw err;

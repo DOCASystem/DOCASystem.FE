@@ -6,6 +6,7 @@ import React, {
   useEffect,
   ReactNode,
   useMemo,
+  useCallback,
 } from "react";
 import { LoginResponse } from "@/api/generated";
 import { useRouter } from "next/navigation";
@@ -15,16 +16,26 @@ import { Toaster } from "react-hot-toast";
 // Define interface for context
 interface AuthContextType {
   isAuthenticated: boolean;
-  userData: Partial<LoginResponse> | null;
+  userData: LoginResponse | null;
   isLoading: boolean;
   error: string | null;
-  userRoles?: string[];
+  userRoles: string[];
   login: (
     usernameOrPhoneNumber: string,
     password: string
   ) => Promise<LoginResponse>;
   logout: () => void;
   refreshAuth: () => void;
+}
+
+// Helper function to type guard userData
+function isLoginResponse(data: unknown): data is LoginResponse {
+  return (
+    data !== null &&
+    typeof data === "object" &&
+    "roles" in data &&
+    Array.isArray((data as LoginResponse).roles)
+  );
 }
 
 // Create context with default values
@@ -81,33 +92,37 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
    * Refresh authentication state
    * This will only refresh if more than 5 minutes have passed since last check
    */
-  const refreshAuth = () => {
+  const refreshAuth = useCallback(() => {
     if (typeof window === "undefined") return;
     initializeAuthStore();
-  };
+  }, []);
 
   /**
    * Login with username/phone number and password
    */
-  const login = async (
-    usernameOrPhoneNumber: string,
-    password: string
-  ): Promise<LoginResponse> => {
-    try {
-      const response = await storeLogin(usernameOrPhoneNumber, password);
-      return response;
-    } catch (err) {
-      throw err;
-    }
-  };
+  const login = useCallback(
+    async (
+      usernameOrPhoneNumber: string,
+      password: string
+    ): Promise<LoginResponse> => {
+      try {
+        const response = await storeLogin(usernameOrPhoneNumber, password);
+        refreshAuth();
+        return response;
+      } catch (err) {
+        throw err;
+      }
+    },
+    [storeLogin, refreshAuth]
+  );
 
   /**
-   * Logout user and redirect to login page
+   * Logout user and redirect to home page
    */
-  const logout = () => {
+  const logout = useCallback(() => {
     storeLogout();
     router.push("/");
-  };
+  }, [storeLogout, router]);
 
   // Check for token expiration or changes (optimized to reduce frequency)
   useEffect(() => {
@@ -148,21 +163,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       window.removeEventListener("storage", handleStorageChange);
       clearInterval(intervalId);
     };
-  }, []);
+  }, [refreshAuth]);
 
   // Memoize the context value to prevent unnecessary rerenders
   const contextValue = useMemo(
     () => ({
       isAuthenticated,
-      userData,
+      userData: isLoginResponse(userData) ? userData : null,
       isLoading,
       error,
-      userRoles: userData?.roles || [],
+      userRoles:
+        isLoginResponse(userData) && Array.isArray(userData.roles)
+          ? userData.roles
+          : [],
       login,
       logout,
       refreshAuth,
     }),
-    [isAuthenticated, userData, isLoading, error]
+    [isAuthenticated, userData, isLoading, error, login, logout, refreshAuth]
   );
 
   return (

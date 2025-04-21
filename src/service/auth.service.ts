@@ -61,11 +61,13 @@ const saveRefreshToken = (refreshToken: string): void => {
 
 /**
  * Save user data to localStorage and cache
+ * (Được viết lại để phù hợp với quy trình đăng nhập mới)
  */
 const saveUserData = (userData: Partial<LoginResponse>): void => {
   if (!isBrowser()) return;
   const userDataJson = JSON.stringify(userData);
   localStorage.setItem("userData", userDataJson);
+  sessionStorage.setItem("cached_user_data", userDataJson);
   authCache.userData = userData;
 };
 
@@ -114,7 +116,7 @@ const getRefreshToken = (): string => {
 const getUserData = (): Partial<LoginResponse> | null => {
   if (!isBrowser()) return null;
 
-  // Thử lấy từ session storage trước để cải thiện tốc độ
+  // Ưu tiên sử dụng sessionStorage để tăng tốc độ
   try {
     const cachedUserData = sessionStorage.getItem("cached_user_data");
     if (cachedUserData) {
@@ -124,38 +126,53 @@ const getUserData = (): Partial<LoginResponse> | null => {
     console.error("Lỗi khi đọc userData từ sessionStorage:", error);
   }
 
-  // Nếu không có trong session storage, kiểm tra cache
+  // Nếu không có trong session storage, lấy từ cache
   if (!authCache.isAuthCacheInitialized) {
     initializeAuthCache();
   }
 
-  // Nếu có trong cache thì trả về
-  if (authCache.userData) {
-    // Lưu vào session storage để truy cập nhanh hơn lần sau
-    try {
-      sessionStorage.setItem(
-        "cached_user_data",
-        JSON.stringify(authCache.userData)
-      );
-    } catch (error) {
-      console.error("Lỗi khi lưu userData vào sessionStorage:", error);
+  return authCache.userData || null;
+};
+
+/**
+ * Fetch thông tin hồ sơ người dùng từ cache mà không gọi lại API
+ * Phương thức này giúp tối ưu hiệu suất hiển thị profile khi đăng nhập
+ */
+const fetchUserProfile = (): Partial<LoginResponse> | null => {
+  if (!isBrowser()) return null;
+
+  // Ưu tiên lấy từ session storage trước để cải thiện hiệu suất
+  try {
+    const cachedUserData = sessionStorage.getItem("cached_user_data");
+    if (cachedUserData) {
+      return JSON.parse(cachedUserData);
     }
+  } catch {
+    // Nếu có lỗi, tiếp tục thử các phương thức khác
+  }
+
+  // Thử lấy từ cache
+  if (authCache.userData) {
     return authCache.userData;
   }
 
-  // Nếu không có trong cache, thử lấy từ localStorage
+  // Nếu chưa có trong cache, khởi tạo lại từ localStorage
   try {
     const userDataJson = localStorage.getItem("userData");
     if (userDataJson) {
       const userData = JSON.parse(userDataJson);
-      // Cập nhật cache
+      // Lưu vào cache
       authCache.userData = userData;
       // Lưu vào session storage
-      sessionStorage.setItem("cached_user_data", userDataJson);
+      try {
+        sessionStorage.setItem("cached_user_data", userDataJson);
+      } catch {
+        // Bỏ qua lỗi khi lưu vào sessionStorage
+      }
       return userData;
     }
-  } catch (error) {
-    console.error("Lỗi khi đọc userData từ localStorage:", error);
+  } catch {
+    // Bỏ qua lỗi khi đọc từ localStorage
   }
 
   return null;
@@ -175,19 +192,33 @@ const deleteCookie = (name: string): void => {
 const logout = (): void => {
   if (!isBrowser()) return;
 
+  console.log("[AuthService] Đăng xuất và xóa dữ liệu xác thực");
+
   // Clear localStorage
   localStorage.removeItem("token");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("userData");
+  localStorage.removeItem("doca-auth-storage");
+
+  // Clear sessionStorage
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("refreshToken");
+  sessionStorage.removeItem("cached_user_data");
 
   // Clear cache
   authCache.token = null;
   authCache.refreshToken = null;
   authCache.userData = null;
+  authCache.isAuthCacheInitialized = false;
 
   // Clear cookies
   deleteCookie("token");
   deleteCookie("userData");
+  deleteCookie("refreshToken");
+
+  console.log(
+    "[AuthService] Đã xóa toàn bộ dữ liệu xác thực, chuyển hướng đến trang chủ"
+  );
 
   // Redirect to home page instead of login page
   window.location.href = "/";
@@ -233,6 +264,10 @@ const login = async (
   }
 
   try {
+    console.log("[AuthService] Bắt đầu đăng nhập với:", {
+      usernameOrPhoneNumber,
+    });
+
     const loginRequest: LoginRequest = {
       usernameOrPhoneNumber,
       password,
@@ -241,35 +276,67 @@ const login = async (
     const response = await authApi.apiV1LoginPost(loginRequest);
     const data = response.data;
 
+    console.log(
+      "[AuthService] Nhận được dữ liệu đăng nhập:",
+      JSON.stringify(data, null, 2)
+    );
+
     if (!data) {
       throw new Error("Invalid server response");
     }
 
     if (data.token) {
+      console.log(
+        "[AuthService] Lưu token:",
+        data.token.substring(0, 10) + "..."
+      );
       saveToken(data.token);
+    } else {
+      console.error("[AuthService] Không có token trong phản hồi");
     }
 
     if (data.refreshToken) {
       saveRefreshToken(data.refreshToken);
     }
 
+    // Đảm bảo dữ liệu người dùng đầy đủ
     const userData = {
-      id: data.id,
-      username: data.username,
-      phoneNumber: data.phoneNumber,
-      fullName: data.fullName,
-      roles: data.roles || ["USER"], // Đảm bảo có thông tin roles
+      id: data.id || "",
+      username: data.username || usernameOrPhoneNumber,
+      phoneNumber: data.phoneNumber || "",
+      fullName: data.fullName || "",
+      roles: data.roles || ["USER"],
     };
 
+    // Config cứng: Nếu username là "admin", luôn thêm quyền ADMIN
+    if (userData.username === "admin" || usernameOrPhoneNumber === "admin") {
+      console.log(
+        "[AuthService] Phát hiện tài khoản admin - cấp quyền quản trị"
+      );
+      // Đảm bảo vai trò ADMIN có trong mảng roles
+      if (!userData.roles.includes("ADMIN")) {
+        userData.roles.push("ADMIN");
+      }
+    }
+
+    console.log("[AuthService] Lưu thông tin người dùng:", userData);
+
+    // Sử dụng hàm saveUserData để lưu thông tin
     saveUserData(userData);
 
-    // Làm mới toàn bộ cache sau khi đăng nhập
-    resetCache();
+    // Thông báo đăng nhập thành công và hiển thị thông tin
+    console.log(
+      "[AuthService] Đăng nhập thành công, thông tin người dùng:",
+      authCache.userData
+    );
 
     return data;
   } catch (error) {
+    console.error("[AuthService] Lỗi đăng nhập:", error);
     const axiosError = error as AxiosError<{ message?: string }>;
-    const errorMessage = axiosError.response?.data?.message || "Login failed";
+    const errorMessage =
+      axiosError.response?.data?.message ||
+      "Kiểm tra lại tài khoản và mật khẩu";
     throw new Error(errorMessage);
   }
 };
@@ -308,6 +375,7 @@ const AuthService = {
   refreshToken,
   getRefreshToken,
   resetCache,
+  fetchUserProfile,
 
   /**
    * Check user session and redirect if not authenticated
@@ -316,10 +384,29 @@ const AuthService = {
   checkSession: (): boolean => {
     if (!isBrowser()) return false;
 
+    // Kiểm tra xác thực
     if (!isAuthenticated()) {
+      window.location.href = "/login";
+      return false;
+    }
+
+    // Đã đăng nhập, kiểm tra nếu là admin
+    const userData = getUserData();
+    const isAdmin =
+      userData?.username === "admin" ||
+      (userData?.roles && userData.roles.includes("ADMIN"));
+
+    // Kiểm tra nếu đang ở trang admin mà không phải admin
+    // QUAN TRỌNG: Trong Next.js, (admin) là route group và không xuất hiện trong URL
+    // URL thực tế sẽ bắt đầu bằng /admin, không phải /(admin)
+    if (window.location.pathname.startsWith("/admin") && !isAdmin) {
+      console.log(
+        "[AuthService] Phát hiện truy cập trang admin nhưng không có quyền, chuyển hướng về trang chủ"
+      );
       window.location.href = "/";
       return false;
     }
+
     return true;
   },
 };

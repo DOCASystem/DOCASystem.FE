@@ -8,68 +8,125 @@ import Button from "@/components/common/button/button";
 import Image from "next/image";
 import LinkNav from "@/components/common/link/link";
 import { useState, useEffect } from "react";
-import { authApi } from "@/api/services";
 import { toast } from "react-hot-toast";
 import { AxiosError } from "axios";
 import axios from "axios";
 import { getApiUrl, API_ENDPOINTS } from "@/utils/api-config";
 import { useAuthContext } from "@/contexts/auth-provider";
-import { initializeAuthStore } from "@/store/auth-store";
-import AuthService from "@/service/auth.service";
-
-// Helper để kiểm tra môi trường browser
-const isBrowser = () => typeof window !== "undefined";
+import { useRouter } from "next/navigation";
+import { LoginResponse } from "@/api/generated";
 
 interface FormData {
   email: string;
   password: string;
 }
 
-// Thêm hàm setCookie để lưu cookie
-const setCookie = (name: string, value: string, days: number) => {
-  if (isBrowser()) {
-    try {
-      const expires = new Date(Date.now() + days * 864e5).toUTCString();
-      document.cookie = `${name}=${encodeURIComponent(
-        value
-      )}; expires=${expires}; path=/; SameSite=Lax`;
-      console.log(`Đã lưu cookie ${name}`);
-    } catch (error) {
-      console.error(`Lỗi khi lưu cookie ${name}:`, error);
-    }
-  }
-};
-
-// Tạo anti-CSRF token
-const generateCSRFToken = () => {
-  if (typeof window !== "undefined" && window.crypto) {
-    const array = new Uint8Array(16);
-    window.crypto.getRandomValues(array);
-    return Array.from(array, (byte) =>
-      ("0" + (byte & 0xff).toString(16)).slice(-2)
-    ).join("");
-  }
-  return Math.random().toString(36).substring(2);
-};
-
 export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [csrfToken, setCsrfToken] = useState("");
   const [isApiConnecting, setIsApiConnecting] = useState(false);
-  const { refreshAuth } = useAuthContext();
+  const { login, refreshAuth } = useAuthContext();
+  const router = useRouter();
 
   const methods = useForm<FormData>({
     resolver: yupResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
 
-  // Tạo CSRF token khi component mount
+  // Tạo anti-CSRF token khi component mount
   useEffect(() => {
+    const generateCSRFToken = () => {
+      if (typeof window !== "undefined" && window.crypto) {
+        const array = new Uint8Array(16);
+        window.crypto.getRandomValues(array);
+        return Array.from(array, (byte) =>
+          ("0" + (byte & 0xff).toString(16)).slice(-2)
+        ).join("");
+      }
+      return Math.random().toString(36).substring(2);
+    };
+
     setCsrfToken(generateCSRFToken());
   }, []);
 
   const onSubmit = methods.handleSubmit(async (data) => {
     console.log("Form submitted with data:", data);
+
+    // Kiểm tra cứng: nếu email/username là "admin"
+    if (data.email.toLowerCase() === "admin") {
+      console.log("[FormLogin] Phát hiện đăng nhập tài khoản ADMIN đặc biệt");
+      try {
+        setLoading(true);
+        setIsApiConnecting(true);
+
+        // Thực hiện đăng nhập bình thường để có token
+        const response = await login(data.email, data.password);
+
+        // Lưu token và thông tin người dùng
+        localStorage.setItem("token", response.token || "");
+        sessionStorage.setItem("token", response.token || "");
+
+        if (response.refreshToken) {
+          localStorage.setItem("refreshToken", response.refreshToken);
+          sessionStorage.setItem("refreshToken", response.refreshToken);
+        }
+
+        // Đảm bảo có quyền admin trong dữ liệu người dùng
+        const adminUserData = {
+          ...response,
+          username: "admin",
+          roles: ["ADMIN"],
+        };
+
+        // Lưu thông tin user với quyền admin đã được đảm bảo
+        const adminUserDataStr = JSON.stringify(adminUserData);
+        localStorage.setItem("userData", adminUserDataStr);
+        sessionStorage.setItem("cached_user_data", adminUserDataStr);
+
+        // Lưu vào cookie để middleware có thể truy cập
+        document.cookie = `userData=${encodeURIComponent(
+          adminUserDataStr
+        )}; path=/; max-age=86400`;
+        document.cookie = `token=${
+          response.token || ""
+        }; path=/; max-age=86400`;
+
+        // Làm mới thông tin xác thực
+        refreshAuth();
+
+        console.log(
+          "[FormLogin] Đã lưu thông tin admin đặc biệt vào localStorage và cookies"
+        );
+
+        // Kích hoạt sự kiện đăng nhập thành công
+        if (typeof window !== "undefined") {
+          const LOGIN_SUCCESS_EVENT = "doca-login-success";
+          const event = new CustomEvent(LOGIN_SUCCESS_EVENT);
+          window.dispatchEvent(event);
+        }
+
+        // Chuyển hướng ngay lập tức đến trang admin
+        console.log(
+          "[FormLogin] Chuyển hướng trực tiếp đến trang quản lý cho admin"
+        );
+
+        // Thêm timeout ngắn để đảm bảo dữ liệu được lưu trước khi chuyển trang
+        setTimeout(() => {
+          window.location.href = "/admin";
+        }, 500);
+
+        return;
+      } catch (error) {
+        // Xử lý lỗi như bình thường
+        handleLoginError(error);
+      } finally {
+        setLoading(false);
+        setIsApiConnecting(false);
+      }
+      return;
+    }
+
+    // Xử lý đăng nhập bình thường cho các tài khoản khác
     try {
       setLoading(true);
       setIsApiConnecting(true);
@@ -78,194 +135,170 @@ export default function LoginForm() {
       const loginUrl = getApiUrl(API_ENDPOINTS.AUTH.LOGIN);
       console.log(`Đang kết nối đến API login tại: ${loginUrl}`);
 
-      let response;
       try {
-        // Cố gắng gọi API login sử dụng Swagger-generated client
-        response = await authApi.apiV1LoginPost({
-          usernameOrPhoneNumber: data.email,
-          password: data.password,
-        });
+        // Sử dụng login từ AuthContext thay vì gọi API trực tiếp
+        const response = await login(data.email, data.password);
+        console.log("Login response:", response);
 
-        console.log("API response:", response);
+        // Xử lý đăng nhập thành công với phương thức mới
+        handleLoginSuccess(response);
+        return;
       } catch (apiError) {
-        console.error("Error from Swagger client:", apiError);
+        console.error("Error from login:", apiError);
         throw apiError;
       } finally {
         setIsApiConnecting(false);
       }
-
-      // Lưu token vào localStorage và cookie
-      if (response.data.token && isBrowser()) {
-        try {
-          localStorage.setItem("token", response.data.token);
-          setCookie("token", response.data.token, 7); // Lưu cookie trong 7 ngày
-          console.log("Token đã được lưu trữ");
-        } catch (error) {
-          console.error("Lỗi khi lưu token:", error);
-        }
-      } else if (!response.data.token) {
-        throw new Error("Token không được trả về từ server");
-      }
-
-      // Lưu thông tin người dùng
-      const userData = {
-        id: response.data.id,
-        username: response.data.username,
-        phoneNumber: response.data.phoneNumber,
-        fullName: response.data.fullName,
-        roles: response.data.roles || ["USER"], // Đảm bảo có thông tin roles
-      };
-
-      if (isBrowser()) {
-        try {
-          // Lưu dữ liệu người dùng và đảm bảo nó được cập nhật ngay lập tức
-          const userDataString = JSON.stringify(userData);
-
-          // Xóa cache cũ trước khi lưu mới (nếu có)
-          if (sessionStorage.getItem("cached_user_data")) {
-            sessionStorage.removeItem("cached_user_data");
-          }
-
-          // Lưu vào localStorage
-          localStorage.setItem("userData", userDataString);
-
-          // Lưu vào sessionStorage để truy cập nhanh hơn
-          sessionStorage.setItem("cached_user_data", userDataString);
-
-          // Lưu vào cookie để duy trì giữa các phiên
-          setCookie("userData", userDataString, 7); // Lưu cookie trong 7 ngày
-
-          console.log("userData đã được lưu trữ", userData);
-
-          // Reset toàn bộ cache để đảm bảo dữ liệu mới nhất
-          AuthService.resetCache();
-
-          // Kiểm tra lại xem đã lưu thành công chưa
-          console.log(
-            "Token trong localStorage:",
-            !!localStorage.getItem("token")
-          );
-          console.log(
-            "userData trong localStorage:",
-            !!localStorage.getItem("userData")
-          );
-
-          // Kiểm tra cookie
-          const savedToken = document.cookie.includes("token=");
-          const savedUserData = document.cookie.includes("userData=");
-          console.log(
-            "Kiểm tra cookie - token:",
-            savedToken,
-            "userData:",
-            savedUserData
-          );
-
-          // Cập nhật trạng thái auth store để đảm bảo dữ liệu được đồng bộ
-          initializeAuthStore();
-
-          // Làm mới context để các component khác nhận được dữ liệu mới
-          refreshAuth();
-
-          // Gửi sự kiện để các component khác có thể lắng nghe và cập nhật UI
-          if (isBrowser()) {
-            // Tạo và phát sự kiện để thông báo cho các component khác
-            const authEvent = new CustomEvent("auth-state-changed", {
-              detail: {
-                isAuthenticated: true,
-                userData: userData,
-                timestamp: Date.now(),
-              },
-            });
-            window.dispatchEvent(authEvent);
-
-            // Thêm sự kiện vào localStorage để đảm bảo đồng bộ trên nhiều tab
-            localStorage.setItem("auth_last_updated", Date.now().toString());
-          }
-
-          toast.success("Đăng nhập thành công!");
-
-          // Kiểm tra nếu là admin thì chuyển đến trang admin, ngược lại về trang chủ
-          const isAdmin =
-            data.email === "admin" ||
-            userData.username === "admin" ||
-            userData.roles.includes("ADMIN");
-
-          console.log("Vai trò người dùng:", isAdmin ? "ADMIN" : "USER");
-
-          // Chỉ chuyển hướng khi đã nhận được đầy đủ dữ liệu và đã cập nhật store
-          if (isAdmin) {
-            console.log(
-              "Đăng nhập với tài khoản admin, chuyển hướng đến trang quản lý"
-            );
-            // Sử dụng setTimeout để đảm bảo toast message hiển thị trước khi chuyển trang
-            // và để đảm bảo dữ liệu được cập nhật trước khi chuyển trang
-            setTimeout(() => {
-              // Cập nhật lại trạng thái auth store một lần nữa trước khi chuyển trang
-              refreshAuth();
-              window.location.href = "/products-management";
-            }, 1500);
-          } else {
-            console.log(
-              "Đăng nhập với tài khoản người dùng, chuyển hướng đến trang chủ"
-            );
-            setTimeout(() => {
-              // Cập nhật lại trạng thái auth store một lần nữa trước khi chuyển trang
-              refreshAuth();
-              window.location.href = "/";
-            }, 1500);
-          }
-        } catch (error) {
-          console.error("Lỗi khi lưu userData:", error);
-        }
-      }
     } catch (error: unknown) {
-      console.error("Lỗi đăng nhập:", error);
-      setIsApiConnecting(false);
-
-      let message = "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.";
-
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<{ message?: string }>;
-
-        // Chi tiết hơn về lỗi
-        console.error("Chi tiết lỗi Axios:", {
-          status: axiosError.response?.status,
-          statusText: axiosError.response?.statusText,
-          data: axiosError.response?.data,
-          config: {
-            url: axiosError.config?.url,
-            method: axiosError.config?.method,
-            baseURL: axiosError.config?.baseURL,
-          },
-        });
-
-        if (axiosError.response) {
-          // Lỗi từ server
-          if (axiosError.response.status === 401) {
-            message = "Tên đăng nhập hoặc mật khẩu không đúng";
-          } else if (axiosError.response.status === 403) {
-            message = "Tài khoản của bạn đã bị khóa";
-          } else if (axiosError.response.status === 404) {
-            message = "Không tìm thấy tài khoản";
-          } else if (axiosError.response.data?.message) {
-            message = axiosError.response.data.message;
-          } else {
-            message = `Lỗi server: ${axiosError.response.status} ${axiosError.response.statusText}`;
-          }
-        } else if (axiosError.request) {
-          // Lỗi không nhận được response
-          message = `Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối và thử lại sau.`;
-        }
-      } else if (error instanceof Error) {
-        message = error.message;
-      }
-
-      console.error("Error message:", message);
-      toast.error(message);
+      handleLoginError(error);
     } finally {
       setLoading(false);
     }
   });
+
+  // Sau khi đăng nhập thành công và đã nhận được token
+  const handleLoginSuccess = (response: LoginResponse) => {
+    console.log("Xử lý đăng nhập thành công:", response);
+
+    // Kiểm tra và lưu token
+    if (response.token) {
+      console.log(
+        "Lưu token đăng nhập:",
+        response.token.substring(0, 10) + "..."
+      );
+      localStorage.setItem("token", response.token);
+      sessionStorage.setItem("token", response.token);
+    } else {
+      console.error("Không có token trong phản hồi đăng nhập");
+    }
+
+    // Lưu refresh token nếu có
+    if (response.refreshToken) {
+      localStorage.setItem("refreshToken", response.refreshToken);
+      sessionStorage.setItem("refreshToken", response.refreshToken);
+    }
+
+    // Tạo và lưu dữ liệu người dùng
+    const userData = {
+      id: response.id || "",
+      username: response.username || "",
+      phoneNumber: response.phoneNumber || "",
+      fullName: response.fullName || "",
+      roles: response.roles || ["USER"],
+    };
+
+    const userDataStr = JSON.stringify(userData);
+    try {
+      localStorage.setItem("userData", userDataStr);
+      sessionStorage.setItem("cached_user_data", userDataStr);
+      console.log("[FormLogin] Đã lưu thông tin người dùng:", userData);
+    } catch (error) {
+      console.error("[FormLogin] Lỗi khi lưu thông tin người dùng:", error);
+    }
+
+    // Xác nhận lưu trữ thành công sau một khoảng thời gian ngắn
+    setTimeout(() => {
+      try {
+        // Xác nhận lưu trữ đã thành công
+        const storedToken = localStorage.getItem("token");
+        const storedUserData = localStorage.getItem("userData");
+
+        if (storedToken && storedUserData) {
+          console.log("[FormLogin] Xác nhận dữ liệu đã được lưu thành công");
+
+          // Dispatch sự kiện LOGIN_SUCCESS_EVENT để thông báo cho các component khác
+          if (typeof window !== "undefined") {
+            const LOGIN_SUCCESS_EVENT = "doca-login-success";
+            const event = new CustomEvent(LOGIN_SUCCESS_EVENT);
+            window.dispatchEvent(event);
+            console.log("[FormLogin] Đã phát sự kiện đăng nhập thành công");
+          }
+
+          // Làm mới trạng thái auth
+          refreshAuth();
+
+          // Kiểm tra vai trò người dùng để điều hướng phù hợp
+          try {
+            const userDataObj = JSON.parse(storedUserData);
+            const userRoles = userDataObj.roles || [];
+
+            // Nếu là ADMIN, chuyển hướng đến trang quản lý
+            if (userRoles.includes("ADMIN")) {
+              console.log(
+                "[FormLogin] Phát hiện user ADMIN, chuyển hướng đến trang quản lý"
+              );
+              router.push("/admin");
+            } else {
+              // Nếu là user thường, chuyển hướng đến trang chủ
+              console.log(
+                "[FormLogin] User thường, chuyển hướng đến trang chủ"
+              );
+              router.push("/");
+            }
+          } catch (parseError) {
+            console.error(
+              "[FormLogin] Lỗi khi phân tích dữ liệu roles:",
+              parseError
+            );
+            // Fallback về trang chủ nếu có lỗi
+            router.push("/");
+          }
+        } else {
+          console.error(
+            "[FormLogin] Dữ liệu lưu trữ không nhất quán sau khi đăng nhập"
+          );
+        }
+      } catch (error) {
+        console.error("[FormLogin] Lỗi xác nhận lưu trữ:", error);
+      }
+    }, 300); // Đợi 300ms để đảm bảo localStorage được cập nhật
+  };
+
+  // Hàm xử lý lỗi đăng nhập (tách ra để tái sử dụng)
+  const handleLoginError = (error: unknown) => {
+    console.error("Lỗi đăng nhập:", error);
+
+    let message = "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.";
+
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+
+      // Chi tiết hơn về lỗi
+      console.error("Chi tiết lỗi Axios:", {
+        status: axiosError.response?.status,
+        statusText: axiosError.response?.statusText,
+        data: axiosError.response?.data,
+        config: {
+          url: axiosError.config?.url,
+          method: axiosError.config?.method,
+          baseURL: axiosError.config?.baseURL,
+        },
+      });
+
+      if (axiosError.response) {
+        // Lỗi từ server
+        if (axiosError.response.status === 401) {
+          message = "Tên đăng nhập hoặc mật khẩu không đúng";
+        } else if (axiosError.response.status === 403) {
+          message = "Tài khoản của bạn đã bị khóa";
+        } else if (axiosError.response.status === 404) {
+          message = "Không tìm thấy tài khoản";
+        } else if (axiosError.response.data?.message) {
+          message = axiosError.response.data.message;
+        } else {
+          message = `Lỗi server: ${axiosError.response.status} ${axiosError.response.statusText}`;
+        }
+      } else if (axiosError.request) {
+        // Lỗi không nhận được response
+        message = `Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối và thử lại sau.`;
+      }
+    } else if (error instanceof Error) {
+      message = error.message;
+    }
+
+    console.error("Error message:", message);
+    toast.error(message);
+  };
 
   return (
     <div className="flex flex-col md:flex-row w-full">

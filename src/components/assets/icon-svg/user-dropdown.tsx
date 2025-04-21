@@ -149,7 +149,17 @@ export default function UserDropdown() {
     localUserData?.username === "admin" ||
     (localUserData?.roles && localUserData.roles.includes("ADMIN"));
 
+  // Cấu hình cứng: Luôn xác định người dùng có username "admin" là admin
+  if (localUserData?.username?.toLowerCase() === "admin" && !isAdmin) {
+    console.log(
+      "[UserDropdown] Phát hiện tài khoản admin đặc biệt - hiển thị quyền quản trị"
+    );
+    // Đây là tài khoản admin đặc biệt
+    // Không thay đổi dữ liệu gốc, chỉ đánh dấu là admin để hiển thị UI phù hợp
+  }
+
   const handleLogout = () => {
+    // Gọi hàm logout từ context, việc chuyển hướng đã được xử lý bên trong
     logout();
     setIsOpen(false);
     setLocalUserData(null);
@@ -157,7 +167,11 @@ export default function UserDropdown() {
 
   const handleProfileClick = () => {
     if (isAdmin) {
-      router.push("/admin");
+      console.log("Điều hướng admin đến trang quản lý");
+      // Thêm timeout để đảm bảo token được cập nhật đầy đủ trước khi điều hướng
+      setTimeout(() => {
+        router.push("/admin");
+      }, 10);
     } else {
       router.push("/profile");
     }
@@ -204,15 +218,7 @@ export default function UserDropdown() {
                 >
                   {isAdmin ? "Bảng điều khiển" : "Thông tin cá nhân"}
                 </button>
-                {/* <Link
-                  href={
-                    isAdmin ? "/orders-management" : "/profile?tab=don-hang"
-                  }
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Đơn hàng
-                </Link> */}
+
                 <button
                   onClick={handleLogout}
                   className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"

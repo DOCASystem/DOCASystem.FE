@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, useEffect, ChangeEvent, useCallback } from "react";
 import { CategoryService } from "@/service/category-service";
 import { toast } from "react-toastify";
 import Button from "@/components/common/button/button";
@@ -167,41 +167,44 @@ export default function CategoriesManagementPage() {
     pageSize: 10,
   });
 
-  // Lấy danh sách danh mục
-  const fetchCategories = async (page = 1) => {
-    // Tránh nhiều request cùng lúc
-    if (isLoading) return;
+  // Tạo một hàm fetchCategories bằng useCallback để tránh re-render quá nhiều
+  const fetchCategories = useCallback(
+    async (page = 1) => {
+      // Tránh nhiều request cùng lúc
+      if (isLoading) return;
 
-    setIsLoading(true);
-    try {
-      const response = await CategoryService.getCategories({
-        page,
-        size: pagination.pageSize,
-      });
+      setIsLoading(true);
+      try {
+        const response = await CategoryService.getCategories({
+          page,
+          size: pagination.pageSize,
+        });
 
-      if (response && response.data) {
-        const data = response.data as CategoryResponseIPaginate;
-        // Kiểm tra dữ liệu trước khi cập nhật state
-        if (Array.isArray(data.items)) {
-          setCategories(data.items);
-          setPagination({
-            currentPage: data.currentPage || 1,
-            totalPages: data.totalPages || 1,
-            totalItems: data.totalItems || 0,
-            pageSize: pagination.pageSize,
-          });
-        } else {
-          console.error("Dữ liệu danh mục không hợp lệ:", data);
-          toast.error("Dữ liệu danh mục không hợp lệ");
+        if (response && response.data) {
+          const data = response.data as CategoryResponseIPaginate;
+          // Kiểm tra dữ liệu trước khi cập nhật state
+          if (Array.isArray(data.items)) {
+            setCategories(data.items);
+            setPagination({
+              currentPage: data.currentPage || 1,
+              totalPages: data.totalPages || 1,
+              totalItems: data.totalItems || 0,
+              pageSize: pagination.pageSize,
+            });
+          } else {
+            console.error("Dữ liệu danh mục không hợp lệ:", data);
+            toast.error("Dữ liệu danh mục không hợp lệ");
+          }
         }
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách danh mục:", error);
+        toast.error("Không thể lấy danh sách danh mục");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Lỗi khi lấy danh sách danh mục:", error);
-      toast.error("Không thể lấy danh sách danh mục");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [isLoading, pagination.pageSize]
+  );
 
   useEffect(() => {
     fetchCategories();

@@ -130,6 +130,7 @@ function ProfileContent() {
   };
 
   const handleLogout = () => {
+    // Gọi hàm logout từ context, việc chuyển hướng đã được xử lý trong AuthService
     logout();
   };
 

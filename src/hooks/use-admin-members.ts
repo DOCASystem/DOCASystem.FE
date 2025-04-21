@@ -141,7 +141,7 @@ export const useAdminMembers = (initialToken?: string) => {
   // Initial fetch
   useEffect(() => {
     getMembers(pagination.page, pagination.size);
-  }, []);
+  }, [getMembers, pagination.page, pagination.size]);
 
   return {
     members,

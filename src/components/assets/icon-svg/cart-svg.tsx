@@ -17,20 +17,20 @@ const CartIcon: React.FC<CartIconProps> = ({
   ...props
 }) => {
   const [cartCount, setCartCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Hàm fetch số lượng sản phẩm trong giỏ hàng từ API
   const fetchCartCount = async () => {
     try {
-      const cartItems = await CartService.getCart();
-      // Tính tổng số lượng của tất cả sản phẩm (bao gồm quantity)
-      const totalQuantity = cartItems.reduce(
-        (sum, item) => sum + item.quantity,
-        0
-      );
-      setCartCount(totalQuantity);
+      setIsLoading(true);
+      // Sử dụng phương thức getCartCount để tối ưu hiệu suất
+      const count = await CartService.getCartCount();
+      setCartCount(count);
     } catch (error) {
       console.error("Lỗi khi lấy số lượng giỏ hàng:", error);
       setCartCount(0);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -81,7 +81,7 @@ const CartIcon: React.FC<CartIconProps> = ({
         <path d="M20 22C20.5523 22 21 21.5523 21 21C21 20.4477 20.5523 20 20 20C19.4477 20 19 20.4477 19 21C19 21.5523 19.4477 22 20 22Z" />
         <path d="M1 1H5L7.68 14.39C7.77144 14.8504 8.02191 15.264 8.38755 15.5583C8.75318 15.8526 9.2107 16.009 9.68 16H19.4C19.8693 16.009 20.3268 15.8526 20.6925 15.5583C21.0581 15.264 21.3086 14.8504 21.4 14.39L23 6H6" />
       </svg>
-      {cartCount > 0 && (
+      {!isLoading && cartCount > 0 && (
         <span className="absolute -top-2 -right-2 bg-pink-doca text-white text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center">
           {cartCount}
         </span>

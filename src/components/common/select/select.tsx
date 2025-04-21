@@ -137,6 +137,7 @@ const Select: React.FC<SelectProps> = ({
   const [showAddDialog, setShowAddDialog] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = `${name}-listbox`;
 
   useOutsideClick(selectRef, () => {
     setIsOpen(false);
@@ -313,41 +314,48 @@ const Select: React.FC<SelectProps> = ({
     }
   };
 
-  // Xử lý class và style
-  const selectClasses = cn(
-    "relative w-full border border-gray-300 rounded-md shadow-sm",
-    "bg-white py-2 px-3 cursor-pointer transition-all",
-    {
-      "border-red-500": error,
-      "border-gray-300": !error,
-      "opacity-70 cursor-not-allowed": disabled,
-      "border-pink-600 ring-1 ring-pink-500": isOpen && !error,
-    },
-    className
-  );
-
   return (
     <div className="w-full">
       {label && (
-        <label className={cn("block text-sm font-medium mb-1", labelClassName)}>
+        <label
+          htmlFor={name}
+          className={cn("block text-sm font-medium mb-1", labelClassName)}
+        >
           {label}
         </label>
       )}
       <div className="relative" ref={selectRef}>
         <div
-          className={selectClasses}
-          onClick={() => !disabled && setIsOpen(!isOpen)}
-          tabIndex={0}
-          role="combobox"
-          aria-expanded={isOpen}
-          aria-haspopup="listbox"
-          aria-labelledby={label}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
+          className={cn(
+            "flex relative items-center w-full cursor-pointer border rounded-md h-10 px-3",
+            isOpen ? "border-pink-400 ring-1 ring-pink-400" : "border-gray-300",
+            error
+              ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+              : "focus:border-pink-400 focus:ring-pink-400",
+            disabled
+              ? "bg-gray-100 cursor-not-allowed text-gray-500"
+              : "bg-white hover:bg-gray-50",
+            "transition-all duration-200",
+            className
+          )}
+          onClick={() => {
+            if (!disabled) {
               setIsOpen(!isOpen);
+              if (isSearchable && !isOpen) {
+                setTimeout(() => {
+                  if (inputRef.current) {
+                    inputRef.current.focus();
+                  }
+                }, 0);
+              }
             }
           }}
+          role="combobox"
+          aria-controls={listboxId}
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+          aria-labelledby={label ? `${name}-label` : undefined}
+          id={name}
         >
           <div className="flex items-center justify-between">
             <div className="flex-1 truncate">{renderSelectedValue()}</div>
@@ -377,7 +385,12 @@ const Select: React.FC<SelectProps> = ({
         </div>
 
         {isOpen && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+          <div
+            className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto"
+            id={listboxId}
+            role="listbox"
+            aria-label={label || "Select options"}
+          >
             {isSearchable && (
               <div className="p-2 border-b">
                 <input

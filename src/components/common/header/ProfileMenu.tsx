@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import AuthService from "@/service/auth.service";
 import { LoginResponse } from "@/api/generated";
 
@@ -14,25 +13,84 @@ interface UserData extends Partial<LoginResponse> {
 export default function ProfileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
-  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Lấy thông tin người dùng khi component mount
-    const userInfo = AuthService.getUserData();
-    setUserData(userInfo);
+    const loadUserData = () => {
+      try {
+        // Lấy thông tin người dùng từ cache
+        console.log("[ProfileMenu] Đang tải thông tin người dùng từ cache");
+        const userInfo = AuthService.fetchUserProfile();
+
+        console.log("[ProfileMenu] Thông tin người dùng từ cache:", userInfo);
+
+        if (userInfo && Object.keys(userInfo).length > 0) {
+          setUserData(userInfo);
+        } else {
+          // Nếu không có dữ liệu trong cache, thử lấy trực tiếp từ localStorage
+          const storedUserData = localStorage.getItem("userData");
+          if (storedUserData) {
+            try {
+              const parsedData = JSON.parse(storedUserData);
+              console.log("[ProfileMenu] Dữ liệu từ localStorage:", parsedData);
+              setUserData(parsedData);
+            } catch (e) {
+              console.error(
+                "[ProfileMenu] Lỗi khi parse userData từ localStorage:",
+                e
+              );
+            }
+          }
+        }
+      } catch (error) {
+        console.error("[ProfileMenu] Lỗi khi lấy thông tin người dùng:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserData();
+
+    // Thêm sự kiện lắng nghe thay đổi localStorage để cập nhật UI khi đăng nhập/đăng xuất
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "userData" || e.key === "token") {
+        loadUserData();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   const handleLogout = () => {
+    // Chỉ gọi hàm logout của AuthService, việc chuyển hướng đã được tích hợp
     AuthService.logout();
-    router.push("/");
   };
+
+  // Kiểm tra xem người dùng có phải admin không
+  const isAdmin = userData?.roles?.includes("ADMIN");
+
+  // Xác định đường dẫn trang quản lý dựa trên vai trò
+  const dashboardLink = isAdmin ? "/admin" : "/dashboard";
+  const dashboardText = isAdmin ? "Quản trị Admin" : "Quản lý";
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
 
-  // Nếu chưa đăng nhập, hiển thị nút đăng nhập
-  if (!userData) {
+  // Hiển thị trạng thái loading
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-4">
+        <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
+      </div>
+    );
+  }
+
+  // Hiển thị UI đơn giản khi chưa đăng nhập hoặc dữ liệu không hợp lệ
+  if (!userData || Object.keys(userData).length === 0) {
     return (
       <div className="flex items-center gap-4">
         <Link
@@ -51,6 +109,19 @@ export default function ProfileMenu() {
     );
   }
 
+  // Lấy chữ cái đầu tiên của tên để hiển thị avatar mặc định
+  const firstLetter =
+    userData.fullName?.charAt(0) || userData.username?.charAt(0) || "U";
+
+  // Lấy tên hiển thị, đảm bảo luôn có giá trị
+  const displayName = userData.fullName || userData.username || "Người dùng";
+
+  console.log("[ProfileMenu] Hiển thị thông tin người dùng:", {
+    displayName,
+    firstLetter,
+    userData,
+  });
+
   return (
     <div className="relative">
       <button
@@ -67,18 +138,15 @@ export default function ProfileMenu() {
               width={32}
               height={32}
               className="h-full w-full object-cover"
+              priority
             />
           ) : (
             <div className="h-full w-full bg-pink-100 flex items-center justify-center text-pink-doca">
-              {userData.fullName?.charAt(0) ||
-                userData.username?.charAt(0) ||
-                "U"}
+              {firstLetter}
             </div>
           )}
         </div>
-        <span className="text-sm font-medium">
-          {userData.fullName || userData.username}
-        </span>
+        <span className="text-sm font-medium">{displayName}</span>
       </button>
 
       {isOpen && (
@@ -90,10 +158,10 @@ export default function ProfileMenu() {
             Thông tin tài khoản
           </Link>
           <Link
-            href="/dashboard"
+            href={dashboardLink}
             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
           >
-            Quản lý
+            {dashboardText}
           </Link>
           <button
             onClick={handleLogout}

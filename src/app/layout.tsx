@@ -4,6 +4,7 @@ import { AuthProvider } from "@/contexts/auth-provider";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { QueryProvider } from "@/providers/query-provider";
+import { ApiOptimizationProvider } from "@/providers/api-optimization-provider";
 
 export const metadata = {
   title: "DOCA",
@@ -31,14 +32,16 @@ export default function RootLayout({
       <body className="bg-white mx-auto">
         <AuthProvider>
           <QueryProvider>
-            {children}
-            <ToastContainer
-              position="top-right"
-              autoClose={3000}
-              limit={1}
-              newestOnTop={true}
-              pauseOnFocusLoss={false}
-            />
+            <ApiOptimizationProvider>
+              {children}
+              <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                limit={1}
+                newestOnTop={true}
+                pauseOnFocusLoss={false}
+              />
+            </ApiOptimizationProvider>
           </QueryProvider>
         </AuthProvider>
       </body>

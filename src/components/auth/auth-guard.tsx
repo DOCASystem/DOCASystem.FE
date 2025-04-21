@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useState, useRef } from "react";
+import { ReactNode, useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthContext } from "@/contexts/auth-provider";
 import { Permission } from "@/auth/types";
@@ -26,18 +26,21 @@ export default function AuthGuard({
   const authCheckDone = useRef(false);
 
   // Hàm kiểm tra quyền đơn giản dựa vào role của user
-  const hasPermission = (permission: Permission): boolean => {
-    // Nếu không có userData thì không có quyền
-    if (!userData || !userData.username) return false;
+  const hasPermission = useCallback(
+    (permission: Permission): boolean => {
+      // Nếu không có userData thì không có quyền
+      if (!userData || !userData.username) return false;
 
-    // Admin có tất cả các quyền
-    if (userData.username === "admin") return true;
+      // Admin có tất cả các quyền
+      if (userData.username === "admin") return true;
 
-    // Người dùng bình thường chỉ có quyền VIEW
-    if (permission.startsWith("VIEW_")) return true;
+      // Người dùng bình thường chỉ có quyền VIEW
+      if (permission.startsWith("VIEW_")) return true;
 
-    return false;
-  };
+      return false;
+    },
+    [userData]
+  );
 
   useEffect(() => {
     // Nếu đã kiểm tra xong và được phép truy cập, không cần kiểm tra lại

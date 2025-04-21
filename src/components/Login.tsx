@@ -37,7 +37,10 @@ const Login = () => {
       router.push("/dashboard");
     } catch (err) {
       const axiosError = err as AxiosError<{ message?: string }>;
-      setAuthError(axiosError.response?.data?.message || "Login failed");
+      setAuthError(
+        axiosError.response?.data?.message ||
+          "Kiểm tra lại tài khoản và mật khẩu"
+      );
     }
   };
 
